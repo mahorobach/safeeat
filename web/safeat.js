@@ -1,9 +1,9 @@
 /**
  * SafeEat — メインUI ロジック
  * Phase 1: オリエンタルベジタリアン特化
+ * Claude API はサーバー経由のため、フロントにAPIキーなし
  */
 
-// --- Render API 設定 ---
 const SAFEAT_API_URL = "https://safeeat-rrzd.onrender.com";
 
 // Supabase Auth トークン（ログイン後に sessionStorage に格納）
@@ -12,31 +12,14 @@ function getAuthToken() {
 }
 
 // --- DOM refs ---
-const apiKeyInput   = document.getElementById("api-key");
-const toggleKeyBtn  = document.getElementById("toggle-key");
 const textarea      = document.getElementById("ingredients-textarea");
 const analyzeBtn    = document.getElementById("analyze-btn");
 const errorBox      = document.getElementById("error-box");
 const resultSection = document.getElementById("result-section");
 
-// --- API key: config.js → sessionStorage の優先順で自動補完 ---
-const configKey  = window.SAFEAT_CONFIG?.CLAUDE_API_KEY || "";
-const sessionKey = sessionStorage.getItem("safeat_api_key") || "";
-apiKeyInput.value = sessionKey || configKey;
-
-apiKeyInput.addEventListener("input", () => {
-  sessionStorage.setItem("safeat_api_key", apiKeyInput.value.trim());
-});
-
-toggleKeyBtn.addEventListener("click", () => {
-  const isHidden = apiKeyInput.type === "password";
-  apiKeyInput.type = isHidden ? "text" : "password";
-  toggleKeyBtn.textContent = isHidden ? "隠す" : "表示";
-});
-
 // =============================================
 // ユーザー検証DB
-// ログイン中: Railway API (/api/ingredients POST)
+// ログイン中: Render API (/api/ingredients POST)
 // 未ログイン: localStorage にフォールバック
 // =============================================
 const USER_DB_KEY = "safeat_user_ingredients";
@@ -50,14 +33,12 @@ function getUserDB() {
 }
 
 async function saveUserIngredient(name, category, reason) {
-  // localStorage には常に保存（オフライン対応）
   const db = getUserDB();
   db[name] = { category, reason, verified: true, savedAt: new Date().toISOString() };
   localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
 
-  // Railway API が設定済みかつログイン中なら DB にも保存
   const token = getAuthToken();
-  if (!SAFEAT_API_URL || !token) return;
+  if (!token) return;
 
   try {
     await fetch(`${SAFEAT_API_URL}/api/ingredients`, {
@@ -69,7 +50,7 @@ async function saveUserIngredient(name, category, reason) {
       body: JSON.stringify({ name, category, reason, confidence: "low" }),
     });
   } catch {
-    // API 失敗時は localStorage のみで継続（サイレント）
+    // API 失敗時は localStorage のみで継続
   }
 }
 
@@ -88,12 +69,6 @@ async function handleAnalyze() {
   clearError();
   hideResult();
 
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) {
-    showError("Claude API キーを入力してください。");
-    return;
-  }
-
   const ingredientsText = textarea.value.trim();
   if (!ingredientsText) {
     showError("成分表を入力してください。");
@@ -103,8 +78,7 @@ async function handleAnalyze() {
   setLoading(true);
 
   try {
-    const result = await analyzeWithClaude(ingredientsText, apiKey);
-    // ユーザーDBで既に検証済みの推測成分を昇格
+    const result = await analyzeWithClaude(ingredientsText);
     const promoted = promoteFromUserDB(result);
     renderResult(promoted, false);
   } catch (err) {
@@ -131,7 +105,6 @@ function promoteFromUserDB(result) {
   for (const item of result.unknown) {
     const saved = lookupUserDB(item.name);
     if (saved) {
-      // 検証済みなので正しい配列へ移動
       const entry = { name: item.name, reason: saved.reason + "（ユーザー確認済み）" };
       if (saved.category === "ok")   promoted.ok   = [...(promoted.ok   || []), entry];
       if (saved.category === "gray") promoted.gray = [...(promoted.gray || []), { ...entry, detail: null }];
@@ -141,16 +114,14 @@ function promoteFromUserDB(result) {
     }
   }
 
-  // overall を再計算
-  if ((promoted.ng || []).length > 0)        promoted.overall = "ng";
-  else if ((promoted.gray || []).length > 0
-        || (promoted.unknown || []).length > 0) promoted.overall = "gray";
-  else                                         promoted.overall = "ok";
+  if ((promoted.ng || []).length > 0)                                       promoted.overall = "ng";
+  else if ((promoted.gray || []).length > 0 || (promoted.unknown || []).length > 0) promoted.overall = "gray";
+  else                                                                       promoted.overall = "ok";
 
   return promoted;
 }
 
-// --- ローカルフォールバック（fetch 不要 — lib/ingredients-db.js をインライン読み込み済み） ---
+// --- ローカルフォールバック ---
 function localFallback(text) {
   const db = window.SafeEatDB;
   const rules = window.SafeEatRules;
@@ -229,14 +200,11 @@ function renderOkList(items) {
 }
 
 function renderUnknownList(items) {
-  const card   = document.getElementById("unknown-card");
-  const list   = document.getElementById("unknown-list");
+  const card = document.getElementById("unknown-card");
+  const list  = document.getElementById("unknown-list");
   setHeaderCount("unknown-header", items.length);
 
-  if (items.length === 0) {
-    card.style.display = "none";
-    return;
-  }
+  if (items.length === 0) { card.style.display = "none"; return; }
   card.style.display = "";
   list.innerHTML = "";
 
@@ -265,7 +233,6 @@ function renderUnknownList(items) {
         <div class="feedback-saved" style="display:none">✓ 保存しました。次回からこの成分は自動分類されます。</div>
       </div>`;
 
-    // フィードバックボタンのイベント
     li.querySelectorAll(".fb-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         li.querySelectorAll(".fb-btn").forEach((b) => b.classList.remove("selected"));
@@ -309,7 +276,6 @@ function setHeaderCount(headerId, count) {
   const el = document.getElementById(headerId);
   if (el) el.querySelector(".count").textContent = `${count}件`;
 }
-
 function makeLi(html) {
   const li = document.createElement("li");
   li.innerHTML = html;
@@ -322,7 +288,6 @@ function setLoading(on) {
   analyzeBtn.classList.toggle("loading", on);
   document.querySelector(".btn-label").textContent = on ? "解析中..." : "成分を解析する";
 }
-
 function showError(msg) {
   errorBox.textContent = msg;
   errorBox.classList.add("visible");
@@ -341,5 +306,4 @@ function esc(str) {
     .replace(/"/g, "&quot;");
 }
 
-// 初期化
 updateUserDBBadge();

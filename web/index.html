@@ -17,19 +17,6 @@
 
 <main>
 
-  <!-- Claude API Key -->
-  <div class="card">
-    <div class="card-title">🔑 Claude API キー</div>
-    <div class="api-key-row">
-      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
-      <button class="btn-icon" id="toggle-key">表示</button>
-    </div>
-    <p class="hint">
-      キーはセッション中のみ保持されます（タブを閉じると消去）。外部に送信されません。<br>
-      取得先: <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>
-    </p>
-  </div>
-
   <!-- Mode (Phase 1: Oriental Vegetarian fixed) -->
   <div class="card">
     <div class="card-title">🌿 判定モード</div>
@@ -125,7 +112,6 @@
 
 <footer>SafeEat v0.2 &nbsp;|&nbsp; オリエンタルベジタリアン特化版 &nbsp;|&nbsp; Powered by Claude API</footer>
 
-<script src="config.js"></script>
 <script src="lib/ingredients-db.js"></script>
 <script src="lib/rules.js"></script>
 <script src="safeat-api.js"></script>
