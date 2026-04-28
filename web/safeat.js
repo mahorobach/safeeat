@@ -63,35 +63,174 @@ function getUserDBCount() {
   return Object.keys(getUserDB()).length;
 }
 
+// --- Tab switching ---
+document.querySelectorAll(".input-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".input-tab").forEach((t) => t.classList.toggle("active", t === tab));
+    document.getElementById("tab-text").style.display  = tab.dataset.tab === "text"  ? "" : "none";
+    document.getElementById("tab-image").style.display = tab.dataset.tab === "image" ? "" : "none";
+    setLoading(false); // ラベルを更新
+  });
+});
+
+function getActiveTab() {
+  return document.querySelector(".input-tab.active")?.dataset.tab || "text";
+}
+
+// --- Image state ---
+let _imageBase64 = null;
+let _imageMediaType = null;
+
+const dropZone        = document.getElementById("drop-zone");
+const imageInput      = document.getElementById("image-input");
+const imagePreview    = document.getElementById("image-preview");
+const dropPlaceholder = document.getElementById("drop-placeholder");
+const clearImageBtn   = document.getElementById("clear-image-btn");
+
+const VALID_IMG_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const IMG_MAX_BYTES   = 5 * 1024 * 1024;
+const IMG_MAX_EDGE    = 1500;
+
+dropZone.addEventListener("click", () => imageInput.click());
+imageInput.addEventListener("change", () => { if (imageInput.files[0]) setImageFile(imageInput.files[0]); });
+
+dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("dragover"));
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+  if (e.dataTransfer.files[0]) setImageFile(e.dataTransfer.files[0]);
+});
+
+clearImageBtn.addEventListener("click", (e) => { e.stopPropagation(); clearImage(); });
+
+function clearImage() {
+  _imageBase64 = _imageMediaType = null;
+  imagePreview.style.display = "none";
+  imagePreview.src = "";
+  dropPlaceholder.style.display = "";
+  clearImageBtn.style.display = "none";
+  dropZone.classList.remove("has-image");
+  imageInput.value = "";
+}
+
+async function setImageFile(file) {
+  if (!VALID_IMG_TYPES.includes(file.type)) {
+    showError("JPEG / PNG / WEBP 形式の画像を選択してください。");
+    return;
+  }
+  clearError();
+
+  let processedFile = file;
+  if (file.size > IMG_MAX_BYTES) {
+    try {
+      const blob = await resizeImage(file);
+      processedFile = new File([blob], file.name, { type: "image/jpeg" });
+    } catch {
+      showError("画像の処理に失敗しました。別の画像を選択してください。");
+      return;
+    }
+  }
+
+  try {
+    _imageBase64    = await fileToBase64(processedFile);
+    _imageMediaType = processedFile.type;
+
+    const objUrl = URL.createObjectURL(processedFile);
+    imagePreview.onload = () => URL.revokeObjectURL(objUrl);
+    imagePreview.src = objUrl;
+    imagePreview.style.display = "block";
+    dropPlaceholder.style.display = "none";
+    clearImageBtn.style.display  = "inline-block";
+    dropZone.classList.add("has-image");
+  } catch {
+    showError("画像の読み込みに失敗しました。");
+  }
+}
+
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const scale = Math.min(1, IMG_MAX_EDGE / Math.max(w, h));
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("resize failed"))),
+        "image/jpeg",
+        0.85,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = (e) => resolve(e.target.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // --- Analyze ---
 analyzeBtn.addEventListener("click", handleAnalyze);
 
 async function handleAnalyze() {
   clearError();
   hideResult();
+  setLoading(true);
 
+  try {
+    if (getActiveTab() === "image") {
+      await handleImageAnalyze();
+    } else {
+      await handleTextAnalyze();
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleTextAnalyze() {
   const ingredientsText = textarea.value.trim();
   if (!ingredientsText) {
     showError("成分表を入力してください。");
     return;
   }
-
-  setLoading(true);
-
   try {
     const result = await analyzeWithClaude(ingredientsText);
     const promoted = promoteFromUserDB(result);
-    renderResult(promoted, false);
+    renderResult(promoted, false, null);
   } catch (err) {
     try {
       const result = localFallback(ingredientsText);
       const promoted = promoteFromUserDB(result);
-      renderResult(promoted, true);
+      renderResult(promoted, true, null);
     } catch {
       showError(`解析エラー：${err.message}`);
     }
-  } finally {
-    setLoading(false);
+  }
+}
+
+async function handleImageAnalyze() {
+  if (!_imageBase64) {
+    showError("画像を選択してください。");
+    return;
+  }
+  try {
+    const { result, extractedText } = await analyzeWithImage(_imageBase64, _imageMediaType);
+    const promoted = promoteFromUserDB(result);
+    renderResult(promoted, false, extractedText);
+  } catch (err) {
+    showError(`解析エラー：${err.message}`);
   }
 }
 
@@ -143,7 +282,7 @@ const OVERALL_CONFIG = {
   ng:   { icon: "❌", label: "このモードでは食べられません" },
 };
 
-function renderResult(result, isOffline) {
+function renderResult(result, isOffline, extractedText) {
   const cfg = OVERALL_CONFIG[result.overall] || OVERALL_CONFIG.gray;
   document.getElementById("overall-icon").textContent = cfg.icon;
 
@@ -156,6 +295,7 @@ function renderResult(result, isOffline) {
 
   document.getElementById("overall-banner").className = `overall-banner ${result.overall}`;
 
+  renderExtractedAccordion(extractedText);
   renderNgList(result.ng || []);
   renderGrayList(result.gray || []);
   renderOkList(result.ok || []);
@@ -164,6 +304,14 @@ function renderResult(result, isOffline) {
 
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderExtractedAccordion(text) {
+  const accordion = document.getElementById("extracted-accordion");
+  if (!text) { accordion.style.display = "none"; return; }
+  document.getElementById("extracted-text").textContent = text;
+  accordion.style.display = "";
+  accordion.open = false;
 }
 
 function renderNgList(items) {
@@ -287,7 +435,9 @@ function emptyLi() { return `<li class="empty-list">なし</li>`; }
 function setLoading(on) {
   analyzeBtn.disabled = on;
   analyzeBtn.classList.toggle("loading", on);
-  document.querySelector(".btn-label").textContent = on ? "解析中..." : "成分を解析する";
+  document.querySelector(".btn-label").textContent = on
+    ? "解析中..."
+    : getActiveTab() === "image" ? "この画像で解析する" : "成分を解析する";
 }
 function showError(msg) {
   errorBox.textContent = msg;

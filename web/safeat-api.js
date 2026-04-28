@@ -49,4 +49,29 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
   throw lastError;
 }
 
+/**
+ * @param {string} imageData  - Base64エンコードされた画像データ
+ * @param {string} mediaType  - "image/jpeg" | "image/png" | "image/webp"
+ * @returns {Promise<{result, extractedText}>}
+ */
+async function analyzeWithImage(imageData, mediaType) {
+  const res = await fetchWithRetry(`${API_BASE}/api/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: "image",
+      image: { data: imageData, mediaType },
+      mode: "oriental",
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `サーバーエラー (${res.status})`);
+  }
+
+  return { result: data.data, extractedText: data.extractedText || null };
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

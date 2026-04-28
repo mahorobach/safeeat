@@ -158,23 +158,65 @@ function getApiKey(res) {
 }
 
 // =============================================
-// POST /api/analyze  — テキスト判定（既存・変更なし）
+// POST /api/analyze  — type フィールドで text / image を切り替え
 // =============================================
 router.post("/", async (req, res, next) => {
-  const { ingredients } = req.body;
+  const { type = "text" } = req.body;
 
-  if (!ingredients || !String(ingredients).trim()) {
-    return res.status(400).json({ ok: false, error: "ingredients は必須です" });
-  }
+  if (type === "image") {
+    const { image, mode = "oriental" } = req.body;
 
-  const apiKey = getApiKey(res);
-  if (!apiKey) return;
+    if (!image || !image.data) {
+      return res.status(400).json({ ok: false, error: "image.data は必須です（Base64文字列）" });
+    }
+    if (!VALID_MIME_TYPES.includes(image.mediaType)) {
+      return res.status(400).json({
+        ok: false,
+        error: `image.mediaType が不正です。対応形式: ${VALID_MIME_TYPES.join(", ")}`,
+      });
+    }
 
-  try {
-    const result = await analyzeIngredients(String(ingredients), apiKey);
-    res.json({ ok: true, data: result });
-  } catch (e) {
-    next(e);
+    const sizeBytes = Buffer.byteLength(image.data, "base64");
+    if (sizeBytes > IMAGE_SIZE_LIMIT) {
+      return res.status(400).json({
+        ok: false,
+        error: `画像サイズが上限（5MB）を超えています（${(sizeBytes / 1024 / 1024).toFixed(1)}MB）`,
+      });
+    }
+
+    const apiKey = getApiKey(res);
+    if (!apiKey) return;
+
+    try {
+      const extractedText = await extractIngredientsFromImage(image.data, image.mediaType, apiKey);
+      if (!extractedText.trim()) {
+        return res.status(422).json({
+          ok: false,
+          error: "成分表が読み取れませんでした。別の角度から撮影してください。",
+        });
+      }
+      const result = await analyzeIngredients(extractedText, apiKey);
+      res.json({ ok: true, data: result, extractedText });
+    } catch (e) {
+      next(e);
+    }
+
+  } else {
+    // テキスト判定（既存）
+    const { ingredients } = req.body;
+    if (!ingredients || !String(ingredients).trim()) {
+      return res.status(400).json({ ok: false, error: "ingredients は必須です" });
+    }
+
+    const apiKey = getApiKey(res);
+    if (!apiKey) return;
+
+    try {
+      const result = await analyzeIngredients(String(ingredients), apiKey);
+      res.json({ ok: true, data: result });
+    } catch (e) {
+      next(e);
+    }
   }
 });
 
