@@ -19,9 +19,10 @@ const analyzeBtn    = document.getElementById("analyze-btn");
 const errorBox      = document.getElementById("error-box");
 const resultSection = document.getElementById("result-section");
 
-// --- API key: sessionStorage のみ（タブを閉じると消える） ---
-const savedKey = sessionStorage.getItem("safeat_api_key");
-if (savedKey) apiKeyInput.value = savedKey;
+// --- API key: config.js → sessionStorage の優先順で自動補完 ---
+const configKey  = window.SAFEAT_CONFIG?.CLAUDE_API_KEY || "";
+const sessionKey = sessionStorage.getItem("safeat_api_key") || "";
+apiKeyInput.value = sessionKey || configKey;
 
 apiKeyInput.addEventListener("input", () => {
   sessionStorage.setItem("safeat_api_key", apiKeyInput.value.trim());

@@ -61,10 +61,11 @@ const SYSTEM_PROMPT = `あなたは食品成分の専門家です。
 
 /**
  * @param {string} ingredientsText - 成分表テキスト
- * @param {string} apiKey - Claude APIキー
+ * @param {string} [apiKey] - Claude APIキー（省略時は config.js から取得）
  * @returns {Promise<{ok, gray, ng, unknown, overall, summary}>}
  */
 async function analyzeWithClaude(ingredientsText, apiKey) {
+  apiKey = apiKey || window.SAFEAT_CONFIG?.CLAUDE_API_KEY || "";
   const body = {
     model: MODEL,
     max_tokens: 2048,

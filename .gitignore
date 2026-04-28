@@ -4,6 +4,9 @@
 .env.production
 *.secret
 
+# APIキー設定（ローカルのみ・GitHub非公開）
+web/config.js
+
 # エディタ
 .DS_Store
 .vscode/settings.json
