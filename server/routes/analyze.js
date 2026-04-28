@@ -2,8 +2,14 @@ import { Router } from "express";
 
 const router = Router();
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-sonnet-4-20250514";
 
+const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB（Base64デコード後のサイズ）
+
+// =============================================
+// システムプロンプト（テキスト判定・画像判定共用）
+// =============================================
 const SYSTEM_PROMPT = `あなたは食品成分の専門家です。
 オリエンタルベジタリアンの基準で各成分を厳密に分類してください。
 日本語の成分名（片仮名・漢字・ひらがな混じり）、食品添加物のE番号、化学名にも正確に対応してください。
@@ -56,54 +62,81 @@ const SYSTEM_PROMPT = `あなたは食品成分の専門家です。
   "summary": "総合コメント（日本語・2〜3文）"
 }`;
 
-// POST /api/analyze
-router.post("/", async (req, res, next) => {
-  const { ingredients } = req.body;
+// =============================================
+// 共通: Claude に成分判定を依頼
+// =============================================
+async function analyzeIngredients(ingredientsText, apiKey) {
+  const res = await fetch(CLAUDE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `以下の成分リストをオリエンタルベジタリアン基準で分類してください:\n\n${ingredientsText}`,
+        },
+      ],
+    }),
+  });
 
-  if (!ingredients || !String(ingredients).trim()) {
-    return res.status(400).json({ ok: false, error: "ingredients は必須です" });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `Claude APIエラー (${res.status})`);
   }
 
-  const apiKey = process.env.CLAUDE_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ ok: false, error: "サーバー設定エラー（APIキー未設定）" });
+  return parseClaudeResponse(data.content?.[0]?.text || "");
+}
+
+// =============================================
+// 共通: Claude Vision で画像から成分テキストを抽出
+// =============================================
+async function extractIngredientsFromImage(image, mimeType, apiKey) {
+  const res = await fetch(CLAUDE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType,
+                data: image,
+              },
+            },
+            {
+              type: "text",
+              text: "この画像から食品の成分表・原材料名の部分を読み取り、成分をすべてリストアップしてください。成分名のみをカンマ区切りで出力してください。",
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `Claude Vision APIエラー (${res.status})`);
   }
 
-  try {
-    const claudeRes = await fetch(CLAUDE_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `以下の成分リストをオリエンタルベジタリアン基準で分類してください:\n\n${ingredients}`,
-          },
-        ],
-      }),
-    });
-
-    const data = await claudeRes.json();
-
-    if (!claudeRes.ok) {
-      const msg = data?.error?.message || `Claude APIエラー (${claudeRes.status})`;
-      return res.status(502).json({ ok: false, error: msg });
-    }
-
-    const text = data.content?.[0]?.text || "";
-    const result = parseClaudeResponse(text);
-    res.json({ ok: true, data: result });
-  } catch (e) {
-    next(e);
-  }
-});
+  return data.content?.[0]?.text || "";
+}
 
 function parseClaudeResponse(text) {
   const jsonMatch =
@@ -114,5 +147,88 @@ function parseClaudeResponse(text) {
   if (!Array.isArray(parsed.unknown)) parsed.unknown = [];
   return parsed;
 }
+
+function getApiKey(res) {
+  const apiKey = process.env.CLAUDE_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ ok: false, error: "サーバー設定エラー（APIキー未設定）" });
+    return null;
+  }
+  return apiKey;
+}
+
+// =============================================
+// POST /api/analyze  — テキスト判定（既存・変更なし）
+// =============================================
+router.post("/", async (req, res, next) => {
+  const { ingredients } = req.body;
+
+  if (!ingredients || !String(ingredients).trim()) {
+    return res.status(400).json({ ok: false, error: "ingredients は必須です" });
+  }
+
+  const apiKey = getApiKey(res);
+  if (!apiKey) return;
+
+  try {
+    const result = await analyzeIngredients(String(ingredients), apiKey);
+    res.json({ ok: true, data: result });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// =============================================
+// POST /api/analyze/image  — 画像 → 成分抽出 → 判定（新規）
+// =============================================
+router.post("/image", async (req, res, next) => {
+  const { image, mimeType, mode = "oriental" } = req.body;
+
+  // バリデーション
+  if (!image) {
+    return res.status(400).json({ ok: false, error: "image は必須です（Base64文字列）" });
+  }
+  if (!VALID_MIME_TYPES.includes(mimeType)) {
+    return res.status(400).json({
+      ok: false,
+      error: `mimeType が不正です。対応形式: ${VALID_MIME_TYPES.join(", ")}`,
+    });
+  }
+
+  // ファイルサイズチェック（Base64デコード後の実サイズ）
+  const sizeBytes = Buffer.byteLength(image, "base64");
+  if (sizeBytes > IMAGE_SIZE_LIMIT) {
+    return res.status(400).json({
+      ok: false,
+      error: `画像サイズが上限（5MB）を超えています（${(sizeBytes / 1024 / 1024).toFixed(1)}MB）`,
+    });
+  }
+
+  const apiKey = getApiKey(res);
+  if (!apiKey) return;
+
+  try {
+    // Step 1: 画像から成分テキストを抽出
+    const extractedText = await extractIngredientsFromImage(image, mimeType, apiKey);
+
+    if (!extractedText.trim()) {
+      return res.status(422).json({
+        ok: false,
+        error: "成分表が読み取れませんでした。画像を確認してください。",
+      });
+    }
+
+    // Step 2: 抽出したテキストで成分判定
+    const result = await analyzeIngredients(extractedText, apiKey);
+
+    res.json({
+      ok: true,
+      data: result,
+      extractedText, // フロントエンドで「読み取った成分」として表示可能
+    });
+  } catch (e) {
+    next(e);
+  }
+});
 
 export default router;

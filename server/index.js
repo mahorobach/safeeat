@@ -33,7 +33,8 @@ app.post(
 );
 
 // --- 通常のルート ---
-app.use(express.json());
+// Base64画像（5MB）は約7MBのJSONになるため10mbに設定
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "SafeEat API", ts: new Date().toISOString() });
