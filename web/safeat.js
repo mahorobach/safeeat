@@ -108,7 +108,7 @@ async function handleAnalyze() {
     renderResult(promoted, false);
   } catch (err) {
     try {
-      const result = await localFallback(ingredientsText);
+      const result = localFallback(ingredientsText);
       const promoted = promoteFromUserDB(result);
       renderResult(promoted, true);
     } catch {
@@ -149,11 +149,11 @@ function promoteFromUserDB(result) {
   return promoted;
 }
 
-// --- ローカルフォールバック ---
-async function localFallback(text) {
-  const db = await fetch("../shared/ingredients-db.json").then((r) => r.json());
+// --- ローカルフォールバック（fetch 不要 — lib/ingredients-db.js をインライン読み込み済み） ---
+function localFallback(text) {
+  const db = window.SafeEatDB;
   const rules = window.SafeEatRules;
-  if (!rules) throw new Error("ローカル判定モジュールが読み込まれていません。");
+  if (!db || !rules) throw new Error("判定モジュールが読み込まれていません。ページを再読み込みしてください。");
 
   const ingredients = text
     .split(/[,、，\/\n・]+/)
