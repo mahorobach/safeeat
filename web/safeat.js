@@ -1,10 +1,11 @@
 /**
  * SafeEat — メインUI ロジック
  * Phase 1: オリエンタルベジタリアン特化
- * Claude API はサーバー経由のため、フロントにAPIキーなし
+ * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const SAFEAT_API_URL = "https://safeeat-rrzd.onrender.com";
+const SAFEAT_API_URL =
+  (window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) || "https://safeeat-rrzd.onrender.com";
 
 // Supabase Auth トークン（ログイン後に sessionStorage に格納）
 function getAuthToken() {

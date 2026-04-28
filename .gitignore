@@ -4,8 +4,9 @@
 .env.production
 *.secret
 
-# APIキー設定（ローカルのみ・GitHub非公開）
-web/config.js
+# フロントのローカル上書き（任意・コミットしない）
+web/site-config.local.js
+web/*.local.js
 
 # エディタ
 .DS_Store

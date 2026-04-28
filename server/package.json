@@ -1,7 +1,7 @@
 {
   "name": "safeat-server",
   "version": "1.0.0",
-  "description": "SafeEat API server — Node.js/Express on Railway",
+  "description": "SafeEat API server — Node.js/Express (e.g. Render)",
   "main": "index.js",
   "type": "module",
   "engines": {

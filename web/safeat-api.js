@@ -1,9 +1,11 @@
 /**
  * SafeEat — 解析 API クライアント
- * Claude API はサーバー側（Render）で呼び出すため、APIキーはここに不要
+ * Claude API はサーバー側（Render 等）で呼び出す。キーはサーバーの環境変数のみ。
  */
 
-const API_BASE = "https://safeeat-rrzd.onrender.com";
+const API_BASE =
+  (typeof window !== "undefined" && window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) ||
+  "https://safeeat-rrzd.onrender.com";
 
 /**
  * @param {string} ingredientsText - 成分表テキスト
