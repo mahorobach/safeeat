@@ -3,10 +3,8 @@
  * Phase 1: オリエンタルベジタリアン特化
  */
 
-// --- Railway API 設定 ---
-// Railway にデプロイ後、実際の URL に更新してください
-// 空文字のままだと localStorage のみで動作します（Phase 1）
-const SAFEAT_API_URL = "";  // 例: "https://safeat-server.railway.app"
+// --- Render API 設定 ---
+const SAFEAT_API_URL = "https://safeeat-rrzd.onrender.com";
 
 // Supabase Auth トークン（ログイン後に sessionStorage に格納）
 function getAuthToken() {
