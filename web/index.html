@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeEat — 食品成分チェッカー（オリエンタルベジタリアン）</title>
+  <link rel="stylesheet" href="safeat.css">
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">🥬 SafeEat</div>
+    <div class="tagline">オリエンタルベジタリアン専用 成分チェッカー</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Claude API Key -->
+  <div class="card">
+    <div class="card-title">🔑 Claude API キー</div>
+    <div class="api-key-row">
+      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+      <button class="btn-icon" id="toggle-key">表示</button>
+    </div>
+    <p class="hint">
+      キーはセッション中のみ保持されます（タブを閉じると消去）。外部に送信されません。<br>
+      取得先: <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>
+    </p>
+  </div>
+
+  <!-- Mode (Phase 1: Oriental Vegetarian fixed) -->
+  <div class="card">
+    <div class="card-title">🌿 判定モード</div>
+    <div class="mode-badge">
+      <span class="mode-icon">🏮</span>
+      <div class="mode-info">
+        <div class="mode-name">オリエンタルベジタリアン</div>
+        <div class="mode-rule">五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚 NG｜卵・乳製品・蜂蜜・ローヤルゼリー OK</div>
+      </div>
+    </div>
+    <p class="phase-note">※ Phase 2以降でヴィーガン・ラクト・オボ・カスタムモードを追加予定</p>
+  </div>
+
+  <!-- Ingredient Input -->
+  <div class="card">
+    <div class="card-title">📋 成分表を入力</div>
+    <textarea
+      id="ingredients-textarea"
+      placeholder="例：砂糖、小麦粉、植物油脂、食塩、しょうゆ（大豆・小麦を含む）、かつお節エキス、酵母エキス、グリセリン、天然香料、調味料（アミノ酸等）、乳化剤（大豆レシチン）、ビタミンD"
+    ></textarea>
+    <p class="input-hint">成分をカンマ・読点・改行などで区切って貼り付けてください</p>
+    <div class="image-placeholder">
+      📷 カメラで成分表を撮影して読み取り（Phase 5 対応予定）
+    </div>
+  </div>
+
+  <!-- Analyze Button -->
+  <button class="btn-analyze" id="analyze-btn">
+    <span class="spinner"></span>
+    <span class="btn-label">成分を解析する</span>
+  </button>
+
+  <!-- Error -->
+  <div class="error-box" id="error-box"></div>
+
+  <!-- Results -->
+  <section id="result-section">
+
+    <!-- Overall -->
+    <div class="overall-banner" id="overall-banner">
+      <div class="overall-icon" id="overall-icon"></div>
+      <div class="overall-text">
+        <div class="verdict" id="overall-verdict"></div>
+        <div class="summary" id="overall-summary"></div>
+      </div>
+    </div>
+
+    <!-- NG -->
+    <div class="result-list-card">
+      <div class="result-list-header ng" id="ng-header">
+        ❌ NGな成分
+        <span class="count"></span>
+      </div>
+      <ul class="result-list" id="ng-list"></ul>
+    </div>
+
+    <!-- Gray -->
+    <div class="result-list-card">
+      <div class="result-list-header gray" id="gray-header">
+        🟡 グレー（由来要確認）
+        <span class="count"></span>
+      </div>
+      <ul class="result-list" id="gray-list"></ul>
+    </div>
+
+    <!-- OK -->
+    <div class="result-list-card">
+      <div class="result-list-header ok" id="ok-header">
+        ✅ OK な成分
+        <span class="count"></span>
+      </div>
+      <ul class="result-list" id="ok-list"></ul>
+    </div>
+
+    <!-- Unknown (🔍推測) — hidden if empty -->
+    <div class="result-list-card" id="unknown-card" style="display:none">
+      <div class="result-list-header unknown" id="unknown-header">
+        🔍 推測判定（DBに未登録）
+        <span class="count"></span>
+      </div>
+      <ul class="result-list" id="unknown-list"></ul>
+    </div>
+
+    <!-- User DB badge -->
+    <p class="user-db-note">
+      <span id="user-db-count" style="display:none"></span>
+      <span class="user-db-hint">🔍推測成分の正解を入力すると、次回から自動分類されます（このブラウザに保存）</span>
+    </p>
+
+  </section>
+
+</main>
+
+<footer>SafeEat v0.2 &nbsp;|&nbsp; オリエンタルベジタリアン特化版 &nbsp;|&nbsp; Powered by Claude API</footer>
+
+<script src="../shared/rules.js"></script>
+<script src="safeat-api.js"></script>
+<script src="safeat.js"></script>
+</body>
+</html>

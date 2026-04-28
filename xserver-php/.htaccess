@@ -1,0 +1,22 @@
+# SafeEat — Xserver API ディレクトリ保護
+
+# スキーマファイルへの直接アクセスを拒否
+<Files "schema.sql">
+  Order Allow,Deny
+  Deny from all
+</Files>
+
+# PHP以外のファイルへのアクセスを拒否
+<FilesMatch "^(?!.*\.php$).*$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# CORS はPHP側で設定するためここでは制御しない
+
+# ディレクトリ一覧を非表示
+Options -Indexes
+
+# エラーページ
+ErrorDocument 403 {"ok":false,"error":"Forbidden"}
+ErrorDocument 404 {"ok":false,"error":"Not Found"}

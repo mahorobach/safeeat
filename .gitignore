@@ -1,0 +1,26 @@
+# 環境変数・シークレット
+.env
+.env.local
+.env.production
+*.secret
+
+# エディタ
+.DS_Store
+.vscode/settings.json
+*.swp
+*.swo
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# PHP（xserver-php は将来用）
+vendor/
+xserver-php/config.php
+
+# ビルド成果物
+dist/
+build/
+
+# ログ
+*.log
