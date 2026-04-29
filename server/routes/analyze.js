@@ -99,7 +99,7 @@ async function analyzeIngredients(ingredientsText, apiKey) {
     throw new Error(data?.error?.message || `Claude APIエラー (${res.status})`);
   }
 
-  const parsed = parseClaudeResponse(data.content?.[0]?.text || "");
+  const parsed = parseClaudeResponse(getAnthropicText(data));
   return splitClassificationResult(parsed).result;
 }
 
@@ -162,7 +162,7 @@ async function analyzeFromImageSingleCall(image, mimeType, apiKey) {
     throw new Error(data?.error?.message || `Claude Vision APIエラー (${res.status})`);
   }
 
-  const text = data.content?.[0]?.text || "";
+  const text = getAnthropicText(data);
   const parsed = parseClaudeResponse(text);
   return splitClassificationResult(parsed);
 }
@@ -177,28 +177,101 @@ function parseClaudeResponse(text) {
   return parsed;
 }
 
+/** Messages API の content 配列から最初のテキストを取得（model 差・ブロック順差の吸収） */
+function getAnthropicText(data) {
+  const parts = data?.content;
+  if (!Array.isArray(parts)) return "";
+  const block = parts.find((p) => p?.type === "text" && typeof p.text === "string");
+  return block ? block.text : "";
+}
+
+/** 先頭の { … } を文字列リテラル内を考慮して切り出し */
+function extractBalancedJsonObject(s, startIdx) {
+  if (!s || s[startIdx] !== "{") return null;
+  let depth = 0;
+  let inString = false;
+  let i = startIdx;
+  while (i < s.length) {
+    const c = s[i];
+    if (inString) {
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === '"') inString = false;
+      i++;
+      continue;
+    }
+    if (c === '"') inString = true;
+    else if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) return s.slice(startIdx, i + 1);
+    }
+    i++;
+  }
+  return null;
+}
+
+function truthyExtractOnly(v) {
+  if (v === true || v === 1) return true;
+  if (typeof v === "string" && v.toLowerCase() === "true") return true;
+  return false;
+}
+
 // =============================================
 // 画像 → 成分テキストのみ（判定なし・応答短く切り分け用）
 // =============================================
 const IMAGE_EXTRACT_SYSTEM = `あなたは日本の食品パッケージの【原材料名・成分表示】を読み取る専用アシスタントです。
 デザイン・ロゴ・栄養成分表・広告文は無視し、原材料・添加物の列挙だけを抽出してください。
 
-次のJSONのみを返してください（前後に説明文やMarkdown_fenceを付けないこと）:
-{"ingredientListRaw":"カンマ区切りで成分名を1行に列挙"}`;
+次の1行のJSON**だけ**を返してください（前後の説明・Markdown・コードフェンスは禁止）:
+{"ingredientListRaw":"カンマまたは読点区切りで成分名を1行に列挙"}`;
 
 function parseExtractOnlyResponse(text) {
-  const jsonMatch =
-    text.match(/```json\s*([\s\S]*?)```/) || text.match(/(\{[\s\S]*\})/);
-  if (!jsonMatch) throw new Error("読み取り結果の解析に失敗しました");
-
-  const parsed = JSON.parse(jsonMatch[1]);
-  const raw = typeof parsed.ingredientListRaw === "string" ? parsed.ingredientListRaw.trim() : "";
-  if (!raw) {
-    throw new Error(
-      "成分表のテキストが空でした。原材料部分を切り取るか、別の写真をお試しください。",
-    );
+  const rawInput = String(text || "").trim();
+  if (!rawInput) {
+    throw new Error("APIからテキストが返りませんでした。しばらくして再試行してください。");
   }
-  return raw;
+
+  const fromIngredientKey = (parsed) => {
+    const raw = typeof parsed.ingredientListRaw === "string" ? parsed.ingredientListRaw.trim() : "";
+    return raw || null;
+  };
+
+  const tryParseJson = (slice) => {
+    try {
+      const parsed = JSON.parse(slice.trim());
+      return fromIngredientKey(parsed);
+    } catch {
+      return null;
+    }
+  };
+
+  const fence = rawInput.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) {
+    const v = tryParseJson(fence[1]);
+    if (v) return v;
+  }
+
+  const i = rawInput.indexOf("{");
+  if (i >= 0) {
+    const balanced = extractBalancedJsonObject(rawInput, i);
+    if (balanced) {
+      const v = tryParseJson(balanced);
+      if (v) return v;
+    }
+  }
+
+  const lines = rawInput.split(/\n/).map((s) => s.trim()).filter(Boolean);
+  const plain =
+    lines.find((l) => /[、,]/.test(l) && l.length >= 6) ||
+    (/[、,]/.test(rawInput) && rawInput.length >= 6 ? rawInput : "");
+  if (plain) {
+    return plain.replace(/^原材料[：:]\s*/i, "").replace(/^成分[：:]\s*/i, "").trim();
+  }
+
+  throw new Error("読み取り結果の解析に失敗しました。画像を切り取るか再試行してください。");
 }
 
 async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
@@ -240,7 +313,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
     throw new Error(data?.error?.message || `Claude Vision APIエラー (${res.status})`);
   }
 
-  return parseExtractOnlyResponse(data.content?.[0]?.text || "");
+  return parseExtractOnlyResponse(getAnthropicText(data));
 }
 
 function getApiKey(res) {
@@ -259,7 +332,7 @@ router.post("/", async (req, res, next) => {
   const { type = "text" } = req.body;
 
   if (type === "image") {
-    const { image, mode = "oriental", extractOnly = false } = req.body;
+    const { image, mode = "oriental" } = req.body;
 
     if (!image || !image.data) {
       return res.status(400).json({ ok: false, error: "image.data は必須です（Base64文字列）" });
@@ -283,7 +356,7 @@ router.post("/", async (req, res, next) => {
     if (!apiKey) return;
 
     try {
-      if (extractOnly === true) {
+      if (truthyExtractOnly(req.body.extractOnly)) {
         const extractedText = await extractIngredientsTextFromImage(
           image.data,
           image.mediaType,

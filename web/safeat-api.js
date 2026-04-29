@@ -83,10 +83,15 @@ async function extractTextFromImage(imageData, mediaType) {
           mode: "oriental",
         }),
       },
-      2,
+      3,
     );
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`サーバー応答が不正です (${res.status})。API を再デプロイしているか確認してください。`);
+    }
 
     if (!res.ok || !data.ok) {
       throw new Error(data.error || `サーバーエラー (${res.status})`);
