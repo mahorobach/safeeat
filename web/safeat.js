@@ -94,6 +94,22 @@ const btnApplyCrop    = document.getElementById("btn-apply-crop");
 const btnCancelCrop   = document.getElementById("btn-cancel-crop");
 
 const VALID_IMG_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function isUnsupportedImageMime(file) {
+  const t = (file.type || "").toLowerCase();
+  return t === "image/heic" || t === "image/heif";
+}
+
+/** モバイルでは type が空・octet-stream になりがち。デコード可能なら受け入れる */
+function mayBeProcessableImageFile(file) {
+  if (!file?.type) return true;
+  const t = file.type.toLowerCase();
+  if (VALID_IMG_TYPES.includes(t)) return true;
+  if (t.startsWith("image/")) return true;
+  if (t === "application/octet-stream") return true;
+  return false;
+}
+
 /** タイムアウトしやすいホスティング向け。長辺を抑えロード削減 */
 const VISION_MAX_EDGE     = 1024;
 const VISION_JPEG_QUALITY = 0.76;
@@ -177,7 +193,13 @@ function blobToBase64(blob) {
 }
 
 async function setImageFile(file) {
-  if (!VALID_IMG_TYPES.includes(file.type)) {
+  if (isUnsupportedImageMime(file)) {
+    showError(
+      "HEIC（iPhoneの写真）形式はこのブラウザでは読み取れません。写真アプリで「JPEGでコピー」するか、スクリーンショットをJPEGで保存してから選んでください。",
+    );
+    return;
+  }
+  if (!mayBeProcessableImageFile(file)) {
     showError("JPEG / PNG / WEBP 形式の画像を選択してください。");
     return;
   }
@@ -209,6 +231,9 @@ async function setImageFile(file) {
     imageToolbar.style.display   = "block";
     cropPanel.style.display      = "none";
     dropZone.classList.add("has-image");
+    requestAnimationFrame(() =>
+      imageToolbar?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+    );
   } catch {
     showError("画像の読み込みに失敗しました。");
   }
@@ -275,6 +300,9 @@ function openCropPanel() {
     imageToolbar.style.display = "none";
     cropPanel.style.display = "block";
     setupCropInteraction();
+    requestAnimationFrame(() =>
+      cropPanel.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+    );
   };
   img.onerror = () => {
     URL.revokeObjectURL(url);
