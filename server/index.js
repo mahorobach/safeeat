@@ -1,10 +1,16 @@
-import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import analyzeRouter from "./routes/analyze.js";
 import ingredientsRouter from "./routes/ingredients.js";
 import userRouter from "./routes/user.js";
 import subscriptionRouter, { webhookHandler } from "./routes/subscription.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+/** cwd に依存しない（リポジトリルートから node server/index.js でも server/.env を読む） */
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
