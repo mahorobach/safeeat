@@ -369,6 +369,30 @@ main {
 .overall-banner.ok     { background: var(--green-light); border: 2px solid var(--green-border); }
 .overall-banner.gray   { background: var(--amber-light); border: 2px solid var(--amber-border); }
 .overall-banner.ng     { background: var(--red-light);   border: 2px solid var(--red-border); }
+.overall-banner.extract-only {
+  background: var(--blue-light);
+  border: 2px solid var(--blue-border);
+}
+
+.extract-only-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .78rem;
+  line-height: 1.5;
+  color: #37474f;
+  cursor: pointer;
+}
+.extract-only-option input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.extract-only-option strong { color: var(--blue); font-weight: 700; }
 
 .overall-icon { font-size: 2.4rem; line-height: 1; flex-shrink: 0; }
 .overall-text .verdict {

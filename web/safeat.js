@@ -73,6 +73,8 @@ document.querySelectorAll(".input-tab").forEach((tab) => {
   });
 });
 
+document.getElementById("image-extract-only")?.addEventListener("change", () => setLoading(false));
+
 function getActiveTab() {
   return document.querySelector(".input-tab.active")?.dataset.tab || "text";
 }
@@ -464,13 +466,51 @@ async function handleImageAnalyze() {
     showError("画像を選択してください。");
     return;
   }
+  const extractOnly = document.getElementById("image-extract-only")?.checked;
   try {
+    if (extractOnly) {
+      const { extractedText } = await extractTextFromImage(_imageBase64, _imageMediaType);
+      renderExtractOnlyResult(extractedText);
+      return;
+    }
     const { result, extractedText } = await analyzeWithImage(_imageBase64, _imageMediaType);
     const promoted = promoteFromUserDB(result);
     renderResult(promoted, false, extractedText);
   } catch (err) {
     showError(`解析エラー：${err.message}`);
   }
+}
+
+/** 画像→テキストのみ成功時。判定リストは出さず、テキスト欄に転記して次の操作を案内する */
+function renderExtractOnlyResult(extractedText) {
+  const text = String(extractedText || "").trim();
+  if (!text) {
+    showError("読み取ったテキストが空です。写真の切り取りを試すか、別の画像を選んでください。");
+    return;
+  }
+  clearError();
+  textarea.value = text;
+
+  const banner = document.getElementById("overall-banner");
+  banner.className = "overall-banner extract-only";
+  document.getElementById("overall-icon").textContent = "📄";
+  document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
+  document.getElementById("overall-verdict").className = "verdict";
+  document.getElementById("overall-summary").textContent =
+    "ここまで成功すれば、通信と Vision による文字起こしは通っています。オリエンタルベジタリアン向けの成分判定は、「📝 テキスト入力」タブに切り替え、同じ内容が入力された状態で「成分を解析する」を押してください。";
+
+  renderExtractedAccordion(text, true);
+  renderNgList([]);
+  renderGrayList([]);
+  renderOkList([]);
+  renderUnknownList([]);
+  updateUserDBBadge();
+
+  const dbNote = document.querySelector(".user-db-note");
+  if (dbNote) dbNote.style.display = "none";
+
+  resultSection.classList.add("visible");
+  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /**
@@ -522,6 +562,9 @@ const OVERALL_CONFIG = {
 };
 
 function renderResult(result, isOffline, extractedText) {
+  const dbNote = document.querySelector(".user-db-note");
+  if (dbNote) dbNote.style.display = "";
+
   const cfg = OVERALL_CONFIG[result.overall] || OVERALL_CONFIG.gray;
   document.getElementById("overall-icon").textContent = cfg.icon;
 
@@ -534,7 +577,7 @@ function renderResult(result, isOffline, extractedText) {
 
   document.getElementById("overall-banner").className = `overall-banner ${result.overall}`;
 
-  renderExtractedAccordion(extractedText);
+  renderExtractedAccordion(extractedText, false);
   renderNgList(result.ng || []);
   renderGrayList(result.gray || []);
   renderOkList(result.ok || []);
@@ -545,12 +588,12 @@ function renderResult(result, isOffline, extractedText) {
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderExtractedAccordion(text) {
+function renderExtractedAccordion(text, openNow) {
   const accordion = document.getElementById("extracted-accordion");
   if (!text) { accordion.style.display = "none"; return; }
   document.getElementById("extracted-text").textContent = text;
   accordion.style.display = "";
-  accordion.open = false;
+  accordion.open = !!openNow;
 }
 
 function renderNgList(items) {
@@ -674,9 +717,15 @@ function emptyLi() { return `<li class="empty-list">なし</li>`; }
 function setLoading(on) {
   analyzeBtn.disabled = on;
   analyzeBtn.classList.toggle("loading", on);
+  const readingOnly =
+    document.getElementById("image-extract-only")?.checked && getActiveTab() === "image";
   document.querySelector(".btn-label").textContent = on
-    ? "解析中..."
-    : getActiveTab() === "image" ? "この画像で解析する" : "成分を解析する";
+    ? readingOnly
+      ? "読み取り中..."
+      : "解析中..."
+    : getActiveTab() === "image"
+      ? "この画像で解析する"
+      : "成分を解析する";
 }
 function showError(msg) {
   errorBox.textContent = msg;

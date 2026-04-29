@@ -98,4 +98,40 @@ async function analyzeWithImage(imageData, mediaType) {
   }
 }
 
+/**
+ * 画像から成分テキストのみ取得（サーバー側で Claude Vision 1 往復・判定プロンプトなし）
+ * @returns {Promise<{ extractedText: string }>}
+ */
+async function extractTextFromImage(imageData, mediaType) {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 180_000);
+  try {
+    const res = await fetchWithRetry(
+      `${API_BASE}/api/analyze`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          type: "image",
+          extractOnly: true,
+          image: { data: imageData, mediaType },
+          mode: "oriental",
+        }),
+      },
+      2,
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `サーバーエラー (${res.status})`);
+    }
+
+    return { extractedText: data.extractedText || "" };
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

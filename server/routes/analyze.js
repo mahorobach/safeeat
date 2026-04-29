@@ -177,6 +177,72 @@ function parseClaudeResponse(text) {
   return parsed;
 }
 
+// =============================================
+// 画像 → 成分テキストのみ（判定なし・応答短く切り分け用）
+// =============================================
+const IMAGE_EXTRACT_SYSTEM = `あなたは日本の食品パッケージの【原材料名・成分表示】を読み取る専用アシスタントです。
+デザイン・ロゴ・栄養成分表・広告文は無視し、原材料・添加物の列挙だけを抽出してください。
+
+次のJSONのみを返してください（前後に説明文やMarkdown_fenceを付けないこと）:
+{"ingredientListRaw":"カンマ区切りで成分名を1行に列挙"}`;
+
+function parseExtractOnlyResponse(text) {
+  const jsonMatch =
+    text.match(/```json\s*([\s\S]*?)```/) || text.match(/(\{[\s\S]*\})/);
+  if (!jsonMatch) throw new Error("読み取り結果の解析に失敗しました");
+
+  const parsed = JSON.parse(jsonMatch[1]);
+  const raw = typeof parsed.ingredientListRaw === "string" ? parsed.ingredientListRaw.trim() : "";
+  if (!raw) {
+    throw new Error(
+      "成分表のテキストが空でした。原材料部分を切り取るか、別の写真をお試しください。",
+    );
+  }
+  return raw;
+}
+
+async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
+  const res = await fetch(CLAUDE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL_IMAGE,
+      max_tokens: 4096,
+      system: IMAGE_EXTRACT_SYSTEM,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType,
+                data: image,
+              },
+            },
+            {
+              type: "text",
+              text: "この画像から原材料・成分表示だけを読み取り、指定のJSONだけを返してください。",
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `Claude Vision APIエラー (${res.status})`);
+  }
+
+  return parseExtractOnlyResponse(data.content?.[0]?.text || "");
+}
+
 function getApiKey(res) {
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) {
@@ -193,7 +259,7 @@ router.post("/", async (req, res, next) => {
   const { type = "text" } = req.body;
 
   if (type === "image") {
-    const { image, mode = "oriental" } = req.body;
+    const { image, mode = "oriental", extractOnly = false } = req.body;
 
     if (!image || !image.data) {
       return res.status(400).json({ ok: false, error: "image.data は必須です（Base64文字列）" });
@@ -217,6 +283,20 @@ router.post("/", async (req, res, next) => {
     if (!apiKey) return;
 
     try {
+      if (extractOnly === true) {
+        const extractedText = await extractIngredientsTextFromImage(
+          image.data,
+          image.mediaType,
+          apiKey,
+        );
+        res.json({
+          ok: true,
+          extractOnly: true,
+          extractedText,
+        });
+        return;
+      }
+
       const { extractedText, result } = await analyzeFromImageSingleCall(
         image.data,
         image.mediaType,
