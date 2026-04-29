@@ -31,7 +31,27 @@ function ensureApiWarm() {
   return _warmPromise;
 }
 
-function isLikelyNetworkError(err) {
+function isLocalApiBase() {
+  const b = String(API_BASE || "");
+  return b.includes("localhost") || b.includes("127.0.0.1");
+}
+
+/** 接続失敗時のメッセージ（ローカル開発では Render 向け文言を出さない） */
+function networkFailureUserMessage() {
+  if (isLocalApiBase()) {
+    return [
+      "APIサーバーに接続できませんでした（ローカル開発）。",
+      "① 別ターミナルで server を起動: cd server && npm run dev",
+      "② ブラウザで http://localhost:3000/api/health が表示されるか確認",
+      "③ server/.env の ALLOWED_ORIGINS に、今開いているURL（http://localhost:5500 と http://127.0.0.1:5500）を入れる",
+    ].join(" ");
+  }
+  return (
+    "通信が途中で切れました。無料ホスティングでは起動直後も不安定なことがあります。原材料を切り取り、30秒〜1分あけて再試行するか、テキスト入力をご利用ください。"
+  );
+}
+
+/**
   if (!(err instanceof TypeError)) return false;
   const m = String(err.message || "").toLowerCase();
   return (
@@ -93,9 +113,7 @@ async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 1000) 
       }
       lastError = err;
       if (isLikelyNetworkError(err)) {
-        lastError = new Error(
-          "通信が途中で切れました。無料ホスティングでは起動直後も不安定なことがあります。原材料を切り取り、30秒〜1分あけて再試行するか、テキスト入力をご利用ください。",
-        );
+        lastError = new Error(networkFailureUserMessage());
       }
       if (attempt < maxRetries - 1) {
         /** ネットワーク切れは長いバックオフを重ねると、失敗までの待ち時間だけが伸びる */
