@@ -111,8 +111,8 @@ function mayBeProcessableImageFile(file) {
 }
 
 /** タイムアウトしやすいホスティング向け。長辺を抑えロード削減 */
-const VISION_MAX_EDGE     = 1024;
-const VISION_JPEG_QUALITY = 0.76;
+const VISION_MAX_EDGE     = 768;
+const VISION_JPEG_QUALITY = 0.72;
 const IMG_MAX_BYTES       = 5 * 1024 * 1024;
 
 let _currentImageBlob = null;

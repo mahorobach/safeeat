@@ -7,11 +7,47 @@ const API_BASE =
   (typeof window !== "undefined" && window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) ||
   "https://safeeat-rrzd.onrender.com";
 
+/** Render スリープ復帰用に全呼び出しで共有する 1 回きりの待機 */
+let _warmPromise = null;
+
+function ensureApiWarm() {
+  if (_warmPromise) return _warmPromise;
+  _warmPromise = (async () => {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 90_000);
+    try {
+      await fetch(`${API_BASE}/api/health`, {
+        method: "GET",
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
+    } catch {
+      /* メインはリトライ */
+    } finally {
+      clearTimeout(tid);
+    }
+  })();
+  return _warmPromise;
+}
+
+function isLikelyNetworkError(err) {
+  if (!(err instanceof TypeError)) return false;
+  const m = String(err.message || "").toLowerCase();
+  return (
+    m.includes("fetch") ||
+    m.includes("networkerror") ||
+    m.includes("failed to fetch") ||
+    m.includes("load failed") ||
+    m.includes("network request failed")
+  );
+}
+
 /**
  * @param {string} ingredientsText - 成分表テキスト
  * @returns {Promise<{ok, gray, ng, unknown, overall, summary}>}
  */
 async function analyzeWithClaude(ingredientsText) {
+  await ensureApiWarm();
   const res = await fetchWithRetry(`${API_BASE}/api/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,16 +64,23 @@ async function analyzeWithClaude(ingredientsText) {
 }
 
 /**
- * 指数バックオフ付きフェッチ（最大3回リトライ）
+ * 指数バックオフ付きフェッチ（429/529/502/503/504 もリトライ）
+ * @param {number} baseDelayMs — 1回目の待ちの基準（画像POSTは長め推奨）
  */
-async function fetchWithRetry(url, options, maxRetries = 3) {
+async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 1000) {
   let lastError;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, options);
-      if (res.status === 429 || res.status === 529) {
-        await sleep(Math.pow(2, attempt) * 1000 + Math.random() * 500);
-        lastError = new Error(`レート制限 (${res.status})`);
+      const retriableHttp =
+        res.status === 429 ||
+        res.status === 529 ||
+        res.status === 502 ||
+        res.status === 503 ||
+        res.status === 504;
+      if (retriableHttp && attempt < maxRetries - 1) {
+        await sleep(baseDelayMs * Math.pow(2, attempt) + Math.random() * 800);
+        lastError = new Error(`サーバーが混雑しています (${res.status})`);
         continue;
       }
       return res;
@@ -48,15 +91,14 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
         );
       }
       lastError = err;
-      if (
-        err instanceof TypeError &&
-        (String(err.message).includes("fetch") || String(err.message).includes("NetworkError"))
-      ) {
+      if (isLikelyNetworkError(err)) {
         lastError = new Error(
-          "通信が途中で切れました。写真は原材料だけを切り取り、Wi‑Fi で再試行するか、テキスト入力をご利用ください。",
+          "通信が途中で切れました（サーバーがスリープから起きるまで1分ほどかかることがあります）。Wi‑Fi で原材料だけを切り取り、1分後に再試行するか、テキスト入力をご利用ください。",
         );
       }
-      if (attempt < maxRetries - 1) await sleep(Math.pow(2, attempt) * 1000);
+      if (attempt < maxRetries - 1) {
+        await sleep(baseDelayMs * Math.pow(2, attempt) + Math.random() * 1200);
+      }
     }
   }
   throw lastError;
@@ -67,8 +109,9 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
  * @returns {Promise<{ extractedText: string }>}
  */
 async function extractTextFromImage(imageData, mediaType) {
+  await ensureApiWarm();
   const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 180_000);
+  const tid = setTimeout(() => ctrl.abort(), 240_000);
   try {
     const res = await fetchWithRetry(
       `${API_BASE}/api/analyze`,
@@ -83,7 +126,8 @@ async function extractTextFromImage(imageData, mediaType) {
           mode: "oriental",
         }),
       },
-      3,
+      6,
+      2800,
     );
 
     let data;
