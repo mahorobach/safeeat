@@ -14,7 +14,8 @@ function ensureApiWarm() {
   if (_warmPromise) return _warmPromise;
   _warmPromise = (async () => {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 90_000);
+    /** 長すぎると「エラーまで待った」体感のみ悪化。POST 側でリトライする */
+    const tid = setTimeout(() => ctrl.abort(), 22_000);
     try {
       await fetch(`${API_BASE}/api/health`, {
         method: "GET",
@@ -93,11 +94,15 @@ async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 1000) 
       lastError = err;
       if (isLikelyNetworkError(err)) {
         lastError = new Error(
-          "通信が途中で切れました（サーバーがスリープから起きるまで1分ほどかかることがあります）。Wi‑Fi で原材料だけを切り取り、1分後に再試行するか、テキスト入力をご利用ください。",
+          "通信が途中で切れました。無料ホスティングでは起動直後も不安定なことがあります。原材料を切り取り、30秒〜1分あけて再試行するか、テキスト入力をご利用ください。",
         );
       }
       if (attempt < maxRetries - 1) {
-        await sleep(baseDelayMs * Math.pow(2, attempt) + Math.random() * 1200);
+        /** ネットワーク切れは長いバックオフを重ねると、失敗までの待ち時間だけが伸びる */
+        const delay = isLikelyNetworkError(err)
+          ? Math.min(3200, 500 * Math.pow(2, attempt) + Math.random() * 350)
+          : baseDelayMs * Math.pow(2, attempt) + Math.random() * 900;
+        await sleep(delay);
       }
     }
   }
@@ -111,7 +116,7 @@ async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 1000) 
 async function extractTextFromImage(imageData, mediaType) {
   await ensureApiWarm();
   const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 240_000);
+  const tid = setTimeout(() => ctrl.abort(), 130_000);
   try {
     const res = await fetchWithRetry(
       `${API_BASE}/api/analyze`,
@@ -126,8 +131,8 @@ async function extractTextFromImage(imageData, mediaType) {
           mode: "oriental",
         }),
       },
-      6,
-      2800,
+      4,
+      2200,
     );
 
     let data;
