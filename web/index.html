@@ -57,9 +57,25 @@
           <div class="drop-icon">📷</div>
           <p class="drop-main">写真をドラッグ＆ドロップ</p>
           <p class="drop-hint-text">または クリックしてファイルを選択</p>
-          <p class="drop-hint-text">JPEG / PNG / WEBP（5MB以内）｜スマホカメラ対応</p>
+          <p class="drop-hint-text">JPEG / PNG / WEBP（5MB以内）｜アップロード時に自動で縮小します｜スマホカメラ対応</p>
         </div>
         <img id="image-preview" alt="選択した画像" style="display:none; max-width:100%; border-radius:8px;">
+      </div>
+      <div id="image-toolbar" class="image-toolbar" style="display:none">
+        <p class="image-toolbar-hint">余白やパッケージ全体が写っているときは、<strong>原材料（成分）表示</strong>をドラッグで囲むと読み取りが安定し、送信データも小さくなります（任意）。</p>
+        <div class="image-toolbar-btns">
+          <button type="button" class="btn-crop" id="btn-start-crop">✂ 原材料の範囲を選択</button>
+        </div>
+      </div>
+      <div id="crop-panel" class="crop-panel" style="display:none">
+        <p class="crop-instruction">ドラッグで原材料・成分表の四角い範囲を囲んでください。</p>
+        <div class="crop-canvas-wrap">
+          <canvas id="crop-canvas"></canvas>
+        </div>
+        <div class="crop-panel-actions">
+          <button type="button" class="btn-crop" id="btn-apply-crop" disabled>この範囲で確定</button>
+          <button type="button" class="btn-crop-secondary" id="btn-cancel-crop">キャンセル</button>
+        </div>
       </div>
       <button class="btn-clear-image" id="clear-image-btn" style="display:none">✕ 画像を変更する</button>
     </div>

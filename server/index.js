@@ -33,7 +33,7 @@ app.post(
 );
 
 // --- 通常のルート ---
-// Base64画像（5MB）は約7MBのJSONになるため10mbに設定
+// Base64画像は JSON で膨らむため 10MB 上限（フロントで縮小・切り取り推奨）
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/api/health", (_req, res) => {
@@ -48,10 +48,24 @@ app.use("/api/subscription", subscriptionRouter);
 // --- 404 ---
 app.use((_req, res) => res.status(404).json({ ok: false, error: "Not Found" }));
 
+// --- 413: ボディ過大（CORS付きで返す） ---
+app.use((err, req, res, next) => {
+  if (err.status === 413 || err.type === "entity.too.large") {
+    return res.status(413).json({
+      ok: false,
+      error: "リクエストが大きすぎます。画像を切り取るか、もう少し小さい写真で試してください。",
+    });
+  }
+  next(err);
+});
+
 // --- エラーハンドラ ---
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ ok: false, error: err.message || "Internal Server Error" });
 });
 
-app.listen(PORT, () => console.log(`SafeEat API listening on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`SafeEat API listening on port ${PORT}`));
+// 長い Vision 処理向け（ロードバランサ上限より長くはできない）
+server.keepAliveTimeout = 120_000;
+server.headersTimeout = 125_000;

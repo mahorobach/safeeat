@@ -196,6 +196,86 @@ main {
 }
 .btn-clear-image:hover { background: var(--gray-light); }
 
+/* ===== Image toolbar & crop (原材料の部分切り出し) ===== */
+.image-toolbar {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--blue-light);
+  border: 1px solid var(--blue-border);
+  border-radius: 8px;
+}
+.image-toolbar-hint {
+  font-size: .78rem;
+  line-height: 1.55;
+  color: #37474f;
+  margin-bottom: 10px;
+}
+.image-toolbar-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn-crop {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.btn-crop:hover { background: #1b5e20; }
+.btn-crop:disabled {
+  background: #a5d6a7;
+  cursor: not-allowed;
+}
+.btn-crop-secondary {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: .82rem;
+  cursor: pointer;
+  font-family: var(--font);
+  color: var(--gray);
+}
+.btn-crop-secondary:hover { background: var(--gray-light); }
+
+.crop-panel {
+  margin-top: 14px;
+  padding: 14px;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.crop-instruction {
+  font-size: .82rem;
+  color: var(--gray);
+  margin-bottom: 10px;
+}
+.crop-canvas-wrap {
+  width: 100%;
+  overflow: auto;
+  max-height: 70vh;
+  border-radius: 8px;
+  background: #263238;
+}
+#crop-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+.crop-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* ===== Extracted Text Accordion ===== */
 .extracted-accordion {
   background: #fff;

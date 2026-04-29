@@ -2,7 +2,14 @@ import { Router } from "express";
 
 const router = Router();
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL_DEFAULT = "claude-sonnet-4-20250514";
+/** テキスト判定（未設定時は Sonnet） */
+const MODEL_TEXT = (process.env.CLAUDE_MODEL || "").trim() || MODEL_DEFAULT;
+/**
+ * 画像1往復用（未設定時は MODEL_TEXT と同じ）
+ * 遅い・タイムアウトしやすい場合は例: claude-3-5-haiku-20241022（Vision 対応・高速）
+ */
+const MODEL_IMAGE = (process.env.CLAUDE_IMAGE_MODEL || "").trim() || MODEL_TEXT;
 
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB（Base64デコード後のサイズ）
@@ -54,6 +61,7 @@ const SYSTEM_PROMPT = `あなたは食品成分の専門家です。
 
 必ず以下のJSON形式のみで返答すること（他のテキストは絶対に含めないこと）:
 {
+  "ingredientListRaw": "扱う全成分名をカンマ区切りの1文字列で列挙（画像入力時は読み取り結果・テキスト入力時は入力一覧に基づく）",
   "ok": [{"name": "成分名", "reason": "理由"}],
   "gray": [{"name": "成分名", "reason": "理由", "detail": "詳細説明"}],
   "ng": [{"name": "成分名", "reason": "理由"}],
@@ -74,7 +82,7 @@ async function analyzeIngredients(ingredientsText, apiKey) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: MODEL_TEXT,
       max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [
@@ -91,13 +99,31 @@ async function analyzeIngredients(ingredientsText, apiKey) {
     throw new Error(data?.error?.message || `Claude APIエラー (${res.status})`);
   }
 
-  return parseClaudeResponse(data.content?.[0]?.text || "");
+  const parsed = parseClaudeResponse(data.content?.[0]?.text || "");
+  return splitClassificationResult(parsed).result;
 }
 
-// =============================================
-// 共通: Claude Vision で画像から成分テキストを抽出
-// =============================================
-async function extractIngredientsFromImage(image, mimeType, apiKey) {
+function splitClassificationResult(parsed) {
+  const raw = typeof parsed.ingredientListRaw === "string" ? parsed.ingredientListRaw.trim() : "";
+  const { ingredientListRaw: _unused, ...rest } = parsed;
+  if (!Array.isArray(rest.unknown)) rest.unknown = [];
+
+  let extractedText = raw;
+  if (!extractedText) {
+    extractedText = [
+      ...(rest.ok || []).map((x) => x.name),
+      ...(rest.gray || []).map((x) => x.name),
+      ...(rest.ng || []).map((x) => x.name),
+      ...(rest.unknown || []).map((x) => x.name),
+    ].join("、");
+  }
+  return { extractedText, result: rest };
+}
+
+/**
+ * 画像1枚で読み取り＋分類（Claude 往復1回）— タイムアウト回避・コスト削減
+ */
+async function analyzeFromImageSingleCall(image, mimeType, apiKey) {
   const res = await fetch(CLAUDE_API_URL, {
     method: "POST",
     headers: {
@@ -106,8 +132,9 @@ async function extractIngredientsFromImage(image, mimeType, apiKey) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 2000,
+      model: MODEL_IMAGE,
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
@@ -122,7 +149,7 @@ async function extractIngredientsFromImage(image, mimeType, apiKey) {
             },
             {
               type: "text",
-              text: "この画像から食品の成分表・原材料名の部分を読み取り、成分をすべてリストアップしてください。成分名のみをカンマ区切りで出力してください。",
+              text: "この画像の【原材料名・成分表示】のみを読み取り、上記ルールのJSON**だけ**を返してください。パッケージ写真・ロゴ・バーコード・栄養成分表のその他の欄は無視してください。",
             },
           ],
         },
@@ -135,7 +162,9 @@ async function extractIngredientsFromImage(image, mimeType, apiKey) {
     throw new Error(data?.error?.message || `Claude Vision APIエラー (${res.status})`);
   }
 
-  return data.content?.[0]?.text || "";
+  const text = data.content?.[0]?.text || "";
+  const parsed = parseClaudeResponse(text);
+  return splitClassificationResult(parsed);
 }
 
 function parseClaudeResponse(text) {
@@ -188,14 +217,22 @@ router.post("/", async (req, res, next) => {
     if (!apiKey) return;
 
     try {
-      const extractedText = await extractIngredientsFromImage(image.data, image.mediaType, apiKey);
-      if (!extractedText.trim()) {
+      const { extractedText, result } = await analyzeFromImageSingleCall(
+        image.data,
+        image.mediaType,
+        apiKey,
+      );
+      const n =
+        (result.ok || []).length +
+        (result.gray || []).length +
+        (result.ng || []).length +
+        (result.unknown || []).length;
+      if (n === 0 && !String(extractedText || "").trim()) {
         return res.status(422).json({
           ok: false,
-          error: "成分表が読み取れませんでした。別の角度から撮影してください。",
+          error: "成分表が読み取れませんでした。別の角度から撮影するか、原材料の範囲を切り取ってください。",
         });
       }
-      const result = await analyzeIngredients(extractedText, apiKey);
       res.json({ ok: true, data: result, extractedText });
     } catch (e) {
       next(e);
@@ -250,23 +287,23 @@ router.post("/image", async (req, res, next) => {
   if (!apiKey) return;
 
   try {
-    // Step 1: 画像から成分テキストを抽出
-    const extractedText = await extractIngredientsFromImage(image, mimeType, apiKey);
-
-    if (!extractedText.trim()) {
+    const { extractedText, result } = await analyzeFromImageSingleCall(image, mimeType, apiKey);
+    const n =
+      (result.ok || []).length +
+      (result.gray || []).length +
+      (result.ng || []).length +
+      (result.unknown || []).length;
+    if (n === 0 && !String(extractedText || "").trim()) {
       return res.status(422).json({
         ok: false,
         error: "成分表が読み取れませんでした。画像を確認してください。",
       });
     }
 
-    // Step 2: 抽出したテキストで成分判定
-    const result = await analyzeIngredients(extractedText, apiKey);
-
     res.json({
       ok: true,
       data: result,
-      extractedText, // フロントエンドで「読み取った成分」として表示可能
+      extractedText,
     });
   } catch (e) {
     next(e);

@@ -42,7 +42,20 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
       }
       return res;
     } catch (err) {
+      if (err?.name === "AbortError") {
+        throw new Error(
+          "解析がタイムアウトしました。写真をもっと小さく切り取るか、しばらくして再試行してください。",
+        );
+      }
       lastError = err;
+      if (
+        err instanceof TypeError &&
+        (String(err.message).includes("fetch") || String(err.message).includes("NetworkError"))
+      ) {
+        lastError = new Error(
+          "通信が途中で切れました。写真は原材料だけを切り取り、Wi‑Fi で再試行するか、テキスト入力をご利用ください。",
+        );
+      }
       if (attempt < maxRetries - 1) await sleep(Math.pow(2, attempt) * 1000);
     }
   }
@@ -55,23 +68,34 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
  * @returns {Promise<{result, extractedText}>}
  */
 async function analyzeWithImage(imageData, mediaType) {
-  const res = await fetchWithRetry(`${API_BASE}/api/analyze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "image",
-      image: { data: imageData, mediaType },
-      mode: "oriental",
-    }),
-  });
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 180_000);
+  try {
+    const res = await fetchWithRetry(
+      `${API_BASE}/api/analyze`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          type: "image",
+          image: { data: imageData, mediaType },
+          mode: "oriental",
+        }),
+      },
+      2,
+    );
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (!res.ok || !data.ok) {
-    throw new Error(data.error || `サーバーエラー (${res.status})`);
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `サーバーエラー (${res.status})`);
+    }
+
+    return { result: data.data, extractedText: data.extractedText || null };
+  } finally {
+    clearTimeout(tid);
   }
-
-  return { result: data.data, extractedText: data.extractedText || null };
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

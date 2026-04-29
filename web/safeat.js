@@ -86,12 +86,26 @@ const imageInput      = document.getElementById("image-input");
 const imagePreview    = document.getElementById("image-preview");
 const dropPlaceholder = document.getElementById("drop-placeholder");
 const clearImageBtn   = document.getElementById("clear-image-btn");
+const imageToolbar    = document.getElementById("image-toolbar");
+const cropPanel       = document.getElementById("crop-panel");
+const cropCanvas      = document.getElementById("crop-canvas");
+const btnStartCrop    = document.getElementById("btn-start-crop");
+const btnApplyCrop    = document.getElementById("btn-apply-crop");
+const btnCancelCrop   = document.getElementById("btn-cancel-crop");
 
 const VALID_IMG_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const IMG_MAX_BYTES   = 5 * 1024 * 1024;
-const IMG_MAX_EDGE    = 1500;
+/** タイムアウトしやすいホスティング向け。長辺を抑えロード削減 */
+const VISION_MAX_EDGE     = 1024;
+const VISION_JPEG_QUALITY = 0.76;
+const IMG_MAX_BYTES       = 5 * 1024 * 1024;
 
-dropZone.addEventListener("click", () => imageInput.click());
+let _currentImageBlob = null;
+
+dropZone.addEventListener("click", (e) => {
+  if (e.target === clearImageBtn || clearImageBtn.contains(e.target)) return;
+  if (cropPanel.style.display !== "none") return;
+  imageInput.click();
+});
 imageInput.addEventListener("change", () => { if (imageInput.files[0]) setImageFile(imageInput.files[0]); });
 
 dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
@@ -104,14 +118,62 @@ dropZone.addEventListener("drop", (e) => {
 
 clearImageBtn.addEventListener("click", (e) => { e.stopPropagation(); clearImage(); });
 
+btnStartCrop.addEventListener("click", (e) => { e.stopPropagation(); openCropPanel(); });
+btnCancelCrop.addEventListener("click", (e) => { e.stopPropagation(); closeCropPanel(); });
+btnApplyCrop.addEventListener("click", (e) => { e.stopPropagation(); applyCropSelection(); });
+
 function clearImage() {
   _imageBase64 = _imageMediaType = null;
+  _currentImageBlob = null;
   imagePreview.style.display = "none";
   imagePreview.src = "";
   dropPlaceholder.style.display = "";
   clearImageBtn.style.display = "none";
+  imageToolbar.style.display = "none";
+  cropPanel.style.display = "none";
   dropZone.classList.remove("has-image");
   imageInput.value = "";
+  teardownCropInteraction();
+}
+
+function prepareImageForUpload(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (!w || !h) {
+        reject(new Error("bad image"));
+        return;
+      }
+      const scale = Math.min(1, VISION_MAX_EDGE / Math.max(w, h));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("encode failed"))),
+        "image/jpeg",
+        VISION_JPEG_QUALITY,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("load failed"));
+    };
+    img.src = url;
+  });
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 async function setImageFile(file) {
@@ -119,65 +181,214 @@ async function setImageFile(file) {
     showError("JPEG / PNG / WEBP 形式の画像を選択してください。");
     return;
   }
+  if (file.size > IMG_MAX_BYTES) {
+    showError("ファイルサイズは 5MB 以内にしてください。");
+    return;
+  }
   clearError();
 
-  let processedFile = file;
-  if (file.size > IMG_MAX_BYTES) {
-    try {
-      const blob = await resizeImage(file);
-      processedFile = new File([blob], file.name, { type: "image/jpeg" });
-    } catch {
-      showError("画像の処理に失敗しました。別の画像を選択してください。");
-      return;
-    }
+  let blob;
+  try {
+    blob = await prepareImageForUpload(file);
+  } catch {
+    showError("画像の処理に失敗しました。別の画像を選択してください。");
+    return;
   }
 
   try {
-    _imageBase64    = await fileToBase64(processedFile);
-    _imageMediaType = processedFile.type;
+    _currentImageBlob = blob;
+    _imageBase64 = await blobToBase64(blob);
+    _imageMediaType = "image/jpeg";
 
-    const objUrl = URL.createObjectURL(processedFile);
+    const objUrl = URL.createObjectURL(blob);
     imagePreview.onload = () => URL.revokeObjectURL(objUrl);
     imagePreview.src = objUrl;
     imagePreview.style.display = "block";
     dropPlaceholder.style.display = "none";
     clearImageBtn.style.display  = "inline-block";
+    imageToolbar.style.display   = "block";
+    cropPanel.style.display      = "none";
     dropZone.classList.add("has-image");
   } catch {
     showError("画像の読み込みに失敗しました。");
   }
 }
 
-function resizeImage(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const { naturalWidth: w, naturalHeight: h } = img;
-      const scale = Math.min(1, IMG_MAX_EDGE / Math.max(w, h));
-      const canvas = document.createElement("canvas");
-      canvas.width  = Math.round(w * scale);
-      canvas.height = Math.round(h * scale);
-      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("resize failed"))),
-        "image/jpeg",
-        0.85,
-      );
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
+let _cropCtx = null;
+let _cropImg = null;
+let _cropDrag = false;
+let _cropX0 = 0, _cropY0 = 0, _cropX1 = 0, _cropY1 = 0;
+const CROP_MIN_PX = 36;
+
+function getCanvasPointer(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY,
+  };
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload  = (e) => resolve(e.target.result.split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+function redrawCropCanvas() {
+  if (!_cropCtx || !_cropImg) return;
+  const ctx = _cropCtx;
+  const cw = cropCanvas.width;
+  const ch = cropCanvas.height;
+  ctx.drawImage(_cropImg, 0, 0, cw, ch);
+  const x0 = Math.min(_cropX0, _cropX1);
+  const y0 = Math.min(_cropY0, _cropY1);
+  const x1 = Math.max(_cropX0, _cropX1);
+  const y1 = Math.max(_cropY0, _cropY1);
+  if (x1 - x0 > 2 && y1 - y0 > 2) {
+    ctx.fillStyle = "rgba(21, 101, 192, 0.2)";
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.strokeStyle = "#1565c0";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+  }
+}
+
+function openCropPanel() {
+  if (!_currentImageBlob) return;
+  const url = URL.createObjectURL(_currentImageBlob);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    _cropImg = img;
+    const maxDisplay = 720;
+    let dw = img.naturalWidth;
+    let dh = img.naturalHeight;
+    if (dw > maxDisplay) {
+      const s = maxDisplay / dw;
+      dw = Math.round(dw * s);
+      dh = Math.round(dh * s);
+    }
+    cropCanvas.width = dw;
+    cropCanvas.height = dh;
+    _cropCtx = cropCanvas.getContext("2d");
+    _cropCtx.drawImage(img, 0, 0, dw, dh);
+    _cropX0 = _cropY0 = _cropX1 = _cropY1 = 0;
+    btnApplyCrop.disabled = true;
+    imageToolbar.style.display = "none";
+    cropPanel.style.display = "block";
+    setupCropInteraction();
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    showError("切り取り用に画像を開けませんでした。");
+  };
+  img.src = url;
+}
+
+function closeCropPanel() {
+  cropPanel.style.display = "none";
+  imageToolbar.style.display = "block";
+  teardownCropInteraction();
+  _cropImg = null;
+  _cropCtx = null;
+}
+
+function setupCropInteraction() {
+  const onDown = (e) => {
+    e.preventDefault();
+    _cropDrag = true;
+    const p = getCanvasPointer(e, cropCanvas);
+    _cropX0 = _cropX1 = p.x;
+    _cropY0 = _cropY1 = p.y;
+    btnApplyCrop.disabled = true;
+  };
+  const onMove = (e) => {
+    if (!_cropDrag) return;
+    e.preventDefault();
+    const p = getCanvasPointer(e, cropCanvas);
+    _cropX1 = p.x;
+    _cropY1 = p.y;
+    redrawCropCanvas();
+  };
+  const onUp = (e) => {
+    if (!_cropDrag) return;
+    e.preventDefault();
+    _cropDrag = false;
+    const w = Math.abs(_cropX1 - _cropX0);
+    const h = Math.abs(_cropY1 - _cropY0);
+    btnApplyCrop.disabled = w < CROP_MIN_PX || h < CROP_MIN_PX;
+  };
+
+  cropCanvas._sfDown = onDown;
+  cropCanvas._sfMove = onMove;
+  cropCanvas._sfUp = onUp;
+
+  cropCanvas.addEventListener("mousedown", onDown);
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  cropCanvas.addEventListener("touchstart", onDown, { passive: false });
+  window.addEventListener("touchmove", onMove, { passive: false });
+  window.addEventListener("touchend", onUp);
+}
+
+function teardownCropInteraction() {
+  if (!cropCanvas._sfDown) return;
+  cropCanvas.removeEventListener("mousedown", cropCanvas._sfDown);
+  window.removeEventListener("mousemove", cropCanvas._sfMove);
+  window.removeEventListener("mouseup", cropCanvas._sfUp);
+  cropCanvas.removeEventListener("touchstart", cropCanvas._sfDown);
+  window.removeEventListener("touchmove", cropCanvas._sfMove);
+  window.removeEventListener("touchend", cropCanvas._sfUp);
+  cropCanvas._sfDown = cropCanvas._sfMove = cropCanvas._sfUp = null;
+}
+
+async function applyCropSelection() {
+  if (!_cropImg || btnApplyCrop.disabled) return;
+  const x0 = Math.min(_cropX0, _cropX1);
+  const y0 = Math.min(_cropY0, _cropY1);
+  const x1 = Math.max(_cropX0, _cropX1);
+  const y1 = Math.max(_cropY0, _cropY1);
+  const rw = x1 - x0;
+  const rh = y1 - y0;
+  if (rw < CROP_MIN_PX || rh < CROP_MIN_PX) return;
+
+  const fx = _cropImg.naturalWidth / cropCanvas.width;
+  const fy = _cropImg.naturalHeight / cropCanvas.height;
+  const sx = Math.max(0, Math.floor(x0 * fx));
+  const sy = Math.max(0, Math.floor(y0 * fy));
+  const sw = Math.min(_cropImg.naturalWidth - sx, Math.ceil(rw * fx));
+  const sh = Math.min(_cropImg.naturalHeight - sy, Math.ceil(rh * fy));
+  if (sw < CROP_MIN_PX || sh < CROP_MIN_PX) return;
+
+  const out = document.createElement("canvas");
+  out.width = sw;
+  out.height = sh;
+  out.getContext("2d").drawImage(_cropImg, sx, sy, sw, sh, 0, 0, sw, sh);
+
+  let blob = await new Promise((resolve, reject) => {
+    out.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("crop failed"))),
+      "image/jpeg",
+      VISION_JPEG_QUALITY,
+    );
   });
+
+  try {
+    blob = await prepareImageForUpload(new File([blob], "crop.jpg", { type: "image/jpeg" }));
+  } catch { /* そのまま */ }
+
+  try {
+    _currentImageBlob = blob;
+    _imageBase64 = await blobToBase64(blob);
+    _imageMediaType = "image/jpeg";
+    const objUrl = URL.createObjectURL(blob);
+    imagePreview.onload = () => URL.revokeObjectURL(objUrl);
+    imagePreview.src = objUrl;
+  } catch {
+    showError("切り取り画像の保存に失敗しました。");
+    return;
+  }
+
+  closeCropPanel();
+  clearError();
 }
 
 // --- Analyze ---
