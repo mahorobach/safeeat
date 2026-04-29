@@ -424,6 +424,24 @@ async function applyCropSelection() {
 // --- Analyze ---
 analyzeBtn.addEventListener("click", handleAnalyze);
 
+document.getElementById("btn-extract-then-classify")?.addEventListener("click", async () => {
+  const btn = document.getElementById("btn-extract-then-classify");
+  clearError();
+  btn.disabled = true;
+  setLoading(true);
+  try {
+    document.querySelectorAll(".input-tab").forEach((t) =>
+      t.classList.toggle("active", t.dataset.tab === "text"),
+    );
+    document.getElementById("tab-text").style.display = "";
+    document.getElementById("tab-image").style.display = "none";
+    await handleTextAnalyze();
+  } finally {
+    btn.disabled = false;
+    setLoading(false);
+  }
+});
+
 async function handleAnalyze() {
   clearError();
   hideResult();
@@ -449,12 +467,12 @@ async function handleTextAnalyze() {
   try {
     const result = await analyzeWithClaude(ingredientsText);
     const promoted = promoteFromUserDB(result);
-    renderResult(promoted, false, null);
+    renderResult(promoted, false, ingredientsText);
   } catch (err) {
     try {
       const result = localFallback(ingredientsText);
       const promoted = promoteFromUserDB(result);
-      renderResult(promoted, true, null);
+      renderResult(promoted, true, ingredientsText);
     } catch {
       showError(`解析エラー：${err.message}`);
     }
@@ -497,7 +515,7 @@ function renderExtractOnlyResult(extractedText) {
   document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
   document.getElementById("overall-verdict").className = "verdict";
   document.getElementById("overall-summary").textContent =
-    "ここまで成功すれば、通信と Vision による文字起こしは通っています。オリエンタルベジタリアン向けの成分判定は、「📝 テキスト入力」タブに切り替え、同じ内容が入力された状態で「成分を解析する」を押してください。";
+    "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
 
   renderExtractedAccordion(text, true);
   renderNgList([]);
@@ -508,6 +526,9 @@ function renderExtractOnlyResult(extractedText) {
 
   const dbNote = document.querySelector(".user-db-note");
   if (dbNote) dbNote.style.display = "none";
+
+  const extractActions = document.getElementById("extract-only-actions");
+  if (extractActions) extractActions.hidden = false;
 
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -562,6 +583,9 @@ const OVERALL_CONFIG = {
 };
 
 function renderResult(result, isOffline, extractedText) {
+  const extractActions = document.getElementById("extract-only-actions");
+  if (extractActions) extractActions.hidden = true;
+
   const dbNote = document.querySelector(".user-db-note");
   if (dbNote) dbNote.style.display = "";
 
@@ -735,7 +759,11 @@ function clearError() {
   errorBox.classList.remove("visible");
   errorBox.textContent = "";
 }
-function hideResult() { resultSection.classList.remove("visible"); }
+function hideResult() {
+  resultSection.classList.remove("visible");
+  const extractActions = document.getElementById("extract-only-actions");
+  if (extractActions) extractActions.hidden = true;
+}
 
 function esc(str) {
   return String(str ?? "")

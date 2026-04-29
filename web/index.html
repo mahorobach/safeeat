@@ -80,7 +80,7 @@
       <button class="btn-clear-image" id="clear-image-btn" style="display:none">✕ 画像を変更する</button>
       <label class="extract-only-option">
         <input type="checkbox" id="image-extract-only" />
-        <span>まず<strong>読み取りのみ</strong>（成分判定はしない・応答が短く切れにくい・通信の切り分け用）</span>
+        <span>まず<strong>読み取りのみ</strong>（成分判定は下の「この内容で成分判定する」で実行。通信切れの切り分けにも）</span>
       </label>
     </div>
   </div>
@@ -110,6 +110,15 @@
         <div class="verdict" id="overall-verdict"></div>
         <div class="summary" id="overall-summary"></div>
       </div>
+    </div>
+
+    <div id="extract-only-actions" class="extract-only-actions" hidden>
+      <p class="extract-only-actions-hint">
+        原材料の切り取りは写真タブで既に行えます。余計な行は「📝 テキスト入力」で削除してから判定すると精度が上がります。
+      </p>
+      <button type="button" class="btn-extract-classify" id="btn-extract-then-classify">
+        この内容で成分判定する
+      </button>
     </div>
 
     <!-- NG -->

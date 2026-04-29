@@ -394,6 +394,40 @@ main {
 }
 .extract-only-option strong { color: var(--blue); font-weight: 700; }
 
+.extract-only-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 2px solid var(--green-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.extract-only-actions-hint {
+  font-size: .8rem;
+  line-height: 1.55;
+  color: var(--gray);
+  margin: 0;
+}
+.btn-extract-classify {
+  align-self: flex-start;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  background: var(--green);
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.btn-extract-classify:hover { background: #1b5e20; }
+.btn-extract-classify:disabled {
+  background: #a5d6a7;
+  cursor: not-allowed;
+}
+
 .overall-icon { font-size: 2.4rem; line-height: 1; flex-shrink: 0; }
 .overall-text .verdict {
   font-weight: 700;
