@@ -374,25 +374,17 @@ main {
   border: 2px solid var(--blue-border);
 }
 
-.extract-only-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+.image-flow-note {
   margin-top: 14px;
   padding: 10px 12px;
   background: #fafafa;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: .78rem;
-  line-height: 1.5;
+  line-height: 1.55;
   color: #37474f;
-  cursor: pointer;
 }
-.extract-only-option input {
-  margin-top: 3px;
-  flex-shrink: 0;
-}
-.extract-only-option strong { color: var(--blue); font-weight: 700; }
+.image-flow-note strong { color: var(--blue); font-weight: 700; }
 
 .extract-only-actions {
   display: flex;

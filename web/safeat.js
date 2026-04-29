@@ -73,8 +73,6 @@ document.querySelectorAll(".input-tab").forEach((tab) => {
   });
 });
 
-document.getElementById("image-extract-only")?.addEventListener("change", () => setLoading(false));
-
 function getActiveTab() {
   return document.querySelector(".input-tab.active")?.dataset.tab || "text";
 }
@@ -484,18 +482,11 @@ async function handleImageAnalyze() {
     showError("画像を選択してください。");
     return;
   }
-  const extractOnly = document.getElementById("image-extract-only")?.checked;
   try {
-    if (extractOnly) {
-      const { extractedText } = await extractTextFromImage(_imageBase64, _imageMediaType);
-      renderExtractOnlyResult(extractedText);
-      return;
-    }
-    const { result, extractedText } = await analyzeWithImage(_imageBase64, _imageMediaType);
-    const promoted = promoteFromUserDB(result);
-    renderResult(promoted, false, extractedText);
+    const { extractedText } = await extractTextFromImage(_imageBase64, _imageMediaType);
+    renderExtractOnlyResult(extractedText);
   } catch (err) {
-    showError(`解析エラー：${err.message}`);
+    showError(`読み取りエラー：${err.message}`);
   }
 }
 
@@ -741,14 +732,13 @@ function emptyLi() { return `<li class="empty-list">なし</li>`; }
 function setLoading(on) {
   analyzeBtn.disabled = on;
   analyzeBtn.classList.toggle("loading", on);
-  const readingOnly =
-    document.getElementById("image-extract-only")?.checked && getActiveTab() === "image";
+  const onImageTab = getActiveTab() === "image";
   document.querySelector(".btn-label").textContent = on
-    ? readingOnly
+    ? onImageTab
       ? "読み取り中..."
       : "解析中..."
-    : getActiveTab() === "image"
-      ? "この画像で解析する"
+    : onImageTab
+      ? "この画像で読み取る"
       : "成分を解析する";
 }
 function showError(msg) {

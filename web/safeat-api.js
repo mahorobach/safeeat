@@ -63,42 +63,6 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 }
 
 /**
- * @param {string} imageData  - Base64エンコードされた画像データ
- * @param {string} mediaType  - "image/jpeg" | "image/png" | "image/webp"
- * @returns {Promise<{result, extractedText}>}
- */
-async function analyzeWithImage(imageData, mediaType) {
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 180_000);
-  try {
-    const res = await fetchWithRetry(
-      `${API_BASE}/api/analyze`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          type: "image",
-          image: { data: imageData, mediaType },
-          mode: "oriental",
-        }),
-      },
-      2,
-    );
-
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      throw new Error(data.error || `サーバーエラー (${res.status})`);
-    }
-
-    return { result: data.data, extractedText: data.extractedText || null };
-  } finally {
-    clearTimeout(tid);
-  }
-}
-
-/**
  * 画像から成分テキストのみ取得（サーバー側で Claude Vision 1 往復・判定プロンプトなし）
  * @returns {Promise<{ extractedText: string }>}
  */
