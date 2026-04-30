@@ -18,6 +18,14 @@ const MODEL_IMAGE = (process.env.CLAUDE_IMAGE_MODEL || "").trim() || MODEL_TEXT;
 const MODEL_IMAGE_EXTRACT =
   (process.env.CLAUDE_IMAGE_EXTRACT_MODEL || "").trim() || "claude-haiku-4-5";
 
+/** 0 に近いほど表記ブレを抑える（省略時は 0）。CLAUDE_TEMPERATURE で上書き可 */
+const CLAUDE_TEMPERATURE = (() => {
+  const raw = (process.env.CLAUDE_TEMPERATURE ?? "").trim();
+  if (raw === "") return 0;
+  const t = Number(raw);
+  return Number.isFinite(t) ? t : 0;
+})();
+
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB（Base64デコード後のサイズ）
 
@@ -67,6 +75,7 @@ const SYSTEM_PROMPT = `あなたは食品成分の専門家です。
 - 推測の場合はconfidenceとreasonを必ず付記すること
 
 必ず以下のJSON形式のみで返答すること（他のテキストは絶対に含めないこと）:
+- ingredientListRaw には入力に現れる**すべての成分名**を含めること（1つも省略・統合・「など」への丸めをしない）。ok/gray/ng/unknown の各 name は ingredientListRaw と矛盾しないこと。
 {
   "ingredientListRaw": "扱う全成分名をカンマ区切りの1文字列で列挙（画像入力時は読み取り結果・テキスト入力時は入力一覧に基づく）",
   "ok": [{"name": "成分名", "reason": "理由"}],
@@ -91,6 +100,7 @@ async function analyzeIngredients(ingredientsText, apiKey) {
     body: JSON.stringify({
       model: MODEL_TEXT,
       max_tokens: 2000,
+      temperature: CLAUDE_TEMPERATURE,
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -141,6 +151,7 @@ async function analyzeFromImageSingleCall(image, mimeType, apiKey) {
     body: JSON.stringify({
       model: MODEL_IMAGE,
       max_tokens: 4096,
+      temperature: CLAUDE_TEMPERATURE,
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -232,6 +243,11 @@ function truthyExtractOnly(v) {
 const IMAGE_EXTRACT_SYSTEM = `あなたは日本の食品パッケージの【原材料名・成分表示】を読み取る専用アシスタントです。
 デザイン・ロゴ・栄養成分表・広告文は無視し、原材料・添加物の列挙だけを抽出してください。
 
+厳守:
+- 写真に**読める**成分・添加物は**すべて** ingredientListRaw に含める（省略・要約・代表への置き換え・「など」でまとめることは禁止）
+- かつお・いわし・さんま・昆布等の**エキス・エキスパウダー**は、ラベルに**見える表記を可能な限りそのまま**列挙する（例: カツオエキス、かつお節エキス）
+- 並びはラベルに近い順を保つ
+
 次の1行のJSON**だけ**を返してください（前後の説明・Markdown・コードフェンスは禁止）:
 {"ingredientListRaw":"カンマまたは読点区切りで成分名を1行に列挙"}`;
 
@@ -292,6 +308,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
     body: JSON.stringify({
       model: MODEL_IMAGE_EXTRACT,
       max_tokens: 4096,
+      temperature: CLAUDE_TEMPERATURE,
       system: IMAGE_EXTRACT_SYSTEM,
       messages: [
         {
@@ -307,7 +324,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
             },
             {
               type: "text",
-              text: "この画像から原材料・成分表示だけを読み取り、指定のJSONだけを返してください。",
+              text: "この画像から原材料・成分表示だけを読み取り、指定のJSONだけを返してください。**見える成分は1つも省略しない**こと（エキス類も表記どおり列挙）。",
             },
           ],
         },
