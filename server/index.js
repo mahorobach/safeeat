@@ -16,11 +16,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- CORS ---
-/** ブラウザの Origin は末尾スラッシュなし。環境変数に / 付きで書いても一致させる */
+/** ブラウザの Origin は末尾スラッシュなし。環境変数に / 付き・.env 風のクォートが付いても一致させる */
 function normalizeOrigin(o) {
-  return String(o || "")
-    .trim()
-    .replace(/\/+$/, "");
+  let s = String(o || "").trim().replace(/\/+$/, "");
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim().replace(/\/+$/, "");
+  }
+  return s;
 }
 
 const allowedOriginSet = new Set(
