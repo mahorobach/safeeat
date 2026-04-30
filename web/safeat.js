@@ -422,17 +422,21 @@ async function applyCropSelection() {
 // --- Analyze ---
 analyzeBtn.addEventListener("click", handleAnalyze);
 
+function switchToTextInputTab() {
+  document.querySelectorAll(".input-tab").forEach((t) =>
+    t.classList.toggle("active", t.dataset.tab === "text"),
+  );
+  document.getElementById("tab-text").style.display = "";
+  document.getElementById("tab-image").style.display = "none";
+}
+
 document.getElementById("btn-extract-then-classify")?.addEventListener("click", async () => {
   const btn = document.getElementById("btn-extract-then-classify");
   clearError();
   btn.disabled = true;
   setLoading(true);
   try {
-    document.querySelectorAll(".input-tab").forEach((t) =>
-      t.classList.toggle("active", t.dataset.tab === "text"),
-    );
-    document.getElementById("tab-text").style.display = "";
-    document.getElementById("tab-image").style.display = "none";
+    switchToTextInputTab();
     await handleTextAnalyze();
   } finally {
     btn.disabled = false;
@@ -456,12 +460,11 @@ async function handleAnalyze() {
   }
 }
 
-async function handleTextAnalyze() {
-  const ingredientsText = textarea.value.trim();
-  if (!ingredientsText) {
-    showError("成分表を入力してください。");
-    return;
-  }
+/**
+ * テキスト欄の内容で API 判定（画像読み取り後の自動実行・手動ボタン共通）
+ * @param {boolean} [recoverManualStepOnFail] 画像フローで失敗したとき「この内容で成分判定する」を再表示する
+ */
+async function classifyExtractedText(ingredientsText, recoverManualStepOnFail = false) {
   try {
     const result = await analyzeWithClaude(ingredientsText);
     const promoted = promoteFromUserDB(result);
@@ -473,8 +476,18 @@ async function handleTextAnalyze() {
       renderResult(promoted, true, ingredientsText);
     } catch {
       showError(`解析エラー：${err.message}`);
+      if (recoverManualStepOnFail) restoreExtractOnlyManualStep(ingredientsText);
     }
   }
+}
+
+async function handleTextAnalyze() {
+  const ingredientsText = textarea.value.trim();
+  if (!ingredientsText) {
+    showError("成分表を入力してください。");
+    return;
+  }
+  await classifyExtractedText(ingredientsText, false);
 }
 
 async function handleImageAnalyze() {
@@ -484,14 +497,27 @@ async function handleImageAnalyze() {
   }
   try {
     const { extractedText } = await extractTextFromImage(_imageBase64, _imageMediaType);
-    renderExtractOnlyResult(extractedText);
+    const text = String(extractedText || "").trim();
+    if (!text) {
+      showError("読み取ったテキストが空です。写真の切り取りを試すか、別の画像を選んでください。");
+      return;
+    }
+    clearError();
+    switchToTextInputTab();
+    textarea.value = text;
+    renderExtractOnlyResult(text, { autoClassifyNext: true });
+    await classifyExtractedText(text, true);
   } catch (err) {
     showError(`読み取りエラー：${err.message}`);
   }
 }
 
-/** 画像→テキストのみ成功時。判定リストは出さず、テキスト欄に転記して次の操作を案内する */
-function renderExtractOnlyResult(extractedText) {
+/**
+ * 画像→テキストのみ成功時、またはその直後の自動判定待ち UI
+ * @param {{ autoClassifyNext?: boolean }} [options] true のとき手動ボタンを隠し「判定中」を表示（自動解析直前）
+ */
+function renderExtractOnlyResult(extractedText, options = {}) {
+  const autoClassifyNext = options.autoClassifyNext === true;
   const text = String(extractedText || "").trim();
   if (!text) {
     showError("読み取ったテキストが空です。写真の切り取りを試すか、別の画像を選んでください。");
@@ -503,10 +529,19 @@ function renderExtractOnlyResult(extractedText) {
   const banner = document.getElementById("overall-banner");
   banner.className = "overall-banner extract-only";
   document.getElementById("overall-icon").textContent = "📄";
-  document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
   document.getElementById("overall-verdict").className = "verdict";
-  document.getElementById("overall-summary").textContent =
-    "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
+  const extractActions = document.getElementById("extract-only-actions");
+
+  if (autoClassifyNext) {
+    document.getElementById("overall-verdict").textContent = "読み取り完了";
+    document.getElementById("overall-summary").textContent = "成分を判定しています…";
+    if (extractActions) extractActions.hidden = true;
+  } else {
+    document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
+    document.getElementById("overall-summary").textContent =
+      "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
+    if (extractActions) extractActions.hidden = false;
+  }
 
   renderExtractedAccordion(text, true);
   renderNgList([]);
@@ -518,11 +553,22 @@ function renderExtractOnlyResult(extractedText) {
   const dbNote = document.querySelector(".user-db-note");
   if (dbNote) dbNote.style.display = "none";
 
-  const extractActions = document.getElementById("extract-only-actions");
-  if (extractActions) extractActions.hidden = false;
-
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** 自動判定に失敗したあと、手動で「この内容で成分判定する」を出す */
+function restoreExtractOnlyManualStep(ingredientsText) {
+  const banner = document.getElementById("overall-banner");
+  banner.className = "overall-banner extract-only";
+  document.getElementById("overall-icon").textContent = "📄";
+  document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
+  document.getElementById("overall-verdict").className = "verdict";
+  document.getElementById("overall-summary").textContent =
+    "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
+  const extractActions = document.getElementById("extract-only-actions");
+  if (extractActions) extractActions.hidden = false;
+  if (ingredientsText != null) textarea.value = String(ingredientsText);
 }
 
 /**
