@@ -81,6 +81,7 @@ app.use((err, _req, res, _next) => {
 const server = app.listen(PORT, LISTEN_HOST, () =>
   console.log(`SafeEat API listening on http://${LISTEN_HOST}:${PORT}`)
 );
-// 長い Vision 処理向け（ロードバランサ上限より長くはできない）
+// 長い Vision / Claude 処理向け（Node 既定 requestTimeout は 5 分のことがあり先に切れる）
+server.requestTimeout = 900_000;
 server.keepAliveTimeout = 120_000;
 server.headersTimeout = 125_000;

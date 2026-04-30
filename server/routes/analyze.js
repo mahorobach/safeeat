@@ -10,6 +10,12 @@ const MODEL_TEXT = (process.env.CLAUDE_MODEL || "").trim() || MODEL_DEFAULT;
  * 遅い・タイムアウトしやすい場合は例: claude-3-5-haiku-20241022（Vision 対応・高速）
  */
 const MODEL_IMAGE = (process.env.CLAUDE_IMAGE_MODEL || "").trim() || MODEL_TEXT;
+/**
+ * extractOnly（読み取り専用）のみ。応答まで数十秒かかるとエッジプロキシが先に切ることがあるため既定は高速 Vision。
+ * 上書き: CLAUDE_IMAGE_EXTRACT_MODEL
+ */
+const MODEL_IMAGE_EXTRACT =
+  (process.env.CLAUDE_IMAGE_EXTRACT_MODEL || "").trim() || "claude-3-5-haiku-20241022";
 
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB（Base64デコード後のサイズ）
@@ -283,7 +289,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODEL_IMAGE,
+      model: MODEL_IMAGE_EXTRACT,
       max_tokens: 4096,
       system: IMAGE_EXTRACT_SYSTEM,
       messages: [

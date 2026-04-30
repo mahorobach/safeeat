@@ -29,3 +29,5 @@ services:
         sync: false
       - key: CLAUDE_IMAGE_MODEL
         sync: false
+      - key: CLAUDE_IMAGE_EXTRACT_MODEL
+        sync: false
