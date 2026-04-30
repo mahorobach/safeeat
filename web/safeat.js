@@ -533,8 +533,9 @@ function renderExtractOnlyResult(extractedText, options = {}) {
   const extractActions = document.getElementById("extract-only-actions");
 
   if (autoClassifyNext) {
-    document.getElementById("overall-verdict").textContent = "読み取り完了";
-    document.getElementById("overall-summary").textContent = "成分を判定しています…";
+    document.getElementById("overall-verdict").textContent = "判別中";
+    document.getElementById("overall-summary").textContent =
+      "読み取ったテキストで成分判定を実行しています。しばらくお待ちください。";
     if (extractActions) extractActions.hidden = true;
   } else {
     document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
