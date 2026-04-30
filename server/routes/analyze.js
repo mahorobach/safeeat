@@ -11,12 +11,10 @@ const MODEL_TEXT = (process.env.CLAUDE_MODEL || "").trim() || MODEL_DEFAULT;
  */
 const MODEL_IMAGE = (process.env.CLAUDE_IMAGE_MODEL || "").trim() || MODEL_TEXT;
 /**
- * extractOnly（読み取り専用）のみ。応答が遅いとプロキシが先に切れるため既定は高速 Vision。
- * 上書き: CLAUDE_IMAGE_EXTRACT_MODEL
- * 既定: Haiku 4.5（2026 時点で claude-3-5-haiku-20241022 は API から拒否される）
+ * extractOnly（読み取り専用）。精度優先のため既定はテキスト判定と同じモデル（通常 Sonnet）。
+ * 高速化だけ優先する場合: CLAUDE_IMAGE_EXTRACT_MODEL=claude-haiku-4-5
  */
-const MODEL_IMAGE_EXTRACT =
-  (process.env.CLAUDE_IMAGE_EXTRACT_MODEL || "").trim() || "claude-haiku-4-5";
+const MODEL_IMAGE_EXTRACT = (process.env.CLAUDE_IMAGE_EXTRACT_MODEL || "").trim() || MODEL_TEXT;
 
 /** 0 に近いほど表記ブレを抑える（省略時は 0）。CLAUDE_TEMPERATURE で上書き可 */
 const CLAUDE_TEMPERATURE = (() => {
@@ -240,15 +238,24 @@ function truthyExtractOnly(v) {
 // =============================================
 // 画像 → 成分テキストのみ（判定なし・応答短く切り分け用）
 // =============================================
-const IMAGE_EXTRACT_SYSTEM = `あなたは日本の食品パッケージの【原材料名・成分表示】を読み取る専用アシスタントです。
-デザイン・ロゴ・栄養成分表・広告文は無視し、原材料・添加物の列挙だけを抽出してください。
+const IMAGE_EXTRACT_SYSTEM = `あなたは日本の食品パッケージ【原材料名（原材料・添加物の並び）】の写し取り専門家です。
+判読できる範囲でラベルの文字を一字一句に近づけて転記してください。栄養成分表・キャッチコピー・写真は無視し、原材料の列だけを対象にします。
 
-読み取りの指針:
-- 写真に**判読できる**成分・添加物はできるだけすべて ingredientListRaw に入れる（見落としを減らす。並びはラベルに近い順）
-- 魚介・昆布などの**エキス／エキスパウダー**は、見える表記に近い形で列挙する（例: カツオエキス）
+厳守（誤認・欠落の防止）:
+1. 推測で成分名を捏造しない。読めない字だけ飛ばして勝手に別語にしない。
+2. 「焼酎（しょうちゅう）」と「塩・食塩・焼塩」はよく取り違える。酒類の語なら焼酎、塩味原料なら塩系。字形を再確認する。
+3. 「白ねぎ」はこの列では珍しい。似字形（でん粉・液糖・別成分）と読み違えていないか確認する。
+4. 「カツオエキス」「かつお節エキス」など魚介エキス行は字が細くても**省略しない**。
+5. でん粉、液糖、ブドウ糖果糖液糖、蜂蜜、発酵調味料、食用酵素（等）の表記を変えずに近づける。
+6. ナトリウム・糖類など、ラベルに無い語を足さない（栄養成分表と混同しない）。
+7. 文末の「（一部に小麦・サバ、大豆を含む）」など**アレルゲン括弧書き**は原材料列に付きうる。読めたら**列の末尾に**、原文に近い形で含める。小麦粉単体で「サバ」「大豆を含む」だけを列挙に混ぜない。
 
-次の1行のJSON**だけ**を返してください（前後の説明・Markdown・コードフェンスは禁止）:
-{"ingredientListRaw":"カンマまたは読点区切りで成分名を1行に列挙"}`;
+句読点のルール:
+- ingredientListRaw は**日本語の読点「、」**で区切った1本の文字列（例: 「うるち米（国産）、砂糖、…」）。
+- 括弧「（）」内の文は崩さない。
+
+出力は次の1行のJSON**のみ**（説明・Markdown・コードフェンス禁止）:
+{"ingredientListRaw":"ここへ上記ルールで写し取った全文"}`;
 
 function parseExtractOnlyResponse(text) {
   const rawInput = String(text || "").trim();
@@ -306,8 +313,8 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
     },
     body: JSON.stringify({
       model: MODEL_IMAGE_EXTRACT,
-      max_tokens: 4096,
-      /* 読み取り専用 Vision は temperature 未指定（API 既定）。0 だと細字・エキス行の再現が落ちることがある */
+      max_tokens: 8192,
+      /* 読み取り専用 Vision は temperature 未指定（API 既定） */
       system: IMAGE_EXTRACT_SYSTEM,
       messages: [
         {
@@ -323,7 +330,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
             },
             {
               type: "text",
-              text: "この画像の原材料・成分表示を読み取り、指定の1行JSONだけを返してください。小さな字の行も含め、判読できるものはできるだけ漏れなく列挙してください。",
+              text: "この画像の【原材料・添加物の表示ブロック】だけを写し取ってください。上から／左からの並びを変えず、小さな字の行（エキス・液糖・でん粉等）も欠かさない。焼酎と塩類の取り違えに注意。出力は system で指定した1行JSONのみ。",
             },
           ],
         },
