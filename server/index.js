@@ -16,16 +16,33 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- CORS ---
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+/** ブラウザの Origin は末尾スラッシュなし。環境変数に / 付きで書いても一致させる */
+function normalizeOrigin(o) {
+  return String(o || "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
+const allowedOriginSet = new Set(
+  (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((s) => normalizeOrigin(s))
+    .filter(Boolean),
+);
+
+if (allowedOriginSet.size > 0) {
+  console.log(`CORS: ${allowedOriginSet.size} origin(s) → ${[...allowedOriginSet].join(", ")}`);
+} else {
+  console.warn("CORS: ALLOWED_ORIGINS が空です。GitHub Pages 等からは API をブロックします。");
+}
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS blocked: ${origin}`));
+      if (!origin) return callback(null, true);
+      if (allowedOriginSet.has(normalizeOrigin(origin))) return callback(null, true);
+      console.warn(`CORS blocked: ${origin}`);
+      callback(null, false);
     },
     credentials: true,
   })
