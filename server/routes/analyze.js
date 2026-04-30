@@ -7,15 +7,16 @@ const MODEL_DEFAULT = "claude-sonnet-4-20250514";
 const MODEL_TEXT = (process.env.CLAUDE_MODEL || "").trim() || MODEL_DEFAULT;
 /**
  * 画像1往復用（未設定時は MODEL_TEXT と同じ）
- * 遅い・タイムアウトしやすい場合は例: claude-3-5-haiku-20241022（Vision 対応・高速）
+ * 高速化したい場合は Vision 対応の Haiku 4.5 例: claude-haiku-4-5（claude-3-5-haiku-20241022 は廃止）
  */
 const MODEL_IMAGE = (process.env.CLAUDE_IMAGE_MODEL || "").trim() || MODEL_TEXT;
 /**
- * extractOnly（読み取り専用）のみ。応答まで数十秒かかるとエッジプロキシが先に切ることがあるため既定は高速 Vision。
+ * extractOnly（読み取り専用）のみ。応答が遅いとプロキシが先に切れるため既定は高速 Vision。
  * 上書き: CLAUDE_IMAGE_EXTRACT_MODEL
+ * 既定: Haiku 4.5（2026 時点で claude-3-5-haiku-20241022 は API から拒否される）
  */
 const MODEL_IMAGE_EXTRACT =
-  (process.env.CLAUDE_IMAGE_EXTRACT_MODEL || "").trim() || "claude-3-5-haiku-20241022";
+  (process.env.CLAUDE_IMAGE_EXTRACT_MODEL || "").trim() || "claude-haiku-4-5";
 
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB（Base64デコード後のサイズ）
