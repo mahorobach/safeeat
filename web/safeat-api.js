@@ -51,7 +51,7 @@ function networkFailureUserMessage() {
   );
 }
 
-/**
+function isLikelyNetworkError(err) {
   if (!(err instanceof TypeError)) return false;
   const m = String(err.message || "").toLowerCase();
   return (
