@@ -243,10 +243,9 @@ function truthyExtractOnly(v) {
 const IMAGE_EXTRACT_SYSTEM = `あなたは日本の食品パッケージの【原材料名・成分表示】を読み取る専用アシスタントです。
 デザイン・ロゴ・栄養成分表・広告文は無視し、原材料・添加物の列挙だけを抽出してください。
 
-厳守:
-- 写真に**読める**成分・添加物は**すべて** ingredientListRaw に含める（省略・要約・代表への置き換え・「など」でまとめることは禁止）
-- かつお・いわし・さんま・昆布等の**エキス・エキスパウダー**は、ラベルに**見える表記を可能な限りそのまま**列挙する（例: カツオエキス、かつお節エキス）
-- 並びはラベルに近い順を保つ
+読み取りの指針:
+- 写真に**判読できる**成分・添加物はできるだけすべて ingredientListRaw に入れる（見落としを減らす。並びはラベルに近い順）
+- 魚介・昆布などの**エキス／エキスパウダー**は、見える表記に近い形で列挙する（例: カツオエキス）
 
 次の1行のJSON**だけ**を返してください（前後の説明・Markdown・コードフェンスは禁止）:
 {"ingredientListRaw":"カンマまたは読点区切りで成分名を1行に列挙"}`;
@@ -308,7 +307,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
     body: JSON.stringify({
       model: MODEL_IMAGE_EXTRACT,
       max_tokens: 4096,
-      temperature: CLAUDE_TEMPERATURE,
+      /* 読み取り専用 Vision は temperature 未指定（API 既定）。0 だと細字・エキス行の再現が落ちることがある */
       system: IMAGE_EXTRACT_SYSTEM,
       messages: [
         {
@@ -324,7 +323,7 @@ async function extractIngredientsTextFromImage(image, mimeType, apiKey) {
             },
             {
               type: "text",
-              text: "この画像から原材料・成分表示だけを読み取り、指定のJSONだけを返してください。**見える成分は1つも省略しない**こと（エキス類も表記どおり列挙）。",
+              text: "この画像の原材料・成分表示を読み取り、指定の1行JSONだけを返してください。小さな字の行も含め、判読できるものはできるだけ漏れなく列挙してください。",
             },
           ],
         },

@@ -396,6 +396,10 @@ main {
   border-radius: 10px;
   box-shadow: var(--shadow);
 }
+/* .extract-only-actions { display:flex } が [hidden] より後勝ちし、非表示にならないのを防ぐ */
+.extract-only-actions[hidden] {
+  display: none !important;
+}
 .extract-only-actions-hint {
   font-size: .8rem;
   line-height: 1.55;

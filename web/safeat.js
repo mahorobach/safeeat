@@ -111,8 +111,8 @@ function mayBeProcessableImageFile(file) {
 }
 
 /** タイムアウトしやすいホスティング向け。長辺を抑えロード削減 */
-const VISION_MAX_EDGE     = 640;
-const VISION_JPEG_QUALITY = 0.62;
+const VISION_MAX_EDGE     = 720;
+const VISION_JPEG_QUALITY = 0.7;
 const IMG_MAX_BYTES       = 5 * 1024 * 1024;
 
 let _currentImageBlob = null;
@@ -465,6 +465,8 @@ async function handleAnalyze() {
  * @param {boolean} [recoverManualStepOnFail] 画像フローで失敗したとき「この内容で成分判定する」を再表示する
  */
 async function classifyExtractedText(ingredientsText, recoverManualStepOnFail = false) {
+  const extractActions = document.getElementById("extract-only-actions");
+  if (extractActions) extractActions.setAttribute("hidden", "");
   try {
     const result = await analyzeWithClaude(ingredientsText);
     const promoted = promoteFromUserDB(result);
@@ -536,12 +538,12 @@ function renderExtractOnlyResult(extractedText, options = {}) {
     document.getElementById("overall-verdict").textContent = "判別中";
     document.getElementById("overall-summary").textContent =
       "読み取ったテキストで成分判定を実行しています。しばらくお待ちください。";
-    if (extractActions) extractActions.hidden = true;
+    if (extractActions) extractActions.setAttribute("hidden", "");
   } else {
     document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
     document.getElementById("overall-summary").textContent =
       "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
-    if (extractActions) extractActions.hidden = false;
+    if (extractActions) extractActions.removeAttribute("hidden");
   }
 
   renderExtractedAccordion(text, true);
@@ -568,7 +570,7 @@ function restoreExtractOnlyManualStep(ingredientsText) {
   document.getElementById("overall-summary").textContent =
     "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
   const extractActions = document.getElementById("extract-only-actions");
-  if (extractActions) extractActions.hidden = false;
+  if (extractActions) extractActions.removeAttribute("hidden");
   if (ingredientsText != null) textarea.value = String(ingredientsText);
 }
 
@@ -622,7 +624,7 @@ const OVERALL_CONFIG = {
 
 function renderResult(result, isOffline, extractedText) {
   const extractActions = document.getElementById("extract-only-actions");
-  if (extractActions) extractActions.hidden = true;
+  if (extractActions) extractActions.setAttribute("hidden", "");
 
   const dbNote = document.querySelector(".user-db-note");
   if (dbNote) dbNote.style.display = "";
@@ -799,7 +801,7 @@ function clearError() {
 function hideResult() {
   resultSection.classList.remove("visible");
   const extractActions = document.getElementById("extract-only-actions");
-  if (extractActions) extractActions.hidden = true;
+  if (extractActions) extractActions.setAttribute("hidden", "");
 }
 
 function esc(str) {
