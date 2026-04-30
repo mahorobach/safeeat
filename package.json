@@ -2,14 +2,14 @@
   "name": "safeat-server",
   "version": "1.0.0",
   "description": "SafeEat API server — Node.js/Express (see server/; e.g. Render)",
-  "main": "index.js",
+  "main": "server/index.js",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0",
