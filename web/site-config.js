@@ -4,5 +4,5 @@
  */
 window.SAFEAT_CONFIG = {
   /** バックエンド API のオリジン（末尾スラッシュなし） */
-  API_BASE: "https://safeeat-rrzd.onrender.com",
+  API_BASE: "https://safeeat-production-b7c5.up.railway.app",
 };

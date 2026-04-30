@@ -5,7 +5,7 @@
 
 const API_BASE =
   (typeof window !== "undefined" && window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) ||
-  "https://safeeat-rrzd.onrender.com";
+  "https://safeeat-production-b7c5.up.railway.app";
 
 /** Render スリープ復帰用に全呼び出しで共有する 1 回きりの待機 */
 let _warmPromise = null;

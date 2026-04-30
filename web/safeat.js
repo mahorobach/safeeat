@@ -5,7 +5,7 @@
  */
 
 const SAFEAT_API_URL =
-  (window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) || "https://safeeat-rrzd.onrender.com";
+  (window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) || "https://safeeat-production-b7c5.up.railway.app";
 
 // Supabase Auth トークン（ログイン後に sessionStorage に格納）
 function getAuthToken() {
