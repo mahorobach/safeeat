@@ -5,6 +5,8 @@ const router = Router();
 const GEMINI_MODEL = (process.env.GEMINI_MODEL || "").trim() || "gemini-3.0-flash";
 const GEMINI_API_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+console.log(`[Gemini] 使用モデル: ${GEMINI_MODEL}`);
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024;
 
