@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import analyzeRouter from "./routes/analyze.js";
+import analyzeGeminiRouter from "./routes/analyze-gemini.js";
 import ingredientsRouter from "./routes/ingredients.js";
 import userRouter from "./routes/user.js";
 import subscriptionRouter, { webhookHandler } from "./routes/subscription.js";
@@ -75,7 +76,8 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "SafeEat API", ts: new Date().toISOString() });
 });
 
-app.use("/api/analyze",      analyzeRouter);
+app.use("/api/analyze",        analyzeRouter);
+app.use("/api/analyze/gemini", analyzeGeminiRouter);
 app.use("/api/ingredients",  ingredientsRouter);
 app.use("/api/user",         userRouter);
 app.use("/api/subscription", subscriptionRouter);

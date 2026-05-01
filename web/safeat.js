@@ -80,6 +80,8 @@ function getActiveTab() {
 // --- Image state ---
 let _imageBase64 = null;
 let _imageMediaType = null;
+/** 結果画面でテキストと照合するため、読み取り成功時点の画像（data URL） */
+let _comparePhotoDataUrl = null;
 
 const dropZone        = document.getElementById("drop-zone");
 const imageInput      = document.getElementById("image-input");
@@ -138,7 +140,35 @@ btnStartCrop.addEventListener("click", (e) => { e.stopPropagation(); openCropPan
 btnCancelCrop.addEventListener("click", (e) => { e.stopPropagation(); closeCropPanel(); });
 btnApplyCrop.addEventListener("click", (e) => { e.stopPropagation(); applyCropSelection(); });
 
+function clearCompareSnapshot() {
+  _comparePhotoDataUrl = null;
+  const wrap = document.getElementById("result-compare-photo-wrap");
+  const img = document.getElementById("result-compare-photo");
+  if (wrap) {
+    wrap.style.display = "none";
+    wrap.setAttribute("hidden", "");
+  }
+  if (img) img.removeAttribute("src");
+}
+
+function updateResultComparePhoto() {
+  const wrap = document.getElementById("result-compare-photo-wrap");
+  const img = document.getElementById("result-compare-photo");
+  if (!wrap || !img) return;
+  if (_comparePhotoDataUrl) {
+    img.src = _comparePhotoDataUrl;
+    img.alt = "読み取りに使った写真";
+    wrap.removeAttribute("hidden");
+    wrap.style.display = "";
+  } else {
+    wrap.style.display = "none";
+    wrap.setAttribute("hidden", "");
+    img.removeAttribute("src");
+  }
+}
+
 function clearImage() {
+  clearCompareSnapshot();
   _imageBase64 = _imageMediaType = null;
   _currentImageBlob = null;
   imagePreview.style.display = "none";
@@ -419,6 +449,15 @@ async function applyCropSelection() {
   clearError();
 }
 
+// --- Engine selector ---
+function getSelectedEngine() {
+  return document.querySelector('input[name="engine"]:checked')?.value || "claude";
+}
+
+document.querySelectorAll('input[name="engine"]').forEach((radio) => {
+  radio.addEventListener("change", () => setLoading(false));
+});
+
 // --- Analyze ---
 analyzeBtn.addEventListener("click", handleAnalyze);
 
@@ -489,6 +528,23 @@ async function handleTextAnalyze() {
     showError("成分表を入力してください。");
     return;
   }
+
+  if (getSelectedEngine() === "gemini") {
+    try {
+      const result = await analyzeTextWithGemini(ingredientsText);
+      const promoted = promoteFromUserDB(result);
+      renderResult(promoted, false, ingredientsText);
+    } catch (err) {
+      try {
+        const result = localFallback(ingredientsText);
+        renderResult(promoteFromUserDB(result), true, ingredientsText);
+      } catch {
+        showError(`Gemini 解析エラー：${err.message}`);
+      }
+    }
+    return;
+  }
+
   await classifyExtractedText(ingredientsText, false);
 }
 
@@ -497,6 +553,13 @@ async function handleImageAnalyze() {
     showError("画像を選択してください。");
     return;
   }
+
+  if (getSelectedEngine() === "gemini") {
+    await handleImageAnalyzeGemini();
+    return;
+  }
+
+  // --- Claude 2ステップ（既存フロー）---
   try {
     const { extractedText } = await extractTextFromImage(_imageBase64, _imageMediaType);
     const text = String(extractedText || "").trim();
@@ -514,6 +577,21 @@ async function handleImageAnalyze() {
   }
 }
 
+async function handleImageAnalyzeGemini() {
+  try {
+    _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
+    const { data, extractedText } = await analyzeImageWithGemini(_imageBase64, _imageMediaType);
+    const text = String(extractedText || "").trim();
+    clearError();
+    switchToTextInputTab();
+    if (text) textarea.value = text;
+    const promoted = promoteFromUserDB(data);
+    renderResult(promoted, false, text);
+  } catch (err) {
+    showError(`Gemini 解析エラー：${err.message}`);
+  }
+}
+
 /**
  * 画像→テキストのみ成功時、またはその直後の自動判定待ち UI
  * @param {{ autoClassifyNext?: boolean }} [options] true のとき手動ボタンを隠し「判定中」を表示（自動解析直前）
@@ -527,6 +605,9 @@ function renderExtractOnlyResult(extractedText, options = {}) {
   }
   clearError();
   textarea.value = text;
+  if (_imageBase64 && _imageMediaType) {
+    _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
+  }
 
   const banner = document.getElementById("overall-banner");
   banner.className = "overall-banner extract-only";
@@ -556,6 +637,7 @@ function renderExtractOnlyResult(extractedText, options = {}) {
   const dbNote = document.querySelector(".user-db-note");
   if (dbNote) dbNote.style.display = "none";
 
+  updateResultComparePhoto();
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -648,6 +730,7 @@ function renderResult(result, isOffline, extractedText) {
   renderUnknownList(result.unknown || []);
   updateUserDBBadge();
 
+  updateResultComparePhoto();
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -782,13 +865,12 @@ function setLoading(on) {
   analyzeBtn.disabled = on;
   analyzeBtn.classList.toggle("loading", on);
   const onImageTab = getActiveTab() === "image";
+  const isGemini = getSelectedEngine() === "gemini";
   document.querySelector(".btn-label").textContent = on
-    ? onImageTab
-      ? "読み取り中..."
-      : "解析中..."
+    ? onImageTab ? "解析中..." : "解析中..."
     : onImageTab
-      ? "この画像で読み取る"
-      : "成分を解析する";
+      ? isGemini ? "Gemini で読み取り＆判定する" : "この画像で読み取る"
+      : isGemini ? "Gemini で解析する" : "成分を解析する";
 }
 function showError(msg) {
   errorBox.textContent = msg;

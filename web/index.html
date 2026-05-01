@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SafeEat — 食品成分チェッカー（オリエンタルベジタリアン）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.3.6">
+  <link rel="stylesheet" href="safeat.css?v=0.3.7">
 </head>
 <body>
 
@@ -33,6 +33,19 @@
   <!-- Ingredient Input -->
   <div class="card">
     <div class="card-title">📋 成分を入力</div>
+
+    <!-- Engine selector -->
+    <div class="engine-selector">
+      <span class="engine-label">解析エンジン:</span>
+      <label class="engine-option">
+        <input type="radio" name="engine" value="claude" checked>
+        <span>🤖 Claude（2ステップ）</span>
+      </label>
+      <label class="engine-option">
+        <input type="radio" name="engine" value="gemini">
+        <span>✨ Gemini（1ステップ・試験中）</span>
+      </label>
+    </div>
 
     <!-- Tab nav -->
     <div class="input-tabs">
@@ -95,6 +108,15 @@
 
   <!-- Results -->
   <section id="result-section">
+
+    <!-- 写真読み取りフロー時: 判別・テキストと照合できるよう掲示 -->
+    <div id="result-compare-photo-wrap" class="result-compare-photo-wrap" hidden>
+      <div class="result-compare-photo-title">📷 読み取りに使った写真</div>
+      <div class="result-compare-photo-inner">
+        <img id="result-compare-photo" class="result-compare-photo" alt="読み取りに使った写真">
+      </div>
+      <p class="result-compare-photo-hint">読み取ったテキストとパッケージの表示を照合してください。</p>
+    </div>
 
     <!-- Extracted text accordion (image mode only) -->
     <details class="extracted-accordion" id="extracted-accordion" style="display:none">
@@ -166,12 +188,12 @@
 
 </main>
 
-<footer>SafeEat v0.3.2 &nbsp;|&nbsp; オリエンタルベジタリアン特化版 &nbsp;|&nbsp; Powered by Claude API</footer>
+<footer>SafeEat v0.4.0 &nbsp;|&nbsp; オリエンタルベジタリアン特化版 &nbsp;|&nbsp; Claude / Gemini 対応</footer>
 
 <script src="site-config.js?v=0.3.3"></script>
 <script src="lib/ingredients-db.js?v=0.3.3"></script>
 <script src="lib/rules.js?v=0.3.3"></script>
 <script src="safeat-api.js?v=0.3.3"></script>
-<script src="safeat.js?v=0.3.7"></script>
+<script src="safeat.js?v=0.3.8"></script>
 </body>
 </html>

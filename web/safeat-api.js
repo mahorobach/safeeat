@@ -171,3 +171,61 @@ async function extractTextFromImage(imageData, mediaType) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 画像から成分抽出＋判定を1ステップで実行（Gemini）
+ * @returns {Promise<{ data, extractedText }>}
+ */
+async function analyzeImageWithGemini(imageData, mediaType) {
+  await ensureApiWarm();
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 130_000);
+  try {
+    const res = await fetchWithRetry(
+      `${API_BASE}/api/analyze/gemini/image`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({ image: { data: imageData, mediaType } }),
+      },
+      3,
+      2200,
+    );
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`サーバー応答が不正です (${res.status})`);
+    }
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `サーバーエラー (${res.status})`);
+    }
+
+    return { data: data.data, extractedText: data.extractedText || "" };
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
+/**
+ * テキスト成分を Gemini で判定
+ * @returns {Promise<{ok, gray, ng, unknown, overall, summary}>}
+ */
+async function analyzeTextWithGemini(ingredientsText) {
+  await ensureApiWarm();
+  const res = await fetchWithRetry(`${API_BASE}/api/analyze/gemini/text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ingredients: ingredientsText }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `サーバーエラー (${res.status})`);
+  }
+
+  return data.data;
+}
