@@ -185,4 +185,132 @@ router.post("/text", async (req, res, next) => {
   }
 });
 
+// =============================================
+// POST /api/analyze/gemini/image/detailed
+// 1ステップ: 成分ごとにOCR確信度・BBox・ベジ判定を返す
+// =============================================
+
+const DETAILED_IMAGE_PROMPT = `この食品パッケージ画像の原材料名欄を解析してください。
+
+【作業手順】
+1. 原材料名欄の各成分を1つずつ読み取る
+2. 各成分について以下を評価・返答する
+
+【OCR確信度】
+- 0.0〜1.0 で評価。文字が不鮮明・小さい・かすれている場合は低くする
+- 0.8 未満の場合: requires_user_check = true、テキスト末尾に [?] を付加
+  user_prompt に「ここは"XXX"と読めますが正しいですか？」形式の確認文を入れる
+
+【座標（bounding_box）】
+- 各成分テキストの位置を [ymin, xmin, ymax, xmax] 形式で返す（0〜1000 スケール）
+- 全体の原材料行が1ブロックの場合は、個々の単語レベルで分割して座標を付ける
+
+【オリエンタルベジタリアン判定（vege_status）】
+- "Red"  : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性成分（肉・魚・ゼラチン・コラーゲン・コチニール等）
+- "Yellow": 由来が不明・要確認（グリセリン・天然香料・酵素・由来不明のビタミンD等）
+- "Green" : 安全な成分（植物性油脂・卵・乳製品・大豆レシチン・砂糖・塩等）
+
+【final_decision】
+- "NG"     : Red が1つ以上ある
+- "Pending": Red なし・Yellow または requires_user_check が1つ以上ある
+- "OK"     : すべて Green かつ requires_user_check がすべて false
+
+必ず以下のJSON形式のみで返答（説明・Markdown・コードフェンス禁止）:
+{
+  "ingredients": [
+    {
+      "text": "成分名（確信度<0.8なら末尾に[?]）",
+      "bounding_box": [ymin, xmin, ymax, xmax],
+      "confidence": 0.95,
+      "requires_user_check": false,
+      "user_prompt": null,
+      "vege_status": "Green",
+      "reason": "判定理由（日本語・1文）"
+    }
+  ],
+  "final_decision": "OK"
+}`;
+
+router.post("/image/detailed", async (req, res, next) => {
+  const { image } = req.body;
+
+  if (!image?.data) {
+    return res.status(400).json({ ok: false, error: "image.data は必須です（Base64文字列）" });
+  }
+  if (!VALID_MIME_TYPES.includes(image.mediaType)) {
+    return res.status(400).json({
+      ok: false,
+      error: `image.mediaType が不正です。対応形式: ${VALID_MIME_TYPES.join(", ")}`,
+    });
+  }
+
+  const sizeBytes = Buffer.byteLength(image.data, "base64");
+  if (sizeBytes > IMAGE_SIZE_LIMIT) {
+    return res.status(400).json({
+      ok: false,
+      error: `画像サイズが上限（5MB）を超えています（${(sizeBytes / 1024 / 1024).toFixed(1)}MB）`,
+    });
+  }
+
+  const apiKey = getGeminiKey(res);
+  if (!apiKey) return;
+
+  try {
+    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: image.mediaType, data: image.data } },
+            { text: DETAILED_IMAGE_PROMPT },
+          ],
+        }],
+        generationConfig: { temperature: 0, responseMimeType: "application/json" },
+      }),
+    });
+
+    const geminiData = await geminiRes.json();
+    if (!geminiRes.ok) {
+      throw new Error(geminiData?.error?.message || `Gemini API エラー (${geminiRes.status})`);
+    }
+
+    const parsed = parseGeminiResponse(extractGeminiText(geminiData));
+
+    if (!Array.isArray(parsed.ingredients) || parsed.ingredients.length === 0) {
+      return res.status(422).json({
+        ok: false,
+        error: "成分表が読み取れませんでした。原材料の範囲を選択してから再試行してください。",
+      });
+    }
+
+    // user_prompt が null 以外でも文字列に統一
+    parsed.ingredients = parsed.ingredients.map((item) => ({
+      text:               String(item.text || ""),
+      bounding_box:       Array.isArray(item.bounding_box) ? item.bounding_box : [0, 0, 0, 0],
+      confidence:         typeof item.confidence === "number" ? item.confidence : 1.0,
+      requires_user_check: Boolean(item.requires_user_check),
+      user_prompt:        item.user_prompt ?? null,
+      vege_status:        ["Green", "Yellow", "Red"].includes(item.vege_status) ? item.vege_status : "Yellow",
+      reason:             String(item.reason || ""),
+    }));
+
+    // final_decision が不正な値の場合は再計算
+    const hasRed     = parsed.ingredients.some((i) => i.vege_status === "Red");
+    const hasPending = parsed.ingredients.some(
+      (i) => i.vege_status === "Yellow" || i.requires_user_check,
+    );
+    if (!["OK", "NG", "Pending"].includes(parsed.final_decision)) {
+      parsed.final_decision = hasRed ? "NG" : hasPending ? "Pending" : "OK";
+    }
+
+    // extractedText: フロント textarea 反映用（既存 UI との互換）
+    const extractedText = parsed.ingredients.map((i) => i.text.replace(/\s*\[?\?\]?\s*$/, "").trim()).join("、");
+
+    res.json({ ok: true, data: parsed, extractedText });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;

@@ -173,6 +173,61 @@ async function extractTextFromImage(imageData, mediaType) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * 画像から成分ごとの確信度・BBox・ベジ判定を1ステップで取得（Gemini detailed）
+ *
+ * @param {string} imageData  - Base64 文字列
+ * @param {string} mediaType  - "image/jpeg" 等
+ * @returns {Promise<{
+ *   data: {
+ *     ingredients: Array<{
+ *       text: string,
+ *       bounding_box: [number, number, number, number],
+ *       confidence: number,
+ *       requires_user_check: boolean,
+ *       user_prompt: string|null,
+ *       vege_status: "Green"|"Yellow"|"Red",
+ *       reason: string
+ *     }>,
+ *     final_decision: "OK"|"NG"|"Pending"
+ *   },
+ *   extractedText: string
+ * }>}
+ */
+async function analyzeImageWithGeminiDetailed(imageData, mediaType) {
+  await ensureApiWarm();
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 130_000);
+  try {
+    const res = await fetchWithRetry(
+      `${API_BASE}/api/analyze/gemini/image/detailed`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({ image: { data: imageData, mediaType } }),
+      },
+      3,
+      2200,
+    );
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`サーバー応答が不正です (${res.status})`);
+    }
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `サーバーエラー (${res.status})`);
+    }
+
+    return { data: data.data, extractedText: data.extractedText || "" };
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
+/**
  * 画像から成分抽出＋判定を1ステップで実行（Gemini）
  * @returns {Promise<{ data, extractedText }>}
  */

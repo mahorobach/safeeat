@@ -633,6 +633,115 @@ main {
 }
 .user-db-hint { color: var(--gray); }
 
+/* ===== Detailed Result (Gemini 詳細モード) ===== */
+.detailed-header { background: #3f51b5; color: #fff; }
+
+.detailed-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detailed-item:last-child { border-bottom: none; }
+
+.detailed-item-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 確信度バッジ */
+.conf-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.conf-high { background: #e8f5e9; color: #2e7d32; }
+.conf-mid  { background: #fff8e1; color: #f57f17; }
+.conf-low  { background: #fce4ec; color: #c62828; }
+
+/* ベジステータスバッジ */
+.vege-badge {
+  font-size: .75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.vege-badge.ok   { background: #e8f5e9; color: #2e7d32; }
+.vege-badge.gray { background: #fff8e1; color: #e65100; }
+.vege-badge.ng   { background: #fce4ec; color: #c62828; }
+
+/* 要確認フラグ */
+.check-flag {
+  font-size: .72rem;
+  background: #ff8f00;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+/* ユーザーへの確認文 */
+.user-prompt-text {
+  font-size: .82rem;
+  color: #1565c0;
+  background: #e3f2fd;
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+
+/* ズームボタン */
+.btn-zoom-bbox {
+  align-self: flex-start;
+  font-size: .78rem;
+  padding: 4px 10px;
+  background: #f3e5f5;
+  color: #6a1b9a;
+  border: 1px solid #ce93d8;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-zoom-bbox:hover { background: #e1bee7; }
+
+/* ズームエリア */
+.ingredient-zoom-area {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.zoom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.zoom-title { color: #fff; font-size: .85rem; font-weight: 600; }
+.zoom-close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.zoom-canvas {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+  image-rendering: crisp-edges;
+}
+.zoom-caption {
+  color: #ccc;
+  font-size: .78rem;
+  margin-top: 6px;
+  text-align: center;
+}
+
 /* ===== Engine Selector ===== */
 .engine-selector {
   display: flex;

@@ -554,7 +554,12 @@ async function handleImageAnalyze() {
     return;
   }
 
-  if (getSelectedEngine() === "gemini") {
+  const engine = getSelectedEngine();
+  if (engine === "gemini-detailed") {
+    await handleImageAnalyzeGeminiDetailed();
+    return;
+  }
+  if (engine === "gemini") {
     await handleImageAnalyzeGemini();
     return;
   }
@@ -590,6 +595,147 @@ async function handleImageAnalyzeGemini() {
   } catch (err) {
     showError(`Gemini 解析エラー：${err.message}`);
   }
+}
+
+// =============================================
+// Gemini 詳細モード（確信度 + BBox + ベジ判定）
+// =============================================
+
+async function handleImageAnalyzeGeminiDetailed() {
+  try {
+    _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
+    const { data, extractedText } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType);
+    const text = String(extractedText || "").trim();
+    clearError();
+    switchToTextInputTab();
+    if (text) textarea.value = text;
+    renderDetailedResult(data, _comparePhotoDataUrl);
+  } catch (err) {
+    showError(`Gemini 詳細解析エラー：${err.message}`);
+  }
+}
+
+/** bounding_box [ymin,xmin,ymax,xmax] (0-1000) の領域を canvas にズーム描画 */
+function drawZoom(imageDataUrl, bbox, caption) {
+  const zoomArea  = document.getElementById("ingredient-zoom-area");
+  const zoomCanvas = document.getElementById("zoom-canvas");
+  const zoomCaption = document.getElementById("zoom-caption");
+  if (!zoomArea || !zoomCanvas) return;
+
+  const img = new Image();
+  img.onload = () => {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const pad = 0.25; // 上下左右に 25% 余白を追加
+
+    const ymin = (bbox[0] / 1000) * h;
+    const xmin = (bbox[1] / 1000) * w;
+    const ymax = (bbox[2] / 1000) * h;
+    const xmax = (bbox[3] / 1000) * w;
+
+    const bw = xmax - xmin;
+    const bh = ymax - ymin;
+    const sx = Math.max(0, xmin - bw * pad);
+    const sy = Math.max(0, ymin - bh * pad);
+    const sw = Math.min(w - sx, bw * (1 + pad * 2));
+    const sh = Math.min(h - sy, bh * (1 + pad * 2));
+
+    const MAX_W = 380;
+    zoomCanvas.width  = Math.min(MAX_W, sw * 2);
+    zoomCanvas.height = Math.round(sh * (zoomCanvas.width / sw));
+    zoomCanvas.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, zoomCanvas.width, zoomCanvas.height);
+
+    if (zoomCaption) zoomCaption.textContent = caption || "";
+    zoomArea.style.display = "block";
+    zoomArea.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  img.src = imageDataUrl;
+}
+
+document.getElementById("zoom-close-btn")?.addEventListener("click", () => {
+  const el = document.getElementById("ingredient-zoom-area");
+  if (el) el.style.display = "none";
+});
+
+const VEGE_STATUS_CONFIG = {
+  Red:    { icon: "❌", label: "NG", cls: "ng" },
+  Yellow: { icon: "🟡", label: "要確認", cls: "gray" },
+  Green:  { icon: "✅", label: "OK", cls: "ok" },
+};
+
+function renderDetailedResult(data, imageDataUrl) {
+  const wrap  = document.getElementById("detailed-result-wrap");
+  const list  = document.getElementById("detailed-list");
+  const count = document.getElementById("detailed-count");
+  if (!wrap || !list) return;
+
+  // 標準結果エリアは非表示にして詳細を主役にする
+  document.getElementById("ng-list").closest(".result-list-card").style.display  = "none";
+  document.getElementById("gray-list").closest(".result-list-card").style.display = "none";
+  document.getElementById("ok-list").closest(".result-list-card").style.display   = "none";
+  document.getElementById("unknown-card").style.display = "none";
+
+  // overall バナーを final_decision から設定
+  const decisionMap = { OK: "ok", NG: "ng", Pending: "gray" };
+  const overall = decisionMap[data.final_decision] || "gray";
+  const cfg = OVERALL_CONFIG[overall];
+  document.getElementById("overall-icon").textContent    = cfg.icon;
+  document.getElementById("overall-verdict").textContent = cfg.label;
+  document.getElementById("overall-verdict").className   = `verdict ${overall}`;
+  document.getElementById("overall-banner").className    = `overall-banner ${overall}`;
+  document.getElementById("overall-summary").textContent =
+    `Gemini 詳細モード / ${data.ingredients.length}件の成分を解析`;
+
+  if (count) count.textContent = `${data.ingredients.length}件`;
+
+  list.innerHTML = "";
+  for (const item of data.ingredients) {
+    const vcfg = VEGE_STATUS_CONFIG[item.vege_status] || VEGE_STATUS_CONFIG.Yellow;
+    const confPct = Math.round(item.confidence * 100);
+    const confCls = confPct >= 80 ? "conf-high" : confPct >= 60 ? "conf-mid" : "conf-low";
+    const checkFlag = item.requires_user_check
+      ? `<span class="check-flag">⚠ 要確認</span>` : "";
+
+    const li = document.createElement("li");
+    li.className = "detailed-item";
+    li.innerHTML = `
+      <div class="detailed-item-top">
+        <span class="ing-name ${vcfg.cls}">${esc(item.text)}</span>
+        ${checkFlag}
+        <span class="vege-badge ${vcfg.cls}">${vcfg.icon} ${esc(vcfg.label)}</span>
+        <span class="conf-badge ${confCls}">${confPct}%</span>
+      </div>
+      <div class="ing-reason">${esc(item.reason)}</div>
+      ${item.user_prompt ? `<div class="user-prompt-text">💬 ${esc(item.user_prompt)}</div>` : ""}
+      ${item.requires_user_check && imageDataUrl && item.bounding_box
+        ? `<button class="btn-zoom-bbox" data-bbox="${esc(JSON.stringify(item.bounding_box))}"
+             data-caption="${esc(item.user_prompt || item.text)}">🔍 この箇所をズーム</button>`
+        : ""}`;
+
+    li.querySelector(".btn-zoom-bbox")?.addEventListener("click", (e) => {
+      const bbox = JSON.parse(e.currentTarget.dataset.bbox);
+      const caption = e.currentTarget.dataset.caption;
+      drawZoom(imageDataUrl, bbox, caption);
+    });
+
+    list.appendChild(li);
+  }
+
+  updateResultComparePhoto();
+  wrap.style.display = "block";
+  resultSection.classList.add("visible");
+  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function hideDetailedResult() {
+  const wrap = document.getElementById("detailed-result-wrap");
+  if (wrap) wrap.style.display = "none";
+  const zoomArea = document.getElementById("ingredient-zoom-area");
+  if (zoomArea) zoomArea.style.display = "none";
+  // 標準リストを再表示
+  document.getElementById("ng-list").closest(".result-list-card").style.display  = "";
+  document.getElementById("gray-list").closest(".result-list-card").style.display = "";
+  document.getElementById("ok-list").closest(".result-list-card").style.display   = "";
 }
 
 /**
@@ -884,6 +1030,7 @@ function hideResult() {
   resultSection.classList.remove("visible");
   const extractActions = document.getElementById("extract-only-actions");
   if (extractActions) extractActions.setAttribute("hidden", "");
+  hideDetailedResult();
 }
 
 function esc(str) {
