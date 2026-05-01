@@ -2,7 +2,7 @@ import { Router } from "express";
 
 const router = Router();
 
-const GEMINI_MODEL = (process.env.GEMINI_MODEL || "").trim() || "gemini-1.5-flash-latest";
+const GEMINI_MODEL = (process.env.GEMINI_MODEL || "").trim() || "gemini-2.0-flash";
 const GEMINI_API_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
