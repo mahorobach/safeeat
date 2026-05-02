@@ -2,7 +2,13 @@ import { Router } from "express";
 
 const router = Router();
 
-const GEMINI_MODEL = (process.env.GEMINI_MODEL || "").trim() || "gemini-3.0-flash";
+// "GEMINI_MODEL=gemini-3.0-flash" のように値にキー名が含まれていても正しく取り出す
+function parseModelEnv(raw) {
+  const s = (raw || "").trim();
+  const eqIdx = s.indexOf("=");
+  return eqIdx >= 0 ? s.slice(eqIdx + 1).trim() : s;
+}
+const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-3.0-flash";
 const GEMINI_API_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
