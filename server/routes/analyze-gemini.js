@@ -20,9 +20,9 @@ const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024;
 
 const ORIENTAL_RULES = `
 オリエンタルベジタリアン判定基準:
-❌ NG: 肉類全般・魚介類全般・五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ、エキス・パウダー・加工品含む）・コチニール色素(E120)・コラーゲン・ゼラチン・シェラック・動物性油脂
-✅ OK: 卵・乳製品全般・カゼイン・蜂蜜・ローヤルゼリー・大豆レシチン・乳酸・植物性油脂全般・ビタミンD（羊毛由来）・アサフェティダ
-🟡 グレー: グリセリン（由来不明）・天然香料（動物性の可能性あり）・酵素（動物性はNG）・ビタミンD（由来不明）
+NG: 肉類全般・魚介類全般・五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ、エキス・パウダー・加工品含む）・コチニール色素(E120)・コラーゲン・ゼラチン・シェラック・動物性油脂
+OK: 卵・乳製品全般・カゼイン・蜂蜜・ローヤルゼリー・大豆レシチン・乳酸・植物性油脂全般・ビタミンD（羊毛由来）・アサフェティダ
+グレー: グリセリン（由来不明）・天然香料（動物性の可能性あり）・酵素（動物性はNG）・ビタミンD（由来不明）
 `;
 
 const IMAGE_ANALYZE_PROMPT = `この食品パッケージ画像の【原材料名・成分表示ブロック】を読み取り、オリエンタルベジタリアン基準で判定してください。
@@ -203,48 +203,58 @@ router.post("/text", async (req, res, next) => {
 
 const DETAILED_IMAGE_PROMPT = `あなたは食品ラベルの【原材料名欄】を読み取る純粋なOCRスキャナーです。
 
-━━━ 最重要ルール（これだけ守れば十分）━━━
-① 食品の知識・学習データ・先入観を一切使わない
-② 目に見えている文字だけを写す。見えていない文字は絶対に書かない
-③ 「この食品には〇〇が入っているはず」という推測で成分を追加しない
+=== STEP 1: 画像内の文字を全て書き出す（raw_chars）===
 
-なぜこれが重要か: 誤った成分が出力されると、宗教的食事制限を持つ人が誤って食べてしまい重大な問題になる。
+まず最初に、原材料名欄に写っているひらがな・カタカナ・漢字・英数字・記号を
+1文字ずつスキャンして、目に入った全文字を raw_chars に羅列してください。
 
-━━━ 各成分に必須のフィールド ━━━
-ocr_verified: 【重要】その成分の全文字が画像上ではっきり視認できる場合のみ true
-  → 少しでも推測・補完・文脈補完が入っていれば必ず false
-  → false の場合は requires_user_check も true にする
-confidence: 0.0〜1.0（1文字でも迷いがあれば 0.75 以下。学習データで補完した場合は 0.5 以下）
+重要: 単語として意味が通じなくても構わない。見たままの文字の並びを最優先せよ。
+「この食品なら○○と書いてあるはず」という食品知識・学習データ・先入観を完全に排除し、
+ピクセル上に存在する文字だけを写してください。
 
-━━━ 画像全体の品質評価 ━━━
+=== STEP 2: raw_chars から成分名を構成する ===
+
+STEP 1 で書き出した raw_chars に含まれる文字だけを使って各成分名を構成してください。
+
+ocr_verified ルール（厳守）:
+- raw_chars に含まれる文字だけで成分名が構成できる場合のみ ocr_verified: true
+- raw_chars にない文字が1文字でも成分名に含まれる場合は ocr_verified: false かつ requires_user_check: true
+- 1文字でも読み取りに迷いがある場合は ocr_verified: false かつ requires_user_check: true
+
+confidence ルール:
+- 0.0〜1.0（1文字でも迷いがあれば 0.75 以下）
+- raw_chars にない文字を使って推測・補完した場合は必ず 0.5 以下
+
+=== 画像全体の品質評価 ===
+
 image_quality: "good"（全文字はっきり読める）| "fair"（一部かすれ・小さい・斜め）| "poor"（読み取り困難）
-※ "fair" または "poor" の場合、全成分の requires_user_check を true にする
+"fair" または "poor" の場合、全成分を requires_user_check: true にする
 
-━━━ 確信度の基準（厳しめに評価） ━━━
-以下のいずれかに当てはまれば requires_user_check = true:
-- 文字が小さい・かすれている・印刷がにじんでいる
-- 似た文字との区別がつかない（「ン」と「ソ」、「タ」と「ク」など）
-- 1文字でも判読に迷いがある
-- ocr_verified が false
+=== requires_user_check = true のとき ===
 
-requires_user_check = true のとき: テキスト末尾に [?] を付加し、user_prompt に確認文を設定
+テキスト末尾に [?] を付加し、user_prompt に「ここは"○○"と読みましたが正しいですか？」を設定
 
-━━━ 座標（bounding_box） ━━━
-[ymin, xmin, ymax, xmax] 形式（0〜1000 スケール）。不明な場合は [0,0,0,0]。
+=== 座標（bounding_box） ===
 
-━━━ オリエンタルベジタリアン判定（vege_status） ━━━
-- "Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性（肉・魚・ゼラチン等）
-- "Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check = true の成分
-- "Green" : 明確に安全な植物性成分（植物油脂・卵・乳製品・砂糖・塩等）
+[ymin, xmin, ymax, xmax] 形式（0〜1000 スケール）。不明は [0,0,0,0]。
 
-━━━ final_decision ━━━
-- "NG"     : Red が1つ以上
-- "Pending": Red なし・Yellow または requires_user_check が1つ以上
-- "OK"     : すべて Green かつ requires_user_check がすべて false
+=== オリエンタルベジタリアン判定（vege_status） ===
 
-━━━ 出力形式（説明・Markdown・コードフェンス禁止。JSONのみ） ━━━
+"Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性（肉・魚・ゼラチン等）
+"Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check=true の成分
+"Green" : 明確に安全な植物性成分（植物油脂・卵・乳製品・砂糖・塩等）
+
+=== final_decision ===
+
+"NG"     : Red が1つ以上
+"Pending": Red なし・Yellow または requires_user_check が1つ以上
+"OK"     : すべて Green かつ requires_user_check がすべて false
+
+=== 出力形式（説明・Markdown・コードフェンス禁止。JSONのみ） ===
+
 {
   "image_quality": "good",
+  "raw_chars": "め ん 小 麦 粉 パ ー ム 油 ...",
   "ingredients": [
     {
       "text": "成分名（requires_user_check=trueなら末尾に[?]）",
@@ -259,6 +269,15 @@ requires_user_check = true のとき: テキスト末尾に [?] を付加し、u
   ],
   "final_decision": "OK"
 }`;
+
+// raw_chars に含まれない日本語文字が成分名に使われていないか確認する
+function crossCheckCharsAgainstRaw(ingredientText, rawChars) {
+  if (!rawChars) return true; // raw_chars がなければスキップ
+  const cleanText = ingredientText.replace(/\s*\[?\?\]?\s*$/, "");
+  // ひらがな・カタカナ・漢字のみ対象（記号・英数字は除外）
+  const jaChars = [...cleanText].filter((c) => /[぀-鿿]/.test(c));
+  return jaChars.every((c) => rawChars.includes(c));
+}
 
 router.post("/image/detailed", async (req, res, next) => {
   const { image } = req.body;
@@ -315,18 +334,20 @@ router.post("/image/detailed", async (req, res, next) => {
     }
 
     const CONFIDENCE_THRESHOLD = 0.80;
+    const rawChars = parsed.raw_chars || "";
 
     // image_quality が fair/poor なら全成分を強制チェック
     const imageFair = parsed.image_quality === "fair" || parsed.image_quality === "poor";
 
-    // サーバー側でも閾値を強制適用（モデルが甘い判定を返しても上書き）
+    // サーバー側でも閾値・raw_chars 照合を強制適用（モデルが甘い判定を返しても上書き）
     parsed.ingredients = parsed.ingredients.map((item) => {
       const conf = typeof item.confidence === "number" ? item.confidence : 1.0;
-      const ocrVerified = item.ocr_verified !== false; // 明示的に false のときのみ疑う
-      const forceCheck = conf < CONFIDENCE_THRESHOLD || !ocrVerified || imageFair;
+      const ocrVerified = item.ocr_verified !== false;
+      // raw_chars にない漢字が成分名に含まれる場合は強制チェック
+      const charsOk = crossCheckCharsAgainstRaw(String(item.text || ""), rawChars);
+      const forceCheck = conf < CONFIDENCE_THRESHOLD || !ocrVerified || imageFair || !charsOk;
       const requiresCheck = Boolean(item.requires_user_check) || forceCheck;
       const text = String(item.text || "");
-      // requires_user_check なのに [?] が付いていない場合は付加
       const textWithFlag =
         requiresCheck && !text.endsWith("[?]") ? `${text} [?]` : text;
 
@@ -339,7 +360,7 @@ router.post("/image/detailed", async (req, res, next) => {
           ? (item.user_prompt || `ここは「${text.replace(/ ?\[?\?\]?$/, "")}」と読めますが正しいですか？`)
           : null,
         vege_status:         requiresCheck
-          ? "Yellow"  // 確信度不足は強制的に要確認扱い
+          ? "Yellow"
           : (["Green", "Yellow", "Red"].includes(item.vege_status) ? item.vege_status : "Yellow"),
         reason:              String(item.reason || ""),
       };
