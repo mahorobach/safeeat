@@ -30,7 +30,13 @@ function getSupabase() {
 }
 
 function hashIngredientText(text) {
-  const normalized = String(text).trim().replace(/\s+/g, " ");
+  const normalized = String(text)
+    .trim()
+    .replace(/[（）]/g, (c) => c === "（" ? "(" : ")")
+    .replace(/　/g, " ")
+    .replace(/[、・，,／/]/g, ",")
+    .replace(/\s+/g, "")
+    .toLowerCase();
   return crypto.createHash("sha256").update(normalized).digest("hex");
 }
 
