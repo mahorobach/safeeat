@@ -715,6 +715,7 @@ function renderDetailedResult(data, imageDataUrl) {
   }
 
   updateResultComparePhoto();
+  showResultResetBtn();
   wrap.style.display = "block";
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1016,11 +1017,35 @@ function clearError() {
   errorBox.classList.remove("visible");
   errorBox.textContent = "";
 }
+function showResultResetBtn() {
+  const wrap = document.getElementById("result-reset-wrap");
+  if (wrap) wrap.style.display = "";
+}
+function hideResultResetBtn() {
+  const wrap = document.getElementById("result-reset-wrap");
+  if (wrap) wrap.style.display = "none";
+}
+
+document.getElementById("btn-result-reset")?.addEventListener("click", () => {
+  clearImage();
+  hideResult();
+  textarea.value = "";
+  clearError();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  // 写真タブに切り替えてカメラを使いやすくする
+  document.querySelectorAll(".input-tab").forEach((t) =>
+    t.classList.toggle("active", t.dataset.tab === "image"),
+  );
+  document.getElementById("tab-text").style.display  = "none";
+  document.getElementById("tab-image").style.display = "";
+});
+
 function hideResult() {
   resultSection.classList.remove("visible");
   const extractActions = document.getElementById("extract-only-actions");
   if (extractActions) extractActions.setAttribute("hidden", "");
   hideDetailedResult();
+  hideResultResetBtn();
 }
 
 function esc(str) {

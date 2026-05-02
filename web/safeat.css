@@ -790,6 +790,27 @@ footer {
   padding: 16px;
 }
 
+/* ===== 新しい食品を解析するボタン（結果下） ===== */
+.result-reset-wrap {
+  text-align: center;
+  margin: 8px 0 4px;
+}
+.btn-result-reset {
+  padding: 12px 28px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font);
+  letter-spacing: .02em;
+  transition: background .15s, transform .1s;
+}
+.btn-result-reset:hover  { background: var(--green-mid); }
+.btn-result-reset:active { transform: scale(.96); }
+
 /* ===== Camera direct-capture button (drop-zone内) ===== */
 .btn-open-camera {
   margin-top: 14px;
