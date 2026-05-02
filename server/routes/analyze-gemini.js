@@ -286,6 +286,7 @@ router.post("/image/detailed", async (req, res, next) => {
   if (!apiKey) return;
 
   try {
+    console.log(`[Gemini /image/detailed] model="${GEMINI_MODEL}" mediaType="${image.mediaType}"`);
     const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
