@@ -93,8 +93,8 @@ async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 1000) 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, options);
+      // 429 はクォータ超過のためリトライしない（リトライするとクォータをさらに消費する）
       const retriableHttp =
-        res.status === 429 ||
         res.status === 529 ||
         res.status === 502 ||
         res.status === 503 ||

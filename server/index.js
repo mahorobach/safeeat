@@ -96,9 +96,21 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// --- JSON ボディパースエラー（クライアント→サーバーのリクエストが途中で切れた等） ---
+app.use((err, req, res, next) => {
+  if (err.type === "entity.parse.failed" || (err instanceof SyntaxError && err.status === 400)) {
+    console.error("[BodyParser] JSON parse failed:", err.message);
+    return res.status(400).json({
+      ok: false,
+      error: "リクエストの送信中にエラーが発生しました。電波状況を確認してもう一度試してください。",
+    });
+  }
+  next(err);
+});
+
 // --- エラーハンドラ ---
 app.use((err, _req, res, _next) => {
-  console.error(err);
+  console.error("[ServerError]", err.constructor?.name, err.message);
   res.status(500).json({ ok: false, error: err.message || "Internal Server Error" });
 });
 

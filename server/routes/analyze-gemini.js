@@ -1,4 +1,6 @@
 import { Router } from "express";
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
 
 const router = Router();
 
@@ -8,13 +10,70 @@ function parseModelEnv(raw) {
   const eqIdx = s.indexOf("=");
   return eqIdx >= 0 ? s.slice(eqIdx + 1).trim() : s;
 }
-const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-2.5-flash-preview-05-20";
-// responseMimeType は v1beta のみサポート（v1 では未サポート）
-const GEMINI_API_VERSION = (process.env.GEMINI_API_VERSION || "v1beta").trim();
+// "models/gemini-1.5-flash" 形式でも "/models/" が重複しないよう正規化
+const rawModel = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-1.5-flash";
+const GEMINI_MODEL = rawModel.startsWith("models/") ? rawModel.slice("models/".length) : rawModel;
+// v1beta に固定（responseMimeType サポート・全モデル対応）
 const GEMINI_API_URL =
-  `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${GEMINI_MODEL}:generateContent`;
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-console.log(`[Gemini] モデル: ${GEMINI_MODEL}  APIバージョン: ${GEMINI_API_VERSION}`);
+console.log(`[Gemini] モデル: ${GEMINI_MODEL}  APIバージョン: v1beta（固定）`);
+
+// =============================================
+// Supabase キャッシュ
+// =============================================
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
+
+function hashIngredientText(text) {
+  const normalized = String(text).trim().replace(/\s+/g, " ");
+  return crypto.createHash("sha256").update(normalized).digest("hex");
+}
+
+async function getCached(hash) {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from("ingredient_cache")
+      .select("analysis_result, hit_count")
+      .eq("ingredient_hash", hash)
+      .single();
+    if (error || !data) return null;
+    // ヒット数を非同期でインクリメント（失敗しても無視）
+    sb.from("ingredient_cache")
+      .update({ hit_count: data.hit_count + 1 })
+      .eq("ingredient_hash", hash)
+      .then(() => {}).catch(() => {});
+    console.log(`[Cache HIT] hash=${hash.slice(0, 8)}...`);
+    return data.analysis_result;
+  } catch {
+    return null;
+  }
+}
+
+async function setCache(hash, text, result) {
+  const sb = getSupabase();
+  if (!sb) { console.error("[Cache] Supabase 未設定（環境変数を確認）"); return; }
+  try {
+    const { error } = await sb.from("ingredient_cache").upsert(
+      { ingredient_hash: hash, ingredient_text: text, analysis_result: result },
+      { onConflict: "ingredient_hash" },
+    );
+    if (error) {
+      console.error(`[Cache SET失敗] ${error.message} (code=${error.code})`);
+    } else {
+      console.log(`[Cache SET] hash=${hash.slice(0, 8)}...`);
+    }
+  } catch (e) {
+    console.error("[Cache] 保存失敗:", e.message);
+  }
+}
+
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024;
 
@@ -74,16 +133,59 @@ function getGeminiKey(res) {
   return apiKey;
 }
 
+function fixControlCharsInJsonStrings(str) {
+  // 文字単位のステートマシンで JSON 文字列内の制御文字のみエスケープする
+  const CTRL = { "\n": "\\n", "\r": "\\r", "\t": "\\t", "\b": "\\b", "\f": "\\f" };
+  let result = "";
+  let inString = false;
+  let i = 0;
+  while (i < str.length) {
+    const c = str[i];
+    if (!inString) {
+      if (c === '"') inString = true;
+      result += c;
+      i++;
+    } else if (c === "\\") {
+      result += c;
+      i++;
+      if (i < str.length) { result += str[i]; i++; }
+    } else if (c === '"') {
+      inString = false;
+      result += c;
+      i++;
+    } else if (c.charCodeAt(0) < 0x20) {
+      result += CTRL[c] || `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`;
+      i++;
+    } else {
+      result += c;
+      i++;
+    }
+  }
+  return result;
+}
+
 function parseGeminiResponse(text) {
   const s = String(text || "").trim();
   if (!s) throw new Error("Gemini API から応答がありませんでした");
-  try {
-    return JSON.parse(s);
-  } catch {
-    const m = s.match(/```(?:json)?\s*([\s\S]*?)```/) || s.match(/(\{[\s\S]*\})/);
-    if (!m) throw new Error("Gemini レスポンスの解析に失敗しました");
-    return JSON.parse(m[1]);
+
+  // 段階的にパースを試みる（より侵襲的な修正を後段に）
+  const candidates = [s];
+  const m = s.match(/```(?:json)?\s*([\s\S]*?)```/) || s.match(/(\{[\s\S]*\})/);
+  if (m) candidates.push(m[1]);
+
+  for (const str of candidates) {
+    // Stage 1: そのままパース
+    try { return JSON.parse(str); } catch {}
+    // Stage 2: ステートマシンで文字列内制御文字を修正
+    try { return JSON.parse(fixControlCharsInJsonStrings(str)); } catch {}
+    // Stage 3: 全制御文字をスペースに置換（最終手段。成分名の改行は失われるが許容）
+    try { return JSON.parse(str.replace(/[\x00-\x1F\x7F]/g, " ")); } catch {}
   }
+
+  // デバッグ: 最初の制御文字の位置を記録
+  const dbg = [...s].findIndex((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7F);
+  console.error(`[Gemini parse失敗] len=${s.length} 最初の制御文字位置=${dbg} char=${dbg >= 0 ? s.charCodeAt(dbg) : "none"}`);
+  throw new Error("Gemini レスポンスの解析に失敗しました");
 }
 
 function extractGeminiText(data) {
@@ -132,7 +234,10 @@ router.post("/image", async (req, res, next) => {
       }),
     });
 
-    const geminiData = await geminiRes.json();
+    let geminiData;
+    try { geminiData = await geminiRes.json(); } catch {
+      throw new Error(`Gemini API の応答が不完全です (${geminiRes.status})。もう一度試してください。`);
+    }
     if (!geminiRes.ok) {
       throw new Error(geminiData?.error?.message || `Gemini API エラー (${geminiRes.status})`);
     }
@@ -172,17 +277,24 @@ router.post("/text", async (req, res, next) => {
   const apiKey = getGeminiKey(res);
   if (!apiKey) return;
 
+  const ingredientsStr = String(ingredients).trim();
+  const hash = hashIngredientText(ingredientsStr);
+
   try {
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: TEXT_ANALYZE_PROMPT(String(ingredients)) }] }],
-        generationConfig: { temperature: 0 },
-      }),
+    const cached = await getCached(hash);
+    if (cached) {
+      return res.json({ ok: true, data: cached, fromCache: true });
+    }
+
+    const geminiRes = await geminiCall(apiKey, {
+      contents: [{ parts: [{ text: TEXT_ANALYZE_PROMPT(ingredientsStr) }] }],
+      generationConfig: { temperature: 0, responseMimeType: "application/json" },
     });
 
-    const geminiData = await geminiRes.json();
+    let geminiData;
+    try { geminiData = await geminiRes.json(); } catch {
+      throw new Error(`Gemini API の応答が不完全です (${geminiRes.status})。もう一度試してください。`);
+    }
     if (!geminiRes.ok) {
       throw new Error(geminiData?.error?.message || `Gemini API エラー (${geminiRes.status})`);
     }
@@ -190,6 +302,7 @@ router.post("/text", async (req, res, next) => {
     const result = parseGeminiResponse(extractGeminiText(geminiData));
     if (!Array.isArray(result.unknown)) result.unknown = [];
 
+    await setCache(hash, ingredientsStr, result);
     res.json({ ok: true, data: result });
   } catch (e) {
     next(e);
@@ -201,38 +314,28 @@ router.post("/text", async (req, res, next) => {
 // 1ステップ: 成分ごとにOCR確信度・BBox・ベジ判定を返す
 // =============================================
 
-const DETAILED_IMAGE_PROMPT = `あなたは食品ラベルの【原材料名欄】を読み取る純粋なOCRスキャナーです。
+const DETAILED_IMAGE_PROMPT = `あなたは食品ラベルの【原材料名欄】だけを読み取るOCRスキャナーです。
 
-=== STEP 1: 画像内の文字を全て書き出す（raw_chars）===
+=== 読み取りルール（厳守） ===
 
-まず最初に、原材料名欄に写っているひらがな・カタカナ・漢字・英数字・記号を
-1文字ずつスキャンして、目に入った全文字を raw_chars に羅列してください。
+- 画像に実際に写っている文字だけを書き写す。推測・補完・知識による補足は絶対禁止
+- 「この食品なら○○があるはず」という先入観を排除し、ピクセル上の文字だけを見る
+- 読み取れない・不明な文字は [?] と記す
+- 栄養成分表・賞味期限・キャッチコピーなど原材料名欄以外は無視する
 
-重要: 単語として意味が通じなくても構わない。見たままの文字の並びを最優先せよ。
-「この食品なら○○と書いてあるはず」という食品知識・学習データ・先入観を完全に排除し、
-ピクセル上に存在する文字だけを写してください。
+=== 画像品質 ===
 
-=== STEP 2: raw_chars から成分名を構成する ===
+image_quality: "good"（全文字はっきり読める）| "fair"（かすれ・小さい・斜め）| "poor"（読み取り困難）
+"fair"/"poor" の場合は全成分を requires_user_check: true にする
 
-STEP 1 で書き出した raw_chars に含まれる文字だけを使って各成分名を構成してください。
+=== requires_user_check ===
 
-ocr_verified ルール（厳守）:
-- raw_chars に含まれる文字だけで成分名が構成できる場合のみ ocr_verified: true
-- raw_chars にない文字が1文字でも成分名に含まれる場合は ocr_verified: false かつ requires_user_check: true
-- 1文字でも読み取りに迷いがある場合は ocr_verified: false かつ requires_user_check: true
+true にする条件（いずれか）:
+- 文字がかすれ・つぶれ・小さくて確信が持てない
+- 似た字（ン/ソ、己/已 など）で迷う
+- confidence < 0.85
 
-confidence ルール:
-- 0.0〜1.0（1文字でも迷いがあれば 0.75 以下）
-- raw_chars にない文字を使って推測・補完した場合は必ず 0.5 以下
-
-=== 画像全体の品質評価 ===
-
-image_quality: "good"（全文字はっきり読める）| "fair"（一部かすれ・小さい・斜め）| "poor"（読み取り困難）
-"fair" または "poor" の場合、全成分を requires_user_check: true にする
-
-=== requires_user_check = true のとき ===
-
-テキスト末尾に [?] を付加し、user_prompt に「ここは"○○"と読みましたが正しいですか？」を設定
+true の場合、テキスト末尾に [?] を付加する
 
 === 座標（bounding_box） ===
 
@@ -241,7 +344,7 @@ image_quality: "good"（全文字はっきり読める）| "fair"（一部かす
 === オリエンタルベジタリアン判定（vege_status） ===
 
 "Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性（肉・魚・ゼラチン等）
-"Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check=true の成分
+"Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check=true
 "Green" : 明確に安全な植物性成分（植物油脂・卵・乳製品・砂糖・塩等）
 
 === final_decision ===
@@ -254,13 +357,11 @@ image_quality: "good"（全文字はっきり読める）| "fair"（一部かす
 
 {
   "image_quality": "good",
-  "raw_chars": "め ん 小 麦 粉 パ ー ム 油 ...",
   "ingredients": [
     {
       "text": "成分名（requires_user_check=trueなら末尾に[?]）",
       "bounding_box": [ymin, xmin, ymax, xmax],
       "confidence": 0.95,
-      "ocr_verified": true,
       "requires_user_check": false,
       "user_prompt": null,
       "vege_status": "Green",
@@ -270,13 +371,25 @@ image_quality: "good"（全文字はっきり読める）| "fair"（一部かす
   "final_decision": "OK"
 }`;
 
-// raw_chars に含まれない日本語文字が成分名に使われていないか確認する
-function crossCheckCharsAgainstRaw(ingredientText, rawChars) {
-  if (!rawChars) return true; // raw_chars がなければスキップ
-  const cleanText = ingredientText.replace(/\s*\[?\?\]?\s*$/, "");
-  // ひらがな・カタカナ・漢字のみ対象（記号・英数字は除外）
-  const jaChars = [...cleanText].filter((c) => /[぀-鿿]/.test(c));
-  return jaChars.every((c) => rawChars.includes(c));
+const GEMINI_TIMEOUT_MS = 45_000;
+
+async function geminiCall(apiKey, body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    return res;
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("Gemini API タイムアウト（45秒）。画像が大きすぎるか電波が不安定です。");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 router.post("/image/detailed", async (req, res, next) => {
@@ -305,26 +418,28 @@ router.post("/image/detailed", async (req, res, next) => {
 
   try {
     console.log(`[Gemini /image/detailed] model="${GEMINI_MODEL}" mediaType="${image.mediaType}"`);
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inlineData: { mimeType: image.mediaType, data: image.data } },
-            { text: DETAILED_IMAGE_PROMPT },
-          ],
-        }],
-        generationConfig: { temperature: 0 },
-      }),
+    const geminiRes = await geminiCall(apiKey, {
+      contents: [{
+        parts: [
+          { inlineData: { mimeType: image.mediaType, data: image.data } },
+          { text: DETAILED_IMAGE_PROMPT },
+        ],
+      }],
+      generationConfig: { temperature: 0 },
     });
 
-    const geminiData = await geminiRes.json();
+    let geminiData;
+    try { geminiData = await geminiRes.json(); } catch (jsonErr) {
+      console.error(`[Gemini /image/detailed] geminiRes.json() 失敗 status=${geminiRes.status}: ${jsonErr.message}`);
+      throw new Error(`Gemini API の応答が不完全です (${geminiRes.status})。もう一度試してください。`);
+    }
     if (!geminiRes.ok) {
       throw new Error(geminiData?.error?.message || `Gemini API エラー (${geminiRes.status})`);
     }
 
-    const parsed = parseGeminiResponse(extractGeminiText(geminiData));
+    const rawText = extractGeminiText(geminiData);
+    console.log(`[Gemini /image/detailed] rawText length=${rawText.length} preview="${rawText.slice(0, 120).replace(/\n/g, "\\n")}"`);
+    const parsed = parseGeminiResponse(rawText);
 
     if (!Array.isArray(parsed.ingredients) || parsed.ingredients.length === 0) {
       return res.status(422).json({
@@ -333,19 +448,12 @@ router.post("/image/detailed", async (req, res, next) => {
       });
     }
 
-    const CONFIDENCE_THRESHOLD = 0.80;
-    const rawChars = parsed.raw_chars || "";
-
-    // image_quality が fair/poor なら全成分を強制チェック
+    const CONFIDENCE_THRESHOLD = 0.85;
     const imageFair = parsed.image_quality === "fair" || parsed.image_quality === "poor";
 
-    // サーバー側でも閾値・raw_chars 照合を強制適用（モデルが甘い判定を返しても上書き）
     parsed.ingredients = parsed.ingredients.map((item) => {
       const conf = typeof item.confidence === "number" ? item.confidence : 1.0;
-      const ocrVerified = item.ocr_verified !== false;
-      // raw_chars にない漢字が成分名に含まれる場合は強制チェック
-      const charsOk = crossCheckCharsAgainstRaw(String(item.text || ""), rawChars);
-      const forceCheck = conf < CONFIDENCE_THRESHOLD || !ocrVerified || imageFair || !charsOk;
+      const forceCheck = conf < CONFIDENCE_THRESHOLD || imageFair;
       const requiresCheck = Boolean(item.requires_user_check) || forceCheck;
       const text = String(item.text || "");
       const textWithFlag =
@@ -377,6 +485,10 @@ router.post("/image/detailed", async (req, res, next) => {
 
     // extractedText: フロント textarea 反映用（既存 UI との互換）
     const extractedText = parsed.ingredients.map((i) => i.text.replace(/\s*\[?\?\]?\s*$/, "").trim()).join("、");
+
+    // 同じ原材料テキストの再解析をスキップするためキャッシュ保存
+    const cacheHash = hashIngredientText(extractedText);
+    await setCache(cacheHash, extractedText, parsed);
 
     res.json({ ok: true, data: parsed, extractedText });
   } catch (e) {

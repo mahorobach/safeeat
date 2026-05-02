@@ -454,6 +454,7 @@ async function applyCropSelection() {
 function getSelectedEngine() { return "gemini-detailed"; }
 
 // --- Analyze ---
+let _isAnalyzing = false;
 analyzeBtn.addEventListener("click", handleAnalyze);
 
 function switchToTextInputTab() {
@@ -479,6 +480,8 @@ document.getElementById("btn-extract-then-classify")?.addEventListener("click", 
 });
 
 async function handleAnalyze() {
+  if (_isAnalyzing) return;
+  _isAnalyzing = true;
   clearError();
   hideResult();
   setLoading(true);
@@ -490,6 +493,7 @@ async function handleAnalyze() {
       await handleTextAnalyze();
     }
   } finally {
+    _isAnalyzing = false;
     setLoading(false);
   }
 }
