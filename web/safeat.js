@@ -450,14 +450,8 @@ async function applyCropSelection() {
   clearError();
 }
 
-// --- Engine selector ---
-function getSelectedEngine() {
-  return document.querySelector('input[name="engine"]:checked')?.value || "claude";
-}
-
-document.querySelectorAll('input[name="engine"]').forEach((radio) => {
-  radio.addEventListener("change", () => setLoading(false));
-});
+// エンジンは Gemini 詳細に固定
+function getSelectedEngine() { return "gemini-detailed"; }
 
 // --- Analyze ---
 analyzeBtn.addEventListener("click", handleAnalyze);
@@ -530,23 +524,18 @@ async function handleTextAnalyze() {
     return;
   }
 
-  if (getSelectedEngine() === "gemini") {
+  try {
+    const result = await analyzeTextWithGemini(ingredientsText);
+    const promoted = promoteFromUserDB(result);
+    renderResult(promoted, false, ingredientsText);
+  } catch (err) {
     try {
-      const result = await analyzeTextWithGemini(ingredientsText);
-      const promoted = promoteFromUserDB(result);
-      renderResult(promoted, false, ingredientsText);
-    } catch (err) {
-      try {
-        const result = localFallback(ingredientsText);
-        renderResult(promoteFromUserDB(result), true, ingredientsText);
-      } catch {
-        showError(`Gemini 解析エラー：${err.message}`);
-      }
+      const result = localFallback(ingredientsText);
+      renderResult(promoteFromUserDB(result), true, ingredientsText);
+    } catch {
+      showError(`解析エラー：${err.message}`);
     }
-    return;
   }
-
-  await classifyExtractedText(ingredientsText, false);
 }
 
 async function handleImageAnalyze() {
@@ -610,6 +599,9 @@ async function handleImageAnalyzeGeminiDetailed() {
     clearError();
     switchToTextInputTab();
     if (text) textarea.value = text;
+    // 写真＋読み取りテキストをClaude フローと同様に表示
+    renderExtractedAccordion(text, false);
+    updateResultComparePhoto();
     renderDetailedResult(data, _comparePhotoDataUrl);
   } catch (err) {
     showError(`Gemini 詳細解析エラー：${err.message}`);
@@ -1012,12 +1004,9 @@ function setLoading(on) {
   analyzeBtn.disabled = on;
   analyzeBtn.classList.toggle("loading", on);
   const onImageTab = getActiveTab() === "image";
-  const isGemini = getSelectedEngine() === "gemini";
   document.querySelector(".btn-label").textContent = on
-    ? onImageTab ? "解析中..." : "解析中..."
-    : onImageTab
-      ? isGemini ? "Gemini で読み取り＆判定する" : "この画像で読み取る"
-      : isGemini ? "Gemini で解析する" : "成分を解析する";
+    ? "解析中..."
+    : onImageTab ? "この画像で読み取る" : "成分を解析する";
 }
 function showError(msg) {
   errorBox.textContent = msg;
