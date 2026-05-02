@@ -8,13 +8,11 @@ function parseModelEnv(raw) {
   const eqIdx = s.indexOf("=");
   return eqIdx >= 0 ? s.slice(eqIdx + 1).trim() : s;
 }
-const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-3.0-flash";
-// 新しいモデルは v1beta ではなく v1 に存在することがある
-// GEMINI_API_VERSION 環境変数で切り替え可（例: v1beta）
-const GEMINI_API_VERSION = (process.env.GEMINI_API_VERSION || "v1").trim();
+const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-2.0-flash";
+// responseMimeType は v1beta のみサポート（v1 では未サポート）
+const GEMINI_API_VERSION = (process.env.GEMINI_API_VERSION || "v1beta").trim();
 const GEMINI_API_URL =
-  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
-  .replace("/v1beta/", `/${GEMINI_API_VERSION}/`);
+  `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${GEMINI_MODEL}:generateContent`;
 
 console.log(`[Gemini] モデル: ${GEMINI_MODEL}  APIバージョン: ${GEMINI_API_VERSION}`);
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
