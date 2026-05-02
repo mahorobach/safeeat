@@ -850,7 +850,7 @@ footer {
   position: relative;
   width: 88%;
   max-width: 520px;
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 1 / 1;
   /* box-shadow でフレーム外を暗くする */
   box-shadow: 0 0 0 200vmax rgba(0,0,0,.62);
   border-radius: 6px;
@@ -922,5 +922,5 @@ footer {
   .card { padding: 16px; }
   header { padding: 14px 16px; }
   .logo { font-size: 1.3rem; }
-  .camera-guide-box { width: 94%; aspect-ratio: 1.8 / 1; }
+  .camera-guide-box { width: 94%; aspect-ratio: 1 / 1; }
 }
