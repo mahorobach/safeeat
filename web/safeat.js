@@ -113,8 +113,8 @@ function mayBeProcessableImageFile(file) {
 }
 
 /** タイムアウトしやすいホスティング向け。長辺を抑えロード削減 */
-const VISION_MAX_EDGE     = 960;
-const VISION_JPEG_QUALITY = 0.78;
+const VISION_MAX_EDGE     = 2000;
+const VISION_JPEG_QUALITY = 0.82;
 const IMG_MAX_BYTES       = 5 * 1024 * 1024;
 
 let _currentImageBlob = null;
@@ -1158,9 +1158,13 @@ function captureFromCamera() {
     0, 0, canvas.width, canvas.height,
   );
 
-  canvas.toBlob(async (blob) => {
+  canvas.toBlob(async (rawBlob) => {
     closeCameraOverlay();
-    if (!blob) { showError("撮影に失敗しました。もう一度試してください。"); return; }
+    if (!rawBlob) { showError("撮影に失敗しました。もう一度試してください。"); return; }
+    let blob = rawBlob;
+    try {
+      blob = await prepareImageForUpload(new File([rawBlob], "camera.jpg", { type: "image/jpeg" }));
+    } catch { /* リサイズ失敗時はそのまま */ }
     await setProcessedBlob(blob);
   }, "image/jpeg", 0.92);
 }
