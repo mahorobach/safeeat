@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SafeEat — 食品成分チェッカー（オリエンタルベジタリアン）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.3.7">
+  <link rel="stylesheet" href="safeat.css?v=0.4.2">
 </head>
 <body>
 
@@ -75,6 +75,7 @@
           <p class="drop-main">写真をドラッグ＆ドロップ</p>
           <p class="drop-hint-text">または クリックしてファイルを選択</p>
           <p class="drop-hint-text">JPEG / PNG / WEBP（5MB以内）｜アップロード時に自動で縮小します｜スマホカメラ対応</p>
+          <button type="button" id="btn-open-camera" class="btn-open-camera" style="display:none">📷 カメラで直接撮影（枠合わせ）</button>
         </div>
         <img id="image-preview" alt="選択した画像" style="display:none; max-width:100%; border-radius:8px;">
       </div>
@@ -213,10 +214,31 @@
 
 <footer>SafeEat v0.4.0 &nbsp;|&nbsp; オリエンタルベジタリアン特化版 &nbsp;|&nbsp; Claude / Gemini 対応</footer>
 
-<script src="site-config.js?v=0.4.1"></script>
-<script src="lib/ingredients-db.js?v=0.4.1"></script>
-<script src="lib/rules.js?v=0.4.1"></script>
-<script src="safeat-api.js?v=0.4.1"></script>
-<script src="safeat.js?v=0.4.1"></script>
+<!-- Camera overlay -->
+<div id="camera-overlay" class="camera-overlay" hidden>
+  <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
+  <div class="camera-ui">
+    <p class="camera-hint-text">原材料名をこの枠に合わせてください</p>
+    <div class="camera-guide-box" id="camera-guide-box">
+      <div class="cgc tl"></div>
+      <div class="cgc tr"></div>
+      <div class="cgc bl"></div>
+      <div class="cgc br"></div>
+    </div>
+    <p class="camera-sub-hint">枠内に成分表だけが入るよう近づけてください</p>
+    <div class="camera-buttons">
+      <button type="button" id="btn-camera-capture" class="btn-camera-capture" aria-label="撮影">
+        <span class="camera-capture-ring"></span>
+      </button>
+      <button type="button" id="btn-camera-cancel" class="btn-camera-cancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script src="site-config.js?v=0.4.2"></script>
+<script src="lib/ingredients-db.js?v=0.4.2"></script>
+<script src="lib/rules.js?v=0.4.2"></script>
+<script src="safeat-api.js?v=0.4.2"></script>
+<script src="safeat.js?v=0.4.2"></script>
 </body>
 </html>

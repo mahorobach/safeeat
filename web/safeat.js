@@ -1042,3 +1042,135 @@ function esc(str) {
 }
 
 updateUserDBBadge();
+
+// =============================================
+// カメラ直接撮影（枠合わせ）
+// =============================================
+
+let _cameraStream = null;
+
+const btnOpenCamera    = document.getElementById("btn-open-camera");
+const cameraOverlay    = document.getElementById("camera-overlay");
+const cameraVideo      = document.getElementById("camera-video");
+const cameraGuideBox   = document.getElementById("camera-guide-box");
+const btnCameraCapture = document.getElementById("btn-camera-capture");
+const btnCameraCancel  = document.getElementById("btn-camera-cancel");
+
+// getUserMedia 非対応 or カメラなし → ボタンを隠したまま
+(async () => {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    if (devices.some((d) => d.kind === "videoinput")) {
+      if (btnOpenCamera) btnOpenCamera.style.display = "inline-block";
+    }
+  } catch {
+    // 非対応環境はボタン非表示のまま
+  }
+})();
+
+btnOpenCamera?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  openCameraOverlay();
+});
+btnCameraCapture?.addEventListener("click", () => captureFromCamera());
+btnCameraCancel?.addEventListener("click",  () => closeCameraOverlay());
+
+// Escape キーでも閉じる
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && cameraOverlay && !cameraOverlay.hidden) closeCameraOverlay();
+});
+
+async function openCameraOverlay() {
+  try {
+    _cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    });
+    cameraVideo.srcObject = _cameraStream;
+    cameraOverlay.removeAttribute("hidden");
+  } catch (err) {
+    const msg = err.name === "NotAllowedError"
+      ? "カメラのアクセスが拒否されています。ブラウザの設定でカメラを許可してください。"
+      : `カメラを起動できませんでした（${err.message}）`;
+    showError(msg);
+  }
+}
+
+function closeCameraOverlay() {
+  if (_cameraStream) {
+    _cameraStream.getTracks().forEach((t) => t.stop());
+    _cameraStream = null;
+  }
+  cameraVideo.srcObject = null;
+  cameraOverlay.setAttribute("hidden", "");
+}
+
+function captureFromCamera() {
+  const vw = cameraVideo.videoWidth;
+  const vh = cameraVideo.videoHeight;
+  if (!vw || !vh) {
+    showError("カメラの準備ができていません。少し待ってから撮影してください。");
+    return;
+  }
+
+  const videoRect = cameraVideo.getBoundingClientRect();
+  const guideRect = cameraGuideBox.getBoundingClientRect();
+
+  // object-fit:cover の座標変換（表示座標 → 動画ピクセル座標）
+  const scale = Math.max(videoRect.width / vw, videoRect.height / vh);
+  const xOrig = (videoRect.width  - vw * scale) / 2;
+  const yOrig = (videoRect.height - vh * scale) / 2;
+
+  const gLeft = guideRect.left - videoRect.left;
+  const gTop  = guideRect.top  - videoRect.top;
+
+  const cropX = Math.max(0, (gLeft - xOrig) / scale);
+  const cropY = Math.max(0, (gTop  - yOrig) / scale);
+  const cropW = Math.min(guideRect.width  / scale, vw - cropX);
+  const cropH = Math.min(guideRect.height / scale, vh - cropY);
+
+  const canvas = document.createElement("canvas");
+  canvas.width  = Math.round(cropW);
+  canvas.height = Math.round(cropH);
+  canvas.getContext("2d").drawImage(
+    cameraVideo,
+    Math.round(cropX), Math.round(cropY), Math.round(cropW), Math.round(cropH),
+    0, 0, canvas.width, canvas.height,
+  );
+
+  canvas.toBlob(async (blob) => {
+    closeCameraOverlay();
+    if (!blob) { showError("撮影に失敗しました。もう一度試してください。"); return; }
+    await setProcessedBlob(blob);
+  }, "image/jpeg", 0.92);
+}
+
+// カメラ撮影後の共通後処理（既存フローと合流）
+async function setProcessedBlob(blob) {
+  try {
+    _currentImageBlob = blob;
+    _imageBase64      = await blobToBase64(blob);
+    _imageMediaType   = "image/jpeg";
+
+    const objUrl = URL.createObjectURL(blob);
+    imagePreview.onload = () => URL.revokeObjectURL(objUrl);
+    imagePreview.src    = objUrl;
+    imagePreview.style.display    = "block";
+    dropPlaceholder.style.display = "none";
+    clearImageBtn.style.display   = "inline-block";
+    imageToolbar.style.display    = "block";
+    cropPanel.style.display       = "none";
+    dropZone.classList.add("has-image");
+    clearError();
+    requestAnimationFrame(() =>
+      imageToolbar?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+    );
+  } catch {
+    showError("撮影した画像の処理に失敗しました。");
+  }
+}
