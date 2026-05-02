@@ -193,36 +193,63 @@ router.post("/text", async (req, res, next) => {
 // 1ステップ: 成分ごとにOCR確信度・BBox・ベジ判定を返す
 // =============================================
 
-const DETAILED_IMAGE_PROMPT = `この食品パッケージ画像の原材料名欄を解析してください。
+const DETAILED_IMAGE_PROMPT = `あなたは食品ラベルの【原材料名欄】を一字一句そのまま書き写す、厳格なOCRスキャナーです。
+判定より「正確な転記」を最優先してください。
 
-【作業手順】
-1. 原材料名欄の各成分を1つずつ読み取る
-2. 各成分について以下を評価・返答する
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【絶対禁止ルール — 違反は重大な食品事故につながる】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ 文脈・知識・学習データから文字を補完・推測して追加しない
+❌ 「この食品なら〇〇が入っているはず」という先入観で成分を足さない
+❌ 画像に存在しない成分を出力しない（捏造禁止）
+❌ 画像に存在する成分を省略・統合・言い換えしない（脱落禁止）
+❌ 似た文字（「み」と「ス」、「タ」と「ク」など）を決め打ちしない
 
-【OCR確信度】
-- 0.0〜1.0 で評価。文字が不鮮明・小さい・かすれている場合は低くする
-- 0.8 未満の場合: requires_user_check = true、テキスト末尾に [?] を付加
-  user_prompt に「ここは"XXX"と読めますが正しいですか？」形式の確認文を入れる
+✅ 画像のピクセルに実際に存在する文字だけを書き写す
+✅ 少しでも読み取りに自信がなければ requires_user_check = true にする
+✅ 読めない1文字は [?] で表現する
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【確信度の基準（厳しめに評価すること）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- confidence は 0.0〜1.0 で評価
+- 以下のいずれかに当てはまれば requires_user_check = true（閾値: 0.85）
+  ・文字が小さい／かすれている／印刷がにじんでいる
+  ・括弧の内側や行末など読み取りにくい位置にある
+  ・似た文字との区別がつかない（例: 「ン」と「ソ」、「タ」と「ク」）
+  ・成分名として見慣れない・珍しい文字列
+  ・1文字でも判読に迷いがある
+- requires_user_check = true のとき:
+  ・テキスト末尾に [?] を付加
+  ・user_prompt に「ここは"〇〇"と読めますが合っていますか？」の確認文を設定
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【座標（bounding_box）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - 各成分テキストの位置を [ymin, xmin, ymax, xmax] 形式で返す（0〜1000 スケール）
-- 全体の原材料行が1ブロックの場合は、個々の単語レベルで分割して座標を付ける
+- 読み取りに自信がない箇所ほど正確な座標を付けること（ズーム表示に使うため）
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【オリエンタルベジタリアン判定（vege_status）】
-- "Red"  : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性成分（肉・魚・ゼラチン・コラーゲン・コチニール等）
-- "Yellow": 由来が不明・要確認（グリセリン・天然香料・酵素・由来不明のビタミンD等）
-- "Green" : 安全な成分（植物性油脂・卵・乳製品・大豆レシチン・砂糖・塩等）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- "Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性成分（肉・魚・ゼラチン・コラーゲン・コチニール等）
+- "Yellow": 由来不明・要確認（グリセリン・天然香料・酵素・由来不明のビタミンD等）または requires_user_check = true の成分
+- "Green" : 明確に安全な成分（植物性油脂・卵・乳製品・大豆レシチン・砂糖・塩等）
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【final_decision】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - "NG"     : Red が1つ以上ある
 - "Pending": Red なし・Yellow または requires_user_check が1つ以上ある
 - "OK"     : すべて Green かつ requires_user_check がすべて false
 
-必ず以下のJSON形式のみで返答（説明・Markdown・コードフェンス禁止）:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【出力形式】説明・Markdown・コードフェンス禁止。JSONのみ。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
   "ingredients": [
     {
-      "text": "成分名（確信度<0.8なら末尾に[?]）",
+      "text": "成分名（requires_user_check=trueなら末尾に[?]）",
       "bounding_box": [ymin, xmin, ymax, xmax],
       "confidence": 0.95,
       "requires_user_check": false,
@@ -287,16 +314,32 @@ router.post("/image/detailed", async (req, res, next) => {
       });
     }
 
-    // user_prompt が null 以外でも文字列に統一
-    parsed.ingredients = parsed.ingredients.map((item) => ({
-      text:               String(item.text || ""),
-      bounding_box:       Array.isArray(item.bounding_box) ? item.bounding_box : [0, 0, 0, 0],
-      confidence:         typeof item.confidence === "number" ? item.confidence : 1.0,
-      requires_user_check: Boolean(item.requires_user_check),
-      user_prompt:        item.user_prompt ?? null,
-      vege_status:        ["Green", "Yellow", "Red"].includes(item.vege_status) ? item.vege_status : "Yellow",
-      reason:             String(item.reason || ""),
-    }));
+    const CONFIDENCE_THRESHOLD = 0.85;
+
+    // サーバー側でも閾値を強制適用（モデルが甘い判定を返しても上書き）
+    parsed.ingredients = parsed.ingredients.map((item) => {
+      const conf = typeof item.confidence === "number" ? item.confidence : 1.0;
+      const forceCheck = conf < CONFIDENCE_THRESHOLD;
+      const requiresCheck = Boolean(item.requires_user_check) || forceCheck;
+      const text = String(item.text || "");
+      // requires_user_check なのに [?] が付いていない場合は付加
+      const textWithFlag =
+        requiresCheck && !text.endsWith("[?]") ? `${text} [?]` : text;
+
+      return {
+        text:                textWithFlag,
+        bounding_box:        Array.isArray(item.bounding_box) ? item.bounding_box : [0, 0, 0, 0],
+        confidence:          conf,
+        requires_user_check: requiresCheck,
+        user_prompt:         requiresCheck
+          ? (item.user_prompt || `ここは「${text.replace(/ ?\[?\?\]?$/, "")}」と読めますが正しいですか？`)
+          : null,
+        vege_status:         requiresCheck
+          ? "Yellow"  // 確信度不足は強制的に要確認扱い
+          : (["Green", "Yellow", "Red"].includes(item.vege_status) ? item.vege_status : "Yellow"),
+        reason:              String(item.reason || ""),
+      };
+    });
 
     // final_decision が不正な値の場合は再計算
     const hasRed     = parsed.ingredients.some((i) => i.vege_status === "Red");
