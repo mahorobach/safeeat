@@ -1,8 +1,10 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { optionalAuth } from "../middleware/auth.js";
 
 const router = Router();
+router.use(optionalAuth);
 
 // "GEMINI_MODEL=gemini-3.0-flash" のように値にキー名が含まれていても正しく取り出す
 function parseModelEnv(raw) {
@@ -27,6 +29,35 @@ function getSupabase() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   return createClient(url, key);
+}
+
+const FREE_PLAN_LIMIT = 10;
+
+async function checkScanLimit(req, res) {
+  if (!req.user) return true;
+  const sb = getSupabase();
+  if (!sb) return true;
+  const { data } = await sb.from("profiles")
+    .select("plan, scan_count, scan_month")
+    .eq("id", req.user.id)
+    .single();
+  const month = new Date().toISOString().slice(0, 7);
+  const used  = data?.scan_month === month ? (data?.scan_count || 0) : 0;
+  if ((data?.plan || "free") === "free" && used >= FREE_PLAN_LIMIT) {
+    res.status(429).json({ ok: false, error: "scan_limit_exceeded", message: "今月の無料枠（10回）を使い切りました" });
+    return false;
+  }
+  return true;
+}
+
+async function incrementScanCount(userId) {
+  if (!userId) return;
+  const sb = getSupabase();
+  if (!sb) return;
+  const month = new Date().toISOString().slice(0, 7);
+  const { data } = await sb.from("profiles").select("scan_count, scan_month").eq("id", userId).single();
+  const newCount = data?.scan_month === month ? (data?.scan_count || 0) + 1 : 1;
+  await sb.from("profiles").update({ scan_count: newCount, scan_month: month }).eq("id", userId);
 }
 
 function hashIngredientText(text) {
@@ -287,8 +318,11 @@ router.post("/text", async (req, res, next) => {
   const hash = hashIngredientText(ingredientsStr);
 
   try {
+    if (!await checkScanLimit(req, res)) return;
+
     const cached = await getCached(hash);
     if (cached) {
+      await incrementScanCount(req.user?.id);
       return res.json({ ok: true, data: cached, fromCache: true });
     }
 
@@ -309,6 +343,7 @@ router.post("/text", async (req, res, next) => {
     if (!Array.isArray(result.unknown)) result.unknown = [];
 
     await setCache(hash, ingredientsStr, result);
+    await incrementScanCount(req.user?.id);
     res.json({ ok: true, data: result });
   } catch (e) {
     next(e);
@@ -423,6 +458,8 @@ router.post("/image/detailed", async (req, res, next) => {
   if (!apiKey) return;
 
   try {
+    if (!await checkScanLimit(req, res)) return;
+
     console.log(`[Gemini /image/detailed] model="${GEMINI_MODEL}" mediaType="${image.mediaType}"`);
     const geminiRes = await geminiCall(apiKey, {
       contents: [{
@@ -492,9 +529,9 @@ router.post("/image/detailed", async (req, res, next) => {
     // extractedText: フロント textarea 反映用（既存 UI との互換）
     const extractedText = parsed.ingredients.map((i) => i.text.replace(/\s*\[?\?\]?\s*$/, "").trim()).join("、");
 
-    // 同じ原材料テキストの再解析をスキップするためキャッシュ保存
     const cacheHash = hashIngredientText(extractedText);
     await setCache(cacheHash, extractedText, parsed);
+    await incrementScanCount(req.user?.id);
 
     res.json({ ok: true, data: parsed, extractedText });
   } catch (e) {

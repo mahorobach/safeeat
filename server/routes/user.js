@@ -1,14 +1,97 @@
 import { Router } from "express";
 import { supabaseAdmin } from "../supabase/client.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, optionalAuth } from "../middleware/auth.js";
 
 const router = Router();
+const FREE_PLAN_LIMIT = 10;
 
-// 全ルートで認証必須
-router.use(requireAuth);
+function currentMonth() {
+  return new Date().toISOString().slice(0, 7); // YYYY-MM
+}
 
-// GET /api/user/profile — プロフィール + プラン情報
-router.get("/profile", async (req, res, next) => {
+// GET /api/user/me — ログインユーザー情報（認証必須）
+router.get("/me", requireAuth, async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .select("plan, scan_count, scan_month")
+      .eq("id", req.user.id)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
+
+    const month     = currentMonth();
+    const used      = (data?.scan_month === month ? data?.scan_count : 0) || 0;
+    const limit     = FREE_PLAN_LIMIT;
+    const remaining = Math.max(0, limit - used);
+
+    res.json({
+      ok: true,
+      data: {
+        email: req.user.email,
+        plan: data?.plan || "free",
+        used,
+        limit,
+        remaining,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// GET /api/user/scan-count — スキャン残り回数（未ログインも可）
+router.get("/scan-count", optionalAuth, async (req, res, next) => {
+  if (!req.user) {
+    return res.json({ ok: true, used: 0, limit: FREE_PLAN_LIMIT, remaining: FREE_PLAN_LIMIT });
+  }
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .select("plan, scan_count, scan_month")
+      .eq("id", req.user.id)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
+
+    const month     = currentMonth();
+    const used      = (data?.scan_month === month ? data?.scan_count : 0) || 0;
+    const limit     = FREE_PLAN_LIMIT;
+    const remaining = Math.max(0, limit - used);
+
+    res.json({ ok: true, used, limit, remaining });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/user/scan-count/increment — スキャン回数を +1（認証必須）
+router.post("/scan-count/increment", requireAuth, async (req, res, next) => {
+  try {
+    const month = currentMonth();
+    const { data } = await supabaseAdmin
+      .from("profiles")
+      .select("scan_count, scan_month")
+      .eq("id", req.user.id)
+      .single();
+
+    const newCount = data?.scan_month === month ? (data?.scan_count || 0) + 1 : 1;
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ scan_count: newCount, scan_month: month })
+      .eq("id", req.user.id);
+
+    if (error) throw error;
+
+    const remaining = Math.max(0, FREE_PLAN_LIMIT - newCount);
+    res.json({ ok: true, used: newCount, limit: FREE_PLAN_LIMIT, remaining });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// GET /api/user/profile — プロフィール（認証必須）
+router.get("/profile", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("profiles")
@@ -23,8 +106,8 @@ router.get("/profile", async (req, res, next) => {
   }
 });
 
-// GET /api/user/settings — カスタム設定
-router.get("/settings", async (req, res, next) => {
+// GET /api/user/settings — カスタム設定（認証必須）
+router.get("/settings", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("user_settings")
@@ -39,8 +122,8 @@ router.get("/settings", async (req, res, next) => {
   }
 });
 
-// PUT /api/user/settings — カスタム設定を保存・更新
-router.put("/settings", async (req, res, next) => {
+// PUT /api/user/settings — カスタム設定を保存（認証必須）
+router.put("/settings", requireAuth, async (req, res, next) => {
   const { mode = "oriental", custom_ng = [], custom_ok = [] } = req.body;
 
   const validModes = ["oriental", "vegan", "lacto_ovo", "custom"];
@@ -63,50 +146,20 @@ router.put("/settings", async (req, res, next) => {
   }
 });
 
-// POST /api/user/analysis — 解析履歴を保存（Premium プラン）
-router.post("/analysis", async (req, res, next) => {
+// POST /api/user/analysis — 解析履歴を保存（認証必須）
+router.post("/analysis", requireAuth, async (req, res, next) => {
   const { ingredients_raw, result } = req.body;
   if (!ingredients_raw) {
     return res.status(400).json({ ok: false, error: "ingredients_raw は必須です" });
   }
 
   try {
-    // 無料プランの日次上限チェック
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("plan, daily_count, count_reset_at")
-      .eq("id", req.user.id)
-      .single();
-
-    const today = new Date().toISOString().slice(0, 10);
-    const isNewDay = !profile.count_reset_at || profile.count_reset_at < today;
-    const currentCount = isNewDay ? 0 : profile.daily_count;
-
-    if (profile.plan === "free" && currentCount >= 5) {
-      return res.status(429).json({
-        ok: false,
-        error: "無料プランの1日5回の上限に達しました。プレミアムプランにアップグレードしてください。",
-        upgrade_required: true,
-      });
-    }
-
-    // 履歴を保存
     const { error: histError } = await supabaseAdmin
       .from("analysis_history")
       .insert({ user_id: req.user.id, ingredients_raw, result_jsonb: result });
 
     if (histError) throw histError;
-
-    // カウントを更新
-    await supabaseAdmin
-      .from("profiles")
-      .update({
-        daily_count: isNewDay ? 1 : currentCount + 1,
-        count_reset_at: today,
-      })
-      .eq("id", req.user.id);
-
-    res.json({ ok: true, remaining: profile.plan === "free" ? 5 - currentCount - 1 : null });
+    res.json({ ok: true });
   } catch (e) {
     next(e);
   }

@@ -13,6 +13,7 @@
     <div class="logo">🥬 SafeEat</div>
     <div class="tagline">オリエンタルベジタリアン専用 成分チェッカー</div>
   </div>
+  <div class="auth-area" id="auth-area"></div>
 </header>
 
 <main>
@@ -226,10 +227,39 @@
   </div>
 </div>
 
-<script src="site-config.js?v=0.4.2"></script>
-<script src="lib/ingredients-db.js?v=0.4.2"></script>
-<script src="lib/rules.js?v=0.4.2"></script>
-<script src="safeat-api.js?v=0.4.2"></script>
-<script src="safeat.js?v=0.4.2"></script>
+<!-- Auth Modal -->
+<div id="auth-modal" class="auth-modal" hidden>
+  <div class="auth-modal-card">
+    <button class="auth-modal-close" id="auth-modal-close" type="button">✕</button>
+    <h2 class="auth-modal-title" id="auth-form-title">ログイン</h2>
+    <form id="auth-form" data-mode="login" novalidate>
+      <div class="auth-field">
+        <label for="auth-email">メールアドレス</label>
+        <input type="email" id="auth-email" autocomplete="email" required placeholder="you@example.com">
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">パスワード（6文字以上）</label>
+        <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+      <button type="submit" class="btn-auth-submit" id="auth-submit-btn">
+        <span class="spinner" id="auth-spinner" style="display:none"></span>
+        <span id="auth-submit-label">ログイン</span>
+      </button>
+    </form>
+    <div class="auth-modal-footer">
+      <button class="btn-auth-link" id="auth-toggle-btn" type="button">新規登録はこちら</button>
+      <button class="btn-auth-link" id="auth-forgot-btn" type="button">パスワードを忘れた場合</button>
+    </div>
+  </div>
+</div>
+
+<script src="site-config.js?v=0.5.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth.js?v=0.5.0"></script>
+<script src="lib/ingredients-db.js?v=0.5.0"></script>
+<script src="lib/rules.js?v=0.5.0"></script>
+<script src="safeat-api.js?v=0.5.0"></script>
+<script src="safeat.js?v=0.5.0"></script>
 </body>
 </html>

@@ -121,3 +121,19 @@ CREATE POLICY "subscriptions_own" ON public.subscriptions
 ALTER TABLE public.analysis_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "history_own" ON public.analysis_history
   USING (auth.uid() = user_id);
+
+-- ===== Phase 3: 月次スキャンカウント（profiles に追加） =====
+-- Supabase SQL Editor で以下を実行してください
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS scan_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS scan_month TEXT NOT NULL DEFAULT '';
+
+-- トリガーを更新（新規ユーザー登録時に scan_month を初期化）
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, scan_count, scan_month)
+  VALUES (NEW.id, 0, to_char(now(), 'YYYY-MM'))
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

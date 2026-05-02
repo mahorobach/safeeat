@@ -172,6 +172,12 @@ async function extractTextFromImage(imageData, mediaType) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function getAuthHeaders() {
+  if (typeof sessionStorage === "undefined") return {};
+  const token = sessionStorage.getItem("safeat_auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 /**
  * 画像から成分ごとの確信度・BBox・ベジ判定を1ステップで取得（Gemini detailed）
  *
@@ -202,7 +208,7 @@ async function analyzeImageWithGeminiDetailed(imageData, mediaType) {
       `${API_BASE}/api/analyze/gemini/image/detailed`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         signal: ctrl.signal,
         body: JSON.stringify({ image: { data: imageData, mediaType } }),
       },
@@ -273,7 +279,7 @@ async function analyzeTextWithGemini(ingredientsText) {
   await ensureApiWarm();
   const res = await fetchWithRetry(`${API_BASE}/api/analyze/gemini/text`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ ingredients: ingredientsText }),
   });
 

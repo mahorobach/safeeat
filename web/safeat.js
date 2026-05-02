@@ -532,7 +532,12 @@ async function handleTextAnalyze() {
     const result = await analyzeTextWithGemini(ingredientsText);
     const promoted = promoteFromUserDB(result);
     renderResult(promoted, false, ingredientsText);
+    refreshScanBadge();
   } catch (err) {
+    if (err.message === "scan_limit_exceeded") {
+      showError("今月の無料枠（10回）を使い切りました。来月リセットされます。");
+      return;
+    }
     try {
       const result = localFallback(ingredientsText);
       renderResult(promoteFromUserDB(result), true, ingredientsText);
@@ -607,8 +612,13 @@ async function handleImageAnalyzeGeminiDetailed() {
     renderExtractedAccordion(text, false);
     updateResultComparePhoto();
     renderDetailedResult(data, _comparePhotoDataUrl);
+    refreshScanBadge();
   } catch (err) {
-    showError(`Gemini 詳細解析エラー：${err.message}`);
+    if (err.message === "scan_limit_exceeded") {
+      showError("今月の無料枠（10回）を使い切りました。来月リセットされます。");
+    } else {
+      showError(`Gemini 詳細解析エラー：${err.message}`);
+    }
   }
 }
 
@@ -1076,6 +1086,151 @@ function esc(str) {
 }
 
 updateUserDBBadge();
+
+// =============================================
+// 認証 UI
+// =============================================
+
+async function refreshScanBadge() {
+  const badge = document.getElementById("scan-badge");
+  if (!badge) return;
+  const token = sessionStorage.getItem("safeat_auth_token");
+  if (!token) return;
+  try {
+    const res = await fetch(`${SAFEAT_API_URL}/api/user/scan-count`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.ok) {
+      badge.textContent = `残り ${data.remaining} 回`;
+      badge.classList.toggle("exhausted", data.remaining === 0);
+    }
+  } catch {}
+}
+
+function openAuthModal(mode = "login") {
+  const modal = document.getElementById("auth-modal");
+  if (!modal) return;
+  modal.removeAttribute("hidden");
+  setAuthModalMode(mode);
+  setTimeout(() => document.getElementById("auth-email")?.focus(), 50);
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById("auth-modal");
+  if (modal) modal.setAttribute("hidden", "");
+  const err = document.getElementById("auth-error");
+  if (err) { err.textContent = ""; err.className = "auth-error"; }
+}
+
+function setAuthModalMode(mode) {
+  const form = document.getElementById("auth-form");
+  if (form) form.dataset.mode = mode;
+  const title = document.getElementById("auth-form-title");
+  if (title) title.textContent = mode === "login" ? "ログイン" : "新規登録";
+  const label = document.getElementById("auth-submit-label");
+  if (label) label.textContent = mode === "login" ? "ログイン" : "登録する";
+  const toggle = document.getElementById("auth-toggle-btn");
+  if (toggle) toggle.textContent = mode === "login" ? "新規登録はこちら" : "ログインはこちら";
+  const forgot = document.getElementById("auth-forgot-btn");
+  if (forgot) forgot.style.display = mode === "login" ? "" : "none";
+}
+
+async function updateAuthUI(session) {
+  const area = document.getElementById("auth-area");
+  if (!area) return;
+
+  if (session?.user) {
+    const token = session.access_token;
+    let remaining = "?";
+    try {
+      const r = await fetch(`${SAFEAT_API_URL}/api/user/scan-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (d.ok) remaining = d.remaining;
+    } catch {}
+
+    area.innerHTML = `
+      <span class="auth-email">${esc(session.user.email)}</span>
+      <span class="scan-badge${remaining === 0 ? " exhausted" : ""}" id="scan-badge">残り ${remaining} 回</span>
+      <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
+    document.getElementById("btn-signout")?.addEventListener("click", () =>
+      window.SafeEatAuth?.signOut()
+    );
+  } else {
+    area.innerHTML = `
+      <button class="btn-auth" id="btn-open-login" type="button">ログイン</button>
+      <button class="btn-auth-outline" id="btn-open-signup" type="button">新規登録</button>`;
+    document.getElementById("btn-open-login")?.addEventListener("click", () => openAuthModal("login"));
+    document.getElementById("btn-open-signup")?.addEventListener("click", () => openAuthModal("signup"));
+  }
+}
+
+document.getElementById("auth-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!window.SafeEatAuth) return;
+
+  const mode     = e.currentTarget.dataset.mode || "login";
+  const email    = document.getElementById("auth-email").value.trim();
+  const password = document.getElementById("auth-password").value;
+  const errEl    = document.getElementById("auth-error");
+  const spinner  = document.getElementById("auth-spinner");
+  const submitBtn = document.getElementById("auth-submit-btn");
+
+  errEl.textContent = "";
+  errEl.className = "auth-error";
+  submitBtn.disabled = true;
+  if (spinner) spinner.style.display = "";
+
+  try {
+    if (mode === "login") {
+      const { error } = await window.SafeEatAuth.signIn(email, password);
+      if (error) { errEl.textContent = error.message; return; }
+      closeAuthModal();
+    } else {
+      const { error } = await window.SafeEatAuth.signUp(email, password);
+      if (error) { errEl.textContent = error.message; return; }
+      errEl.className = "auth-error success";
+      errEl.textContent = "確認メールを送信しました。メール内のリンクをクリックしてログインしてください。";
+    }
+  } finally {
+    submitBtn.disabled = false;
+    if (spinner) spinner.style.display = "none";
+  }
+});
+
+document.getElementById("auth-modal-close")?.addEventListener("click", closeAuthModal);
+document.getElementById("auth-modal")?.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeAuthModal();
+});
+document.getElementById("auth-toggle-btn")?.addEventListener("click", () => {
+  const mode = document.getElementById("auth-form")?.dataset.mode;
+  setAuthModalMode(mode === "login" ? "signup" : "login");
+  document.getElementById("auth-error").textContent = "";
+});
+document.getElementById("auth-forgot-btn")?.addEventListener("click", async () => {
+  const email = document.getElementById("auth-email").value.trim();
+  const errEl = document.getElementById("auth-error");
+  if (!email) { errEl.textContent = "メールアドレスを入力してください。"; return; }
+  await window.SafeEatAuth?.resetPassword(email);
+  errEl.className = "auth-error success";
+  errEl.textContent = "リセットメールを送信しました。";
+});
+
+if (window.SafeEatAuth) {
+  window.SafeEatAuth.onAuthStateChange((_event, session) => {
+    if (session?.access_token) {
+      sessionStorage.setItem("safeat_auth_token", session.access_token);
+    } else {
+      sessionStorage.removeItem("safeat_auth_token");
+    }
+    updateAuthUI(session);
+  });
+  window.SafeEatAuth.getSession().then((session) => updateAuthUI(session));
+} else {
+  updateAuthUI(null);
+}
 
 // =============================================
 // カメラ直接撮影（枠合わせ）
