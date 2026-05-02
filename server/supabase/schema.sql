@@ -122,18 +122,62 @@ ALTER TABLE public.analysis_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "history_own" ON public.analysis_history
   USING (auth.uid() = user_id);
 
--- ===== Phase 3: 月次スキャンカウント（profiles に追加） =====
--- Supabase SQL Editor で以下を実行してください
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS scan_count INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS scan_month TEXT NOT NULL DEFAULT '';
+-- ===== Phase 3: ユーザープロファイル（モード拡張対応版） =====
+-- Supabase SQL Editor で以下を順番に実行してください
 
--- トリガーを更新（新規ユーザー登録時に scan_month を初期化）
+-- 1. user_profiles テーブル
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  plan        TEXT NOT NULL DEFAULT 'free',   -- 'free' | 'pro' | 'business'
+  scan_count  INTEGER NOT NULL DEFAULT 0,     -- 今月の合算解析回数（全モード合計）
+  scan_month  TEXT NOT NULL DEFAULT '',       -- 'YYYY-MM' 形式。月替わりでリセット判定に使う
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. スキャン履歴ログ（モード別に記録・将来の分析・課金設計用）
+CREATE TABLE IF NOT EXISTS public.scan_logs (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  diet_mode   TEXT NOT NULL DEFAULT 'oriental', -- 'oriental' | 'vegan' | 'halal' | 'lacto_ovo'
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. ingredient_cache に diet_mode 列を追加
+ALTER TABLE public.ingredient_cache
+  ADD COLUMN IF NOT EXISTS diet_mode TEXT NOT NULL DEFAULT 'oriental';
+
+-- 4. ingredient_cache の主キーを (ingredient_hash, diet_mode) 複合に変更
+--    ※ 既存データは全て diet_mode='oriental' となるため安全
+ALTER TABLE public.ingredient_cache DROP CONSTRAINT IF EXISTS ingredient_cache_pkey;
+ALTER TABLE public.ingredient_cache ADD PRIMARY KEY (ingredient_hash, diet_mode);
+
+-- 5. 新規ユーザー登録時に user_profiles を自動生成するトリガー
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, scan_count, scan_month)
-  VALUES (NEW.id, 0, to_char(now(), 'YYYY-MM'))
-  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.user_profiles (id, plan, scan_count, scan_month)
+  VALUES (NEW.id, 'free', 0, to_char(now(), 'YYYY-MM'));
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6. RLS ポリシー
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scan_logs     ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users can read own profile"
+  ON public.user_profiles FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "users can update own profile"
+  ON public.user_profiles FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "users can read own scan logs"
+  ON public.scan_logs FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "users can insert own scan logs"
+  ON public.scan_logs FOR INSERT WITH CHECK (auth.uid() = user_id);

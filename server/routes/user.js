@@ -13,7 +13,7 @@ function currentMonth() {
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
-      .from("profiles")
+      .from("user_profiles")
       .select("plan, scan_count, scan_month")
       .eq("id", req.user.id)
       .single();
@@ -47,7 +47,7 @@ router.get("/scan-count", optionalAuth, async (req, res, next) => {
   }
   try {
     const { data, error } = await supabaseAdmin
-      .from("profiles")
+      .from("user_profiles")
       .select("plan, scan_count, scan_month")
       .eq("id", req.user.id)
       .single();
@@ -70,14 +70,14 @@ router.post("/scan-count/increment", requireAuth, async (req, res, next) => {
   try {
     const month = currentMonth();
     const { data } = await supabaseAdmin
-      .from("profiles")
+      .from("user_profiles")
       .select("scan_count, scan_month")
       .eq("id", req.user.id)
       .single();
 
     const newCount = data?.scan_month === month ? (data?.scan_count || 0) + 1 : 1;
     const { error } = await supabaseAdmin
-      .from("profiles")
+      .from("user_profiles")
       .update({ scan_count: newCount, scan_month: month })
       .eq("id", req.user.id);
 
@@ -90,7 +90,7 @@ router.post("/scan-count/increment", requireAuth, async (req, res, next) => {
   }
 });
 
-// GET /api/user/profile — プロフィール（認証必須）
+// GET /api/user/profile — プロフィール（認証必須・旧 profiles テーブル）
 router.get("/profile", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin

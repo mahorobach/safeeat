@@ -32,12 +32,13 @@ function getSupabase() {
 }
 
 const FREE_PLAN_LIMIT = 10;
+const DIET_MODE = "oriental"; // Phase 4 で動的にする
 
 async function checkScanLimit(req, res) {
   if (!req.user) return true;
   const sb = getSupabase();
   if (!sb) return true;
-  const { data } = await sb.from("profiles")
+  const { data } = await sb.from("user_profiles")
     .select("plan, scan_count, scan_month")
     .eq("id", req.user.id)
     .single();
@@ -55,9 +56,16 @@ async function incrementScanCount(userId) {
   const sb = getSupabase();
   if (!sb) return;
   const month = new Date().toISOString().slice(0, 7);
-  const { data } = await sb.from("profiles").select("scan_count, scan_month").eq("id", userId).single();
+  const { data } = await sb.from("user_profiles").select("scan_count, scan_month").eq("id", userId).single();
   const newCount = data?.scan_month === month ? (data?.scan_count || 0) + 1 : 1;
-  await sb.from("profiles").update({ scan_count: newCount, scan_month: month }).eq("id", userId);
+  await sb.from("user_profiles").update({ scan_count: newCount, scan_month: month }).eq("id", userId);
+}
+
+async function insertScanLog(userId) {
+  if (!userId) return;
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("scan_logs").insert({ user_id: userId, diet_mode: DIET_MODE }).catch(() => {});
 }
 
 function hashIngredientText(text) {
@@ -79,12 +87,13 @@ async function getCached(hash) {
       .from("ingredient_cache")
       .select("analysis_result, hit_count")
       .eq("ingredient_hash", hash)
+      .eq("diet_mode", DIET_MODE)
       .single();
     if (error || !data) return null;
-    // ヒット数を非同期でインクリメント（失敗しても無視）
     sb.from("ingredient_cache")
       .update({ hit_count: data.hit_count + 1 })
       .eq("ingredient_hash", hash)
+      .eq("diet_mode", DIET_MODE)
       .then(() => {}).catch(() => {});
     console.log(`[Cache HIT] hash=${hash.slice(0, 8)}...`);
     return data.analysis_result;
@@ -98,8 +107,8 @@ async function setCache(hash, text, result) {
   if (!sb) { console.error("[Cache] Supabase 未設定（環境変数を確認）"); return; }
   try {
     const { error } = await sb.from("ingredient_cache").upsert(
-      { ingredient_hash: hash, ingredient_text: text, analysis_result: result },
-      { onConflict: "ingredient_hash" },
+      { ingredient_hash: hash, ingredient_text: text, analysis_result: result, diet_mode: DIET_MODE },
+      { onConflict: "ingredient_hash,diet_mode" },
     );
     if (error) {
       console.error(`[Cache SET失敗] ${error.message} (code=${error.code})`);
@@ -344,6 +353,7 @@ router.post("/text", async (req, res, next) => {
 
     await setCache(hash, ingredientsStr, result);
     await incrementScanCount(req.user?.id);
+    await insertScanLog(req.user?.id);
     res.json({ ok: true, data: result });
   } catch (e) {
     next(e);
@@ -532,6 +542,7 @@ router.post("/image/detailed", async (req, res, next) => {
     const cacheHash = hashIngredientText(extractedText);
     await setCache(cacheHash, extractedText, parsed);
     await incrementScanCount(req.user?.id);
+    await insertScanLog(req.user?.id);
 
     res.json({ ok: true, data: parsed, extractedText });
   } catch (e) {
