@@ -8,7 +8,7 @@ function parseModelEnv(raw) {
   const eqIdx = s.indexOf("=");
   return eqIdx >= 0 ? s.slice(eqIdx + 1).trim() : s;
 }
-const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-2.0-flash";
+const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-2.5-flash-preview-05-20";
 // responseMimeType は v1beta のみサポート（v1 では未サポート）
 const GEMINI_API_VERSION = (process.env.GEMINI_API_VERSION || "v1beta").trim();
 const GEMINI_API_URL =
