@@ -9,10 +9,14 @@ function parseModelEnv(raw) {
   return eqIdx >= 0 ? s.slice(eqIdx + 1).trim() : s;
 }
 const GEMINI_MODEL = parseModelEnv(process.env.GEMINI_MODEL) || "gemini-3.0-flash";
+// 新しいモデルは v1beta ではなく v1 に存在することがある
+// GEMINI_API_VERSION 環境変数で切り替え可（例: v1beta）
+const GEMINI_API_VERSION = (process.env.GEMINI_API_VERSION || "v1").trim();
 const GEMINI_API_URL =
-  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
+  .replace("/v1beta/", `/${GEMINI_API_VERSION}/`);
 
-console.log(`[Gemini] 使用モデル: ${GEMINI_MODEL}`);
+console.log(`[Gemini] モデル: ${GEMINI_MODEL}  APIバージョン: ${GEMINI_API_VERSION}`);
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024;
 
