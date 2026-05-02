@@ -243,6 +243,19 @@ main {
 }
 .btn-crop-secondary:hover { background: var(--gray-light); }
 
+.btn-toolbar-clear {
+  padding: 8px 16px;
+  border: 1px solid var(--red-border);
+  border-radius: 8px;
+  background: var(--red-light);
+  color: var(--red);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.btn-toolbar-clear:hover { background: #ffcdd2; }
+
 .crop-panel {
   margin-top: 14px;
   padding: 14px;

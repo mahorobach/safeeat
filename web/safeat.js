@@ -139,6 +139,7 @@ clearImageBtn.addEventListener("click", (e) => { e.stopPropagation(); clearImage
 btnStartCrop.addEventListener("click", (e) => { e.stopPropagation(); openCropPanel(); });
 btnCancelCrop.addEventListener("click", (e) => { e.stopPropagation(); closeCropPanel(); });
 btnApplyCrop.addEventListener("click", (e) => { e.stopPropagation(); applyCropSelection(); });
+document.getElementById("btn-toolbar-clear")?.addEventListener("click", (e) => { e.stopPropagation(); clearImage(); });
 
 function clearCompareSnapshot() {
   _comparePhotoDataUrl = null;
