@@ -660,17 +660,39 @@ const VEGE_STATUS_CONFIG = {
   Green:  { icon: "✅", label: "OK", cls: "ok" },
 };
 
-function renderDetailedResult(data, imageDataUrl) {
-  const wrap  = document.getElementById("detailed-result-wrap");
-  const list  = document.getElementById("detailed-list");
-  const count = document.getElementById("detailed-count");
-  if (!wrap || !list) return;
+function buildDetailedItem(item, imageDataUrl) {
+  const vcfg = VEGE_STATUS_CONFIG[item.vege_status] || VEGE_STATUS_CONFIG.Yellow;
+  const confPct = Math.round(item.confidence * 100);
+  const confCls = confPct >= 80 ? "conf-high" : confPct >= 60 ? "conf-mid" : "conf-low";
+  const checkFlag = item.requires_user_check
+    ? `<span class="check-flag">⚠ 要確認</span>` : "";
 
-  // 標準結果エリアは非表示にして詳細を主役にする
-  document.getElementById("ng-list").closest(".result-list-card").style.display  = "none";
-  document.getElementById("gray-list").closest(".result-list-card").style.display = "none";
-  document.getElementById("ok-list").closest(".result-list-card").style.display   = "none";
-  document.getElementById("unknown-card").style.display = "none";
+  const li = document.createElement("li");
+  li.className = "detailed-item";
+  li.innerHTML = `
+    <div class="detailed-item-top">
+      <span class="ing-name ${vcfg.cls}">${esc(item.text)}</span>
+      ${checkFlag}
+      <span class="conf-badge ${confCls}">${confPct}%</span>
+    </div>
+    <div class="ing-reason">${esc(item.reason)}</div>
+    ${item.user_prompt ? `<div class="user-prompt-text">💬 ${esc(item.user_prompt)}</div>` : ""}
+    ${item.requires_user_check && imageDataUrl && item.bounding_box
+      ? `<button class="btn-zoom-bbox" data-bbox="${esc(JSON.stringify(item.bounding_box))}"
+           data-caption="${esc(item.user_prompt || item.text)}">🔍 この箇所をズーム</button>`
+      : ""}`;
+
+  li.querySelector(".btn-zoom-bbox")?.addEventListener("click", (e) => {
+    const bbox = JSON.parse(e.currentTarget.dataset.bbox);
+    const caption = e.currentTarget.dataset.caption;
+    drawZoom(imageDataUrl, bbox, caption);
+  });
+  return li;
+}
+
+function renderDetailedResult(data, imageDataUrl) {
+  const wrap = document.getElementById("detailed-result-wrap");
+  if (!wrap) return;
 
   // overall バナーを final_decision から設定
   const decisionMap = { OK: "ok", NG: "ng", Pending: "gray" };
@@ -683,57 +705,50 @@ function renderDetailedResult(data, imageDataUrl) {
   document.getElementById("overall-summary").textContent =
     `Gemini 詳細モード / ${data.ingredients.length}件の成分を解析`;
 
-  if (count) count.textContent = `${data.ingredients.length}件`;
-
-  list.innerHTML = "";
+  // 成分を vege_status でグループ化（Red→NG、Yellow→Gray、Green→OK）
+  const groups = { Red: [], Yellow: [], Green: [] };
   for (const item of data.ingredients) {
-    const vcfg = VEGE_STATUS_CONFIG[item.vege_status] || VEGE_STATUS_CONFIG.Yellow;
-    const confPct = Math.round(item.confidence * 100);
-    const confCls = confPct >= 80 ? "conf-high" : confPct >= 60 ? "conf-mid" : "conf-low";
-    const checkFlag = item.requires_user_check
-      ? `<span class="check-flag">⚠ 要確認</span>` : "";
-
-    const li = document.createElement("li");
-    li.className = "detailed-item";
-    li.innerHTML = `
-      <div class="detailed-item-top">
-        <span class="ing-name ${vcfg.cls}">${esc(item.text)}</span>
-        ${checkFlag}
-        <span class="vege-badge ${vcfg.cls}">${vcfg.icon} ${esc(vcfg.label)}</span>
-        <span class="conf-badge ${confCls}">${confPct}%</span>
-      </div>
-      <div class="ing-reason">${esc(item.reason)}</div>
-      ${item.user_prompt ? `<div class="user-prompt-text">💬 ${esc(item.user_prompt)}</div>` : ""}
-      ${item.requires_user_check && imageDataUrl && item.bounding_box
-        ? `<button class="btn-zoom-bbox" data-bbox="${esc(JSON.stringify(item.bounding_box))}"
-             data-caption="${esc(item.user_prompt || item.text)}">🔍 この箇所をズーム</button>`
-        : ""}`;
-
-    li.querySelector(".btn-zoom-bbox")?.addEventListener("click", (e) => {
-      const bbox = JSON.parse(e.currentTarget.dataset.bbox);
-      const caption = e.currentTarget.dataset.caption;
-      drawZoom(imageDataUrl, bbox, caption);
-    });
-
-    list.appendChild(li);
+    (groups[item.vege_status] || groups.Yellow).push(item);
   }
+
+  const listMap = [
+    { status: "Red",    listId: "ng-list",   headerId: "ng-header" },
+    { status: "Yellow", listId: "gray-list",  headerId: "gray-header" },
+    { status: "Green",  listId: "ok-list",    headerId: "ok-header" },
+  ];
+
+  for (const { status, listId, headerId } of listMap) {
+    const items  = groups[status];
+    const listEl = document.getElementById(listId);
+    if (!listEl) continue;
+    setHeaderCount(headerId, items.length);
+    listEl.innerHTML = "";
+    if (items.length === 0) { listEl.innerHTML = emptyLi(); continue; }
+    for (const item of items) listEl.appendChild(buildDetailedItem(item, imageDataUrl));
+  }
+
+  document.getElementById("unknown-card").style.display = "none";
+
+  // detailed-result-wrap はズームキャンバスのみ使用（内側のリストカードは非表示）
+  const innerCard = wrap.querySelector(".result-list-card");
+  if (innerCard) innerCard.style.display = "none";
+  wrap.style.display = "block";
 
   updateResultComparePhoto();
   showResultResetBtn();
-  wrap.style.display = "block";
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function hideDetailedResult() {
   const wrap = document.getElementById("detailed-result-wrap");
-  if (wrap) wrap.style.display = "none";
+  if (wrap) {
+    wrap.style.display = "none";
+    const innerCard = wrap.querySelector(".result-list-card");
+    if (innerCard) innerCard.style.display = "";
+  }
   const zoomArea = document.getElementById("ingredient-zoom-area");
   if (zoomArea) zoomArea.style.display = "none";
-  // 標準リストを再表示
-  document.getElementById("ng-list").closest(".result-list-card").style.display  = "";
-  document.getElementById("gray-list").closest(".result-list-card").style.display = "";
-  document.getElementById("ok-list").closest(".result-list-card").style.display   = "";
 }
 
 /**
