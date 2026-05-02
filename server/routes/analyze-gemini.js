@@ -201,65 +201,56 @@ router.post("/text", async (req, res, next) => {
 // 1ステップ: 成分ごとにOCR確信度・BBox・ベジ判定を返す
 // =============================================
 
-const DETAILED_IMAGE_PROMPT = `あなたは食品ラベルの【原材料名欄】を一字一句そのまま書き写す、厳格なOCRスキャナーです。
-判定より「正確な転記」を最優先してください。
+const DETAILED_IMAGE_PROMPT = `あなたは食品ラベルの【原材料名欄】を読み取る純粋なOCRスキャナーです。
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【絶対禁止ルール — 違反は重大な食品事故につながる】
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-❌ 文脈・知識・学習データから文字を補完・推測して追加しない
-❌ 「この食品なら〇〇が入っているはず」という先入観で成分を足さない
-❌ 画像に存在しない成分を出力しない（捏造禁止）
-❌ 画像に存在する成分を省略・統合・言い換えしない（脱落禁止）
-❌ 似た文字（「み」と「ス」、「タ」と「ク」など）を決め打ちしない
+━━━ 最重要ルール（これだけ守れば十分）━━━
+① 食品の知識・学習データ・先入観を一切使わない
+② 目に見えている文字だけを写す。見えていない文字は絶対に書かない
+③ 「この食品には〇〇が入っているはず」という推測で成分を追加しない
 
-✅ 画像のピクセルに実際に存在する文字だけを書き写す
-✅ 少しでも読み取りに自信がなければ requires_user_check = true にする
-✅ 読めない1文字は [?] で表現する
+なぜこれが重要か: 誤った成分が出力されると、宗教的食事制限を持つ人が誤って食べてしまい重大な問題になる。
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【確信度の基準（厳しめに評価すること）】
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- confidence は 0.0〜1.0 で評価
-- 以下のいずれかに当てはまれば requires_user_check = true（閾値: 0.85）
-  ・文字が小さい／かすれている／印刷がにじんでいる
-  ・括弧の内側や行末など読み取りにくい位置にある
-  ・似た文字との区別がつかない（例: 「ン」と「ソ」、「タ」と「ク」）
-  ・成分名として見慣れない・珍しい文字列
-  ・1文字でも判読に迷いがある
-- requires_user_check = true のとき:
-  ・テキスト末尾に [?] を付加
-  ・user_prompt に「ここは"〇〇"と読めますが合っていますか？」の確認文を設定
+━━━ 各成分に必須のフィールド ━━━
+ocr_verified: 【重要】その成分の全文字が画像上ではっきり視認できる場合のみ true
+  → 少しでも推測・補完・文脈補完が入っていれば必ず false
+  → false の場合は requires_user_check も true にする
+confidence: 0.0〜1.0（1文字でも迷いがあれば 0.75 以下。学習データで補完した場合は 0.5 以下）
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【座標（bounding_box）】
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- 各成分テキストの位置を [ymin, xmin, ymax, xmax] 形式で返す（0〜1000 スケール）
-- 読み取りに自信がない箇所ほど正確な座標を付けること（ズーム表示に使うため）
+━━━ 画像全体の品質評価 ━━━
+image_quality: "good"（全文字はっきり読める）| "fair"（一部かすれ・小さい・斜め）| "poor"（読み取り困難）
+※ "fair" または "poor" の場合、全成分の requires_user_check を true にする
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【オリエンタルベジタリアン判定（vege_status）】
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- "Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性成分（肉・魚・ゼラチン・コラーゲン・コチニール等）
-- "Yellow": 由来不明・要確認（グリセリン・天然香料・酵素・由来不明のビタミンD等）または requires_user_check = true の成分
-- "Green" : 明確に安全な成分（植物性油脂・卵・乳製品・大豆レシチン・砂糖・塩等）
+━━━ 確信度の基準（厳しめに評価） ━━━
+以下のいずれかに当てはまれば requires_user_check = true:
+- 文字が小さい・かすれている・印刷がにじんでいる
+- 似た文字との区別がつかない（「ン」と「ソ」、「タ」と「ク」など）
+- 1文字でも判読に迷いがある
+- ocr_verified が false
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【final_decision】
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- "NG"     : Red が1つ以上ある
-- "Pending": Red なし・Yellow または requires_user_check が1つ以上ある
+requires_user_check = true のとき: テキスト末尾に [?] を付加し、user_prompt に確認文を設定
+
+━━━ 座標（bounding_box） ━━━
+[ymin, xmin, ymax, xmax] 形式（0〜1000 スケール）。不明な場合は [0,0,0,0]。
+
+━━━ オリエンタルベジタリアン判定（vege_status） ━━━
+- "Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき）または動物性（肉・魚・ゼラチン等）
+- "Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check = true の成分
+- "Green" : 明確に安全な植物性成分（植物油脂・卵・乳製品・砂糖・塩等）
+
+━━━ final_decision ━━━
+- "NG"     : Red が1つ以上
+- "Pending": Red なし・Yellow または requires_user_check が1つ以上
 - "OK"     : すべて Green かつ requires_user_check がすべて false
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【出力形式】説明・Markdown・コードフェンス禁止。JSONのみ。
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ 出力形式（説明・Markdown・コードフェンス禁止。JSONのみ） ━━━
 {
+  "image_quality": "good",
   "ingredients": [
     {
       "text": "成分名（requires_user_check=trueなら末尾に[?]）",
       "bounding_box": [ymin, xmin, ymax, xmax],
       "confidence": 0.95,
+      "ocr_verified": true,
       "requires_user_check": false,
       "user_prompt": null,
       "vege_status": "Green",
@@ -323,12 +314,16 @@ router.post("/image/detailed", async (req, res, next) => {
       });
     }
 
-    const CONFIDENCE_THRESHOLD = 0.85;
+    const CONFIDENCE_THRESHOLD = 0.80;
+
+    // image_quality が fair/poor なら全成分を強制チェック
+    const imageFair = parsed.image_quality === "fair" || parsed.image_quality === "poor";
 
     // サーバー側でも閾値を強制適用（モデルが甘い判定を返しても上書き）
     parsed.ingredients = parsed.ingredients.map((item) => {
       const conf = typeof item.confidence === "number" ? item.confidence : 1.0;
-      const forceCheck = conf < CONFIDENCE_THRESHOLD;
+      const ocrVerified = item.ocr_verified !== false; // 明示的に false のときのみ疑う
+      const forceCheck = conf < CONFIDENCE_THRESHOLD || !ocrVerified || imageFair;
       const requiresCheck = Boolean(item.requires_user_check) || forceCheck;
       const text = String(item.text || "");
       // requires_user_check なのに [?] が付いていない場合は付加
