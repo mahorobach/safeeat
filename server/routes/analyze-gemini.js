@@ -130,7 +130,7 @@ router.post("/image", async (req, res, next) => {
             { text: IMAGE_ANALYZE_PROMPT },
           ],
         }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json" },
+        generationConfig: { temperature: 0 },
       }),
     });
 
@@ -180,7 +180,7 @@ router.post("/text", async (req, res, next) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: TEXT_ANALYZE_PROMPT(String(ingredients)) }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json" },
+        generationConfig: { temperature: 0 },
       }),
     });
 
@@ -307,7 +307,7 @@ router.post("/image/detailed", async (req, res, next) => {
             { text: DETAILED_IMAGE_PROMPT },
           ],
         }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json" },
+        generationConfig: { temperature: 0 },
       }),
     });
 
