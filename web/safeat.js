@@ -1168,16 +1168,20 @@ function setAuthModalMode(mode) {
   if (forgot) forgot.style.display = mode === "login" ? "" : "none";
 }
 
-async function checkAndShowAdminLink() {
-  try {
-    document.querySelectorAll('.btn-admin-link').forEach(el => el.remove());
+let adminLinkChecked = false;
 
+async function checkAndShowAdminLink() {
+  if (adminLinkChecked) return;
+  adminLinkChecked = true;
+
+  try {
     const token = sessionStorage.getItem('safeat_auth_token');
     const res = await fetch(`${SAFEAT_API_URL}/api/admin/check`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     if (data.ok && data.isAdmin) {
+      document.querySelectorAll('.btn-admin-link').forEach(el => el.remove());
       const adminLink = document.createElement('a');
       adminLink.href = 'admin.html';
       adminLink.className = 'btn-admin-link';
@@ -1211,9 +1215,10 @@ async function updateAuthUI(session) {
       <span class="auth-email">${esc(session.user.email)}</span>
       ${badgeHtml}
       <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
-    document.getElementById("btn-signout")?.addEventListener("click", () =>
-      window.SafeEatAuth?.signOut()
-    );
+    document.getElementById("btn-signout")?.addEventListener("click", () => {
+      adminLinkChecked = false;
+      window.SafeEatAuth?.signOut();
+    });
     checkAndShowAdminLink();
   } else {
     area.innerHTML = `
