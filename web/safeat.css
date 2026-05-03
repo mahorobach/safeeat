@@ -1206,17 +1206,16 @@ header { justify-content: space-between; }
   font-size: 0.85rem;
   font-weight: bold;
 }
-.btn-admin-link {
-  color: #fff;
-  background: rgba(255,255,255,0.2);
-  border-radius: 1rem;
-  padding: 0.3rem 0.8rem;
-  text-decoration: none;
-  font-size: 0.85rem;
-}
-.btn-admin-link:hover { background: rgba(255,255,255,0.35); }
 .logo-link { text-decoration: none; color: inherit; cursor: pointer; }
 .logo-link:hover { opacity: 0.85; }
+.btn-settings-admin {
+  display: block; text-align: center;
+  background: #2D7A3A; color: #fff;
+  border-radius: 2rem; padding: 0.8rem;
+  text-decoration: none; font-weight: bold;
+  transition: transform 0.15s;
+}
+.btn-settings-admin:hover { transform: scale(1.02); }
 
 /* ===== ランディングページ ===== */
 #landing-page { background: var(--gray-light); }

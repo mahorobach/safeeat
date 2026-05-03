@@ -1168,29 +1168,6 @@ function setAuthModalMode(mode) {
   if (forgot) forgot.style.display = mode === "login" ? "" : "none";
 }
 
-let adminLinkChecked = false;
-
-async function checkAndShowAdminLink() {
-  if (adminLinkChecked) return;
-  adminLinkChecked = true;
-
-  try {
-    const token = sessionStorage.getItem('safeat_auth_token');
-    const res = await fetch(`${SAFEAT_API_URL}/api/admin/check`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (data.ok && data.isAdmin) {
-      document.querySelectorAll('.btn-admin-link').forEach(el => el.remove());
-      const adminLink = document.createElement('a');
-      adminLink.href = 'admin.html';
-      adminLink.className = 'btn-admin-link';
-      adminLink.textContent = '🛠️ 管理';
-      document.getElementById('auth-area')?.appendChild(adminLink);
-    }
-  } catch {}
-}
-
 async function updateAuthUI(session) {
   const area = document.getElementById("auth-area");
   if (!area) return;
@@ -1216,10 +1193,8 @@ async function updateAuthUI(session) {
       ${badgeHtml}
       <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
     document.getElementById("btn-signout")?.addEventListener("click", () => {
-      adminLinkChecked = false;
       window.SafeEatAuth?.signOut();
     });
-    checkAndShowAdminLink();
   } else {
     area.innerHTML = `
       <button class="btn-auth" id="btn-open-login" type="button">ログイン</button>
@@ -1641,6 +1616,15 @@ document.getElementById('btn-logo-home')?.addEventListener('click', (e) => {
       const currentMode  = settingsData?.data?.mode || 'oriental';
       const radio = document.querySelector(`input[name="settings-mode"][value="${currentMode}"]`);
       if (radio) radio.checked = true;
+
+      const adminRes  = await fetch(`${SAFEAT_API_URL}/api/admin/check`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const adminData = await adminRes.json();
+      const adminLinkEl = document.getElementById('settings-admin-link');
+      if (adminLinkEl) {
+        adminLinkEl.style.display = (adminData.ok && adminData.isAdmin) ? 'block' : 'none';
+      }
     } catch (err) {
       console.error('設定ページの情報取得に失敗:', err);
     }
