@@ -65,7 +65,7 @@ async function insertScanLog(userId) {
   if (!userId) return;
   const sb = getSupabase();
   if (!sb) return;
-  await sb.from("scan_logs").insert({ user_id: userId, diet_mode: DIET_MODE }).catch(() => {});
+  try { await sb.from("scan_logs").insert({ user_id: userId, diet_mode: DIET_MODE }); } catch {}
 }
 
 function hashIngredientText(text) {
