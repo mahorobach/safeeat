@@ -23,6 +23,13 @@
   --radius:       12px;
   --shadow:       0 2px 14px rgba(0,0,0,.08);
   --font:         'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  /* Phase 3 追加カラー */
+  --color-primary:   #2D7A3A;
+  --color-accent:    #F4A336;
+  --color-bg-hero:   #FDFAF4;
+  --color-bg-card:   #FFFFFF;
+  --color-text-main: #1A1A1A;
+  --color-text-sub:  #666666;
 }
 
 body {
@@ -102,6 +109,60 @@ main {
 .hint { font-size: .76rem; color: var(--gray); margin-top: 8px; line-height: 1.5; }
 .hint a { color: var(--green); }
 
+/* ===== Hero ===== */
+.hero {
+  background: var(--color-bg-hero);
+  border-radius: var(--radius);
+  padding: 36px 24px 30px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.hero-emoji {
+  font-size: 1.7rem;
+  letter-spacing: .2em;
+  margin-bottom: 16px;
+}
+.hero-copy {
+  font-size: 1.9rem;
+  font-weight: 900;
+  color: var(--green);
+  letter-spacing: -.01em;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.hero-sub {
+  font-size: .9rem;
+  color: var(--color-text-sub);
+  line-height: 1.7;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* ===== Mode Card ===== */
+.mode-card { padding: 24px 26px; }
+.mode-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 16px;
+}
+.mode-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mode-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  font-weight: 500;
+  padding: 9px 14px;
+  border-radius: 8px;
+}
+.mode-rule-row.ng { background: var(--red-light);   color: var(--red); }
+.mode-rule-row.ok { background: var(--green-light); color: var(--green); }
+
 /* ===== Mode Badge ===== */
 .mode-badge {
   display: inline-flex;
@@ -135,6 +196,20 @@ main {
 #ingredients-textarea:focus { border-color: var(--green); }
 
 .input-hint { font-size: .76rem; color: var(--gray); margin-top: 6px; }
+
+/* ===== Tab badge（おすすめ） ===== */
+.tab-badge {
+  display: inline-block;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+  vertical-align: middle;
+  letter-spacing: .02em;
+}
 
 /* ===== Input Tabs ===== */
 .input-tabs {
@@ -361,24 +436,25 @@ main {
 /* ===== Analyze Button ===== */
 .btn-analyze {
   width: 100%;
-  padding: 16px;
+  padding: 18px;
   background: var(--green);
   color: #fff;
   border: none;
-  border-radius: 10px;
-  font-size: 1rem;
+  border-radius: 16px;
+  font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
   letter-spacing: .05em;
-  transition: background .2s, transform .1s;
+  transition: background .2s, transform .15s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  box-shadow: 0 4px 14px rgba(46,125,50,.3);
 }
-.btn-analyze:hover:not(:disabled) { background: #1b5e20; }
+.btn-analyze:hover:not(:disabled) { background: #1b5e20; transform: scale(1.02); }
 .btn-analyze:active:not(:disabled) { transform: scale(.98); }
-.btn-analyze:disabled { background: #a5d6a7; cursor: not-allowed; }
+.btn-analyze:disabled { background: #a5d6a7; cursor: not-allowed; box-shadow: none; }
 
 .spinner {
   display: none;
@@ -957,6 +1033,9 @@ footer {
   header { padding: 14px 16px; }
   .logo { font-size: 1.3rem; }
   .camera-guide-box { width: 94%; aspect-ratio: 1 / 1; }
+  .hero { padding: 26px 16px 22px; }
+  .hero-copy { font-size: 1.5rem; }
+  .hero-emoji { font-size: 1.4rem; letter-spacing: .15em; }
 }
 
 /* ===== Auth Header ===== */

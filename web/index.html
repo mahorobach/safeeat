@@ -18,34 +18,38 @@
 
 <main>
 
-  <!-- Mode (Phase 1: Oriental Vegetarian fixed) -->
-  <div class="card">
-    <div class="card-title">🌿 判定モード</div>
-    <div class="mode-badge">
-      <span class="mode-icon">🏮</span>
-      <div class="mode-info">
-        <div class="mode-name">オリエンタルベジタリアン</div>
-        <div class="mode-rule">五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚 NG｜卵・乳製品・蜂蜜・ローヤルゼリー OK</div>
-      </div>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-emoji">🥕 🥦 🍄 🌽 🥬</div>
+    <h1 class="hero-copy">これ、食べても大丈夫？</h1>
+    <p class="hero-sub">成分表を写真で撮るだけ。オリエンタルベジタリアン対応の成分チェッカー</p>
+  </section>
+
+  <!-- Mode -->
+  <div class="card mode-card">
+    <div class="mode-title">🏮 オリエンタルベジタリアン</div>
+    <div class="mode-rules">
+      <div class="mode-rule-row ng">❌ ニンニク・ネギ・ニラ・らっきょう・玉ねぎ（五葷）</div>
+      <div class="mode-rule-row ng">❌ 肉類・魚介類すべて</div>
+      <div class="mode-rule-row ok">✅ 卵・乳製品・蜂蜜・ローヤルゼリー OK</div>
     </div>
-    <p class="phase-note">※ Phase 2以降でヴィーガン・ラクト・オボ・カスタムモードを追加予定</p>
   </div>
 
   <!-- Ingredient Input -->
   <div class="card">
-    <div class="card-title">📋 成分を入力</div>
+    <div class="card-title">📋 成分表をチェックする</div>
 
     <!-- Tab nav -->
     <div class="input-tabs">
       <button class="input-tab active" data-tab="text">📝 テキスト入力</button>
-      <button class="input-tab" data-tab="image">📷 写真で読み取り</button>
+      <button class="input-tab" data-tab="image">📷 写真で読み取り <span class="tab-badge">おすすめ</span></button>
     </div>
 
     <!-- Text tab -->
     <div id="tab-text">
       <textarea
         id="ingredients-textarea"
-        placeholder="例：砂糖、小麦粉、植物油脂、食塩、しょうゆ（大豆・小麦を含む）、かつお節エキス、酵母エキス、グリセリン、天然香料、調味料（アミノ酸等）、乳化剤（大豆レシチン）、ビタミンD"
+        placeholder="ここに成分表のテキストを貼り付けてください（例：砂糖、小麦粉、植物油脂、食塩、グリセリン、天然香料 …）"
       ></textarea>
       <p class="input-hint">成分をカンマ・読点・改行などで区切って貼り付けてください</p>
     </div>
@@ -90,7 +94,7 @@
   <!-- Analyze Button -->
   <button class="btn-analyze" id="analyze-btn">
     <span class="spinner"></span>
-    <span class="btn-label">成分を解析する</span>
+    <span class="btn-label">🔍 今すぐチェックする</span>
   </button>
 
   <!-- Error -->
@@ -204,7 +208,7 @@
 
 </main>
 
-<footer>SafeEat v0.4.0 &nbsp;|&nbsp; オリエンタルベジタリアン特化版 &nbsp;|&nbsp; Claude / Gemini 対応</footer>
+<footer>SafeEat v0.5.0 &nbsp;|&nbsp; オリエンタルベジタリアン特化版</footer>
 
 <!-- Camera overlay -->
 <div id="camera-overlay" class="camera-overlay" hidden>
