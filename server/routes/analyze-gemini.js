@@ -44,10 +44,13 @@ async function checkScanLimit(req, res) {
     .single();
   const month = new Date().toISOString().slice(0, 7);
   const used  = data?.scan_month === month ? (data?.scan_count || 0) : 0;
-  if ((data?.plan || "free") === "free" && used >= FREE_PLAN_LIMIT) {
+  const plan = data?.plan || "free";
+  const isLimited = plan === "free" && used >= FREE_PLAN_LIMIT;
+  if (isLimited) {
     res.status(429).json({ ok: false, error: "scan_limit_exceeded", message: "今月の無料枠（10回）を使い切りました" });
     return false;
   }
+  // tester・pro・business は制限なし
   return true;
 }
 

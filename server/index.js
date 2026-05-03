@@ -8,6 +8,7 @@ import analyzeGeminiRouter from "./routes/analyze-gemini.js";
 import ingredientsRouter from "./routes/ingredients.js";
 import userRouter from "./routes/user.js";
 import subscriptionRouter, { webhookHandler } from "./routes/subscription.js";
+import adminRouter from "./routes/admin.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** cwd に依存しない（リポジトリルートから node server/index.js でも server/.env を読む） */
@@ -81,6 +82,7 @@ app.use("/api/analyze/gemini", analyzeGeminiRouter);
 app.use("/api/ingredients",  ingredientsRouter);
 app.use("/api/user",         userRouter);
 app.use("/api/subscription", subscriptionRouter);
+app.use("/api/admin",        adminRouter);
 
 // --- 404 ---
 app.use((_req, res) => res.status(404).json({ ok: false, error: "Not Found" }));
