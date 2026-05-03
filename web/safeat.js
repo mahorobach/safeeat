@@ -1183,9 +1183,11 @@ async function updateAuthUI(session) {
       if (d.ok) remaining = d.remaining;
     } catch {}
 
+    const isAdmin = window.ADMIN_EMAIL && session.user.email === window.ADMIN_EMAIL;
     area.innerHTML = `
       <span class="auth-email">${esc(session.user.email)}</span>
       <span class="scan-badge${remaining === 0 ? " exhausted" : ""}" id="scan-badge">残り ${remaining} 回</span>
+      ${isAdmin ? '<a href="admin.html" class="btn-admin-link">🛠️ 管理</a>' : ''}
       <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
     document.getElementById("btn-signout")?.addEventListener("click", () =>
       window.SafeEatAuth?.signOut()
@@ -1503,6 +1505,21 @@ function applyModeDisplay(mode) {
   document.getElementById('btn-pricing-signup')
     ?.addEventListener('click', () => openAuthModal('signup'));
 })();
+
+// ===== ロゴクリックでトップへ =====
+document.getElementById('btn-logo-home')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (!window.SafeEatAuth) return;
+  window.SafeEatAuth.getSession().then((session) => {
+    ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    const target = session?.user ? 'scanner-page' : 'landing-page';
+    const page = document.getElementById(target);
+    if (page) page.style.display = 'block';
+  });
+});
 
 // ===== ユーザー設定ページ =====
 (function () {

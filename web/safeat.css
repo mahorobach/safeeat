@@ -1198,6 +1198,17 @@ header { justify-content: space-between; }
   padding: 4px;
 }
 .btn-auth-link:hover { color: var(--green); }
+.btn-admin-link {
+  color: #fff;
+  background: rgba(255,255,255,0.2);
+  border-radius: 1rem;
+  padding: 0.3rem 0.8rem;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.btn-admin-link:hover { background: rgba(255,255,255,0.35); }
+.logo-link { text-decoration: none; color: inherit; cursor: pointer; }
+.logo-link:hover { opacity: 0.85; }
 
 /* ===== ランディングページ ===== */
 #landing-page { background: var(--gray-light); }
