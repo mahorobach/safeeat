@@ -1,5 +1,5 @@
 /**
- * SafeEat — 認証クライアント（Supabase JS SDK v2 CDN版）
+ * EatEase — 認証クライアント（Supabase JS SDK v2 CDN版）
  * SUPABASE_URL・SUPABASE_ANON_KEY は web/site-config.js の SAFEAT_CONFIG に設定する
  * ANON_KEY は公開可（RLS で保護されている）
  */

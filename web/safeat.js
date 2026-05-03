@@ -1,5 +1,5 @@
 /**
- * SafeEat — メインUI ロジック
+ * EatEase — メインUI ロジック
  * Phase 1: オリエンタルベジタリアン特化
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */

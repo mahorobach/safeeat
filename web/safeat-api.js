@@ -1,5 +1,5 @@
 /**
- * SafeEat — 解析 API クライアント
+ * EatEase — 解析 API クライアント
  * Claude API はサーバー側（Render 等）で呼び出す。キーはサーバーの環境変数のみ。
  */
 
