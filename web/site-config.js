@@ -3,8 +3,6 @@
  * API キー・秘匿情報はここに書かない。サーバー環境変数のみ。
  * SUPABASE_ANON_KEY は公開可（RLS で行レベルセキュリティが掛かっている）。
  */
-window.ADMIN_EMAIL = 'dokakao@gmail.com';
-
 window.SAFEAT_CONFIG = {
   /** バックエンド API のオリジン（末尾スラッシュなし） */
   API_BASE: "https://safeeat-production-b7c5.up.railway.app",

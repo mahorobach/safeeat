@@ -1168,6 +1168,23 @@ function setAuthModalMode(mode) {
   if (forgot) forgot.style.display = mode === "login" ? "" : "none";
 }
 
+async function checkAndShowAdminLink() {
+  try {
+    const token = sessionStorage.getItem('safeat_auth_token');
+    const res = await fetch(`${SAFEAT_API_URL}/api/admin/check`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.ok && data.isAdmin) {
+      const adminLink = document.createElement('a');
+      adminLink.href = 'admin.html';
+      adminLink.className = 'btn-admin-link';
+      adminLink.textContent = '🛠️ 管理';
+      document.getElementById('auth-area')?.appendChild(adminLink);
+    }
+  } catch {}
+}
+
 async function updateAuthUI(session) {
   const area = document.getElementById("auth-area");
   if (!area) return;
@@ -1183,15 +1200,14 @@ async function updateAuthUI(session) {
       if (d.ok) remaining = d.remaining;
     } catch {}
 
-    const isAdmin = window.ADMIN_EMAIL && session.user.email === window.ADMIN_EMAIL;
     area.innerHTML = `
       <span class="auth-email">${esc(session.user.email)}</span>
       <span class="scan-badge${remaining === 0 ? " exhausted" : ""}" id="scan-badge">残り ${remaining} 回</span>
-      ${isAdmin ? '<a href="admin.html" class="btn-admin-link">🛠️ 管理</a>' : ''}
       <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
     document.getElementById("btn-signout")?.addEventListener("click", () =>
       window.SafeEatAuth?.signOut()
     );
+    checkAndShowAdminLink();
   } else {
     area.innerHTML = `
       <button class="btn-auth" id="btn-open-login" type="button">ログイン</button>
