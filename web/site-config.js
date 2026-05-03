@@ -3,6 +3,17 @@
  * API キー・秘匿情報はここに書かない。サーバー環境変数のみ。
  * SUPABASE_ANON_KEY は公開可（RLS で行レベルセキュリティが掛かっている）。
  */
+// サービス判定
+// app.eatease.net → EatEase（新UI）
+// daisho-kikaku.com → 菜食健美（旧UIをそのまま使用）
+const IS_EATEASE = window.location.hostname === 'app.eatease.net'
+                || window.location.hostname === 'localhost';
+
+window.SITE_CONFIG = {
+  isEatEase:     IS_EATEASE,
+  isDaishoKikaku: window.location.hostname.includes('daisho-kikaku.com'),
+};
+
 window.SAFEAT_CONFIG = {
   /** バックエンド API のオリジン（末尾スラッシュなし） */
   API_BASE: "https://safeeat-production-b7c5.up.railway.app",

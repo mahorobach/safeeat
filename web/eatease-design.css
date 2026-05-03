@@ -1,0 +1,231 @@
+/* ========================================
+   EatEase Design System v1.0
+   app.eatease.net 専用
+   daisho-kikaku.com（菜食健美）は safeat.css を使用
+   ======================================== */
+
+:root {
+  /* ── Primary（深緑系）── */
+  --ee-primary-50:  #e8f4e3;   /* 若葉 — 薄い背景・バッジ背景 */
+  --ee-primary-100: #c5e0bc;
+  --ee-primary-500: #3d6b3c;   /* 深緑 — ボタン・アクセント */
+  --ee-primary-700: #2a5229;   /* 苔色 — テキスト on 薄緑背景 */
+  --ee-primary-900: #1a3419;
+
+  /* ── Neutral（和紙系）── */
+  --ee-neutral-0:   #fefcf8;   /* 和紙白 — ページ背景 */
+  --ee-neutral-50:  #f5f2eb;   /* 和紙 — カード背景 */
+  --ee-neutral-100: #e8e4da;   /* 薄墨 — ボーダー */
+  --ee-neutral-300: #b8b3a7;   /* 中間グレー */
+  --ee-neutral-500: #5a5549;   /* 炭色 — 本文テキスト */
+  --ee-neutral-700: #3d3a34;   /* 濃炭 — 見出し */
+  --ee-neutral-900: #1c1a17;
+
+  /* ── Accent（枯草・土色）── */
+  --ee-accent-300:  #e8d5a8;   /* 枯草（薄） */
+  --ee-accent-500:  #c8a96e;   /* 枯草 — アクセント装飾 */
+  --ee-accent-700:  #8b6f47;   /* 土色 */
+
+  /* ── Semantic（判定カラー）── */
+  --ee-ok:      #3d6b3c;
+  --ee-ok-bg:   #e8f4e3;
+  --ee-ng:      #8b2d2d;
+  --ee-ng-bg:   #fdecea;
+  --ee-warn:    #7a5c1e;
+  --ee-warn-bg: #f5ecd4;
+
+  /* ── Typography ── */
+  --ee-font-display: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', Georgia, serif;
+  --ee-font-body:    'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+  --ee-font-mono:    'SF Mono', 'Fira Code', monospace;
+
+  /* ── Font Scale ── */
+  --ee-text-xs:   11px;
+  --ee-text-sm:   13px;
+  --ee-text-base: 16px;
+  --ee-text-lg:   20px;
+  --ee-text-xl:   26px;
+  --ee-text-2xl:  34px;
+
+  /* ── Spacing ── */
+  --ee-radius-sm:   6px;
+  --ee-radius-md:   10px;
+  --ee-radius-lg:   16px;
+  --ee-radius-full: 999px;
+
+  /* ── Shadow ── */
+  --ee-shadow-card: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 0.5px var(--ee-neutral-100);
+  --ee-border:      0.5px solid var(--ee-neutral-100);
+}
+
+/* ── ページ基本 ── */
+.ee-page {
+  background: var(--ee-neutral-0);
+  color: var(--ee-neutral-700);
+  font-family: var(--ee-font-body);
+  font-size: var(--ee-text-base);
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* ── 見出し ── */
+.ee-heading {
+  font-family: var(--ee-font-display);
+  font-weight: 400;
+  color: var(--ee-neutral-900);
+  letter-spacing: 0.02em;
+}
+
+/* ── カード ── */
+.ee-card {
+  background: var(--ee-neutral-0);
+  border-radius: var(--ee-radius-lg);
+  box-shadow: var(--ee-shadow-card);
+  padding: 1.25rem 1.5rem;
+}
+
+/* ── ボタン：プライマリ ── */
+.ee-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--ee-primary-500);
+  color: var(--ee-primary-50);
+  border: none;
+  border-radius: var(--ee-radius-full);
+  padding: 12px 24px;
+  font-family: var(--ee-font-body);
+  font-size: var(--ee-text-base);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ee-btn-primary:hover { background: var(--ee-primary-700); }
+.ee-btn-primary:disabled {
+  background: var(--ee-neutral-300);
+  cursor: not-allowed;
+}
+
+/* ── ボタン：セカンダリ ── */
+.ee-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--ee-primary-500);
+  border: 1.5px solid var(--ee-primary-500);
+  border-radius: var(--ee-radius-full);
+  padding: 11px 24px;
+  font-family: var(--ee-font-body);
+  font-size: var(--ee-text-base);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ee-btn-secondary:hover {
+  background: var(--ee-primary-50);
+}
+
+/* ── テキスト入力 ── */
+.ee-input {
+  width: 100%;
+  background: var(--ee-neutral-0);
+  border: 0.5px solid var(--ee-neutral-100);
+  border-radius: var(--ee-radius-md);
+  padding: 12px 16px;
+  font-size: var(--ee-text-base);
+  font-family: var(--ee-font-body);
+  color: var(--ee-neutral-700);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.ee-input:focus { border-color: var(--ee-primary-500); }
+.ee-input::placeholder { color: var(--ee-neutral-300); }
+
+/* ── テキストエリア ── */
+.ee-textarea {
+  width: 100%;
+  background: var(--ee-neutral-0);
+  border: 0.5px solid var(--ee-neutral-100);
+  border-radius: var(--ee-radius-md);
+  padding: 12px 16px;
+  font-size: var(--ee-text-base);
+  font-family: var(--ee-font-body);
+  color: var(--ee-neutral-700);
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.15s ease;
+}
+.ee-textarea:focus { border-color: var(--ee-primary-500); }
+
+/* ── 判定バッジ ── */
+.ee-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--ee-radius-full);
+  font-size: var(--ee-text-sm);
+  font-weight: 500;
+  font-family: var(--ee-font-body);
+}
+.ee-badge-ok   { background: var(--ee-ok-bg);   color: var(--ee-ok); }
+.ee-badge-ng   { background: var(--ee-ng-bg);   color: var(--ee-ng); }
+.ee-badge-warn { background: var(--ee-warn-bg); color: var(--ee-warn); }
+
+/* ── 残り回数プログレスバー ── */
+.ee-progress-track {
+  background: var(--ee-primary-50);
+  border-radius: var(--ee-radius-full);
+  height: 6px;
+  overflow: hidden;
+}
+.ee-progress-fill {
+  background: var(--ee-primary-500);
+  height: 100%;
+  border-radius: var(--ee-radius-full);
+  transition: width 0.3s ease;
+}
+
+/* ── モードバー ── */
+.ee-mode-bar {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: var(--ee-neutral-50);
+  border-radius: var(--ee-radius-full);
+  border: var(--ee-border);
+}
+.ee-mode-tab {
+  padding: 8px 16px;
+  border-radius: var(--ee-radius-full);
+  font-size: var(--ee-text-sm);
+  font-family: var(--ee-font-body);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--ee-neutral-500);
+  transition: background 0.15s, color 0.15s;
+}
+.ee-mode-tab.active {
+  background: var(--ee-primary-500);
+  color: var(--ee-primary-50);
+}
+
+/* ── 区切り線 ── */
+.ee-divider {
+  border: none;
+  border-top: var(--ee-border);
+  margin: 1.5rem 0;
+}
+
+/* ── ラベル ── */
+.ee-label {
+  font-size: var(--ee-text-sm);
+  color: var(--ee-neutral-500);
+  font-family: var(--ee-font-body);
+  letter-spacing: 0.04em;
+}

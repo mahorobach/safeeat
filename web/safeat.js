@@ -39,6 +39,11 @@ const MODE_DEFINITIONS = {
 
 let currentSessionMode = 'oriental';
 
+// デザインシステム切替（app.eatease.net / localhost → EatEase UI）
+if (window.SITE_CONFIG?.isEatEase) {
+  document.body.classList.add('ee-page');
+}
+
 // Supabase Auth トークン（ログイン後に sessionStorage に格納）
 function getAuthToken() {
   return sessionStorage.getItem("safeat_auth_token") || null;
