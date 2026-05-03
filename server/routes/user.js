@@ -111,12 +111,12 @@ router.get("/settings", requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("user_settings")
-      .select("mode, custom_ng, custom_ok")
+      .select("mode, custom_ng, custom_ok, mode_selected")
       .eq("user_id", req.user.id)
       .maybeSingle();
 
     if (error) throw error;
-    res.json({ ok: true, data: data || { mode: "oriental", custom_ng: [], custom_ok: [] } });
+    res.json({ ok: true, data: data || { mode: "oriental", custom_ng: [], custom_ok: [], mode_selected: false } });
   } catch (e) {
     next(e);
   }
@@ -124,7 +124,7 @@ router.get("/settings", requireAuth, async (req, res, next) => {
 
 // PUT /api/user/settings — カスタム設定を保存（認証必須）
 router.put("/settings", requireAuth, async (req, res, next) => {
-  const { mode = "oriental", custom_ng = [], custom_ok = [] } = req.body;
+  const { mode = "oriental", custom_ng = [], custom_ok = [], mode_selected = false } = req.body;
 
   const validModes = ["oriental", "vegan", "lacto_ovo", "custom"];
   if (!validModes.includes(mode)) {
@@ -135,7 +135,7 @@ router.put("/settings", requireAuth, async (req, res, next) => {
     const { error } = await supabaseAdmin
       .from("user_settings")
       .upsert(
-        { user_id: req.user.id, mode, custom_ng, custom_ok, updated_at: new Date().toISOString() },
+        { user_id: req.user.id, mode, custom_ng, custom_ok, mode_selected, updated_at: new Date().toISOString() },
         { onConflict: "user_id" }
       );
 

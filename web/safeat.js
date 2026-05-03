@@ -7,6 +7,38 @@
 const SAFEAT_API_URL =
   (window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) || "https://safeeat-production-b7c5.up.railway.app";
 
+const MODE_DEFINITIONS = {
+  oriental: {
+    label: '🌿 オリエンタルベジタリアン',
+    modebarLabel: 'オリエンタルベジ',
+    rules: [
+      { type: 'ng', text: 'ニンニク・ネギ・ニラ・らっきょう・玉ねぎ（五葷）' },
+      { type: 'ng', text: '肉類・魚介類すべて' },
+      { type: 'ok', text: '卵・乳製品・蜂蜜・ローヤルゼリー OK' },
+    ],
+  },
+  vegan: {
+    label: '🌱 ヴィーガン',
+    modebarLabel: 'ヴィーガン',
+    rules: [
+      { type: 'ng', text: '肉類・魚介類すべて' },
+      { type: 'ng', text: '卵・乳製品・蜂蜜・ゼラチン等すべての動物由来成分' },
+      { type: 'ok', text: '植物性成分すべて OK' },
+    ],
+  },
+  lacto_ovo: {
+    label: '🥚 ラクト・オボベジタリアン',
+    modebarLabel: 'ラクト・オボ',
+    rules: [
+      { type: 'ng', text: '肉類・魚介類すべて' },
+      { type: 'ok', text: '卵・乳製品・蜂蜜 OK' },
+      { type: 'ok', text: '植物性成分すべて OK' },
+    ],
+  },
+};
+
+let currentSessionMode = 'oriental';
+
 // Supabase Auth トークン（ログイン後に sessionStorage に格納）
 function getAuthToken() {
   return sessionStorage.getItem("safeat_auth_token") || null;
@@ -1368,48 +1400,101 @@ async function setProcessedBlob(blob) {
   }
 }
 
-// ===== ランディング⇔スキャンページ切り替え =====
-(function () {
-  const landing = document.getElementById('landing-page');
-  const scanner = document.getElementById('scanner-page');
+function applyModeDisplay(mode) {
+  const def = MODE_DEFINITIONS[mode] || MODE_DEFINITIONS.oriental;
+  currentSessionMode = mode;
 
-  function switchPage(session) {
-    if (session) {
-      if (landing) landing.style.display = 'none';
-      if (scanner) scanner.style.display = 'block';
-    } else {
-      if (landing) landing.style.display = 'block';
-      if (scanner) scanner.style.display = 'none';
+  const title = document.getElementById('mode-info-title');
+  if (title) title.textContent = def.label;
+
+  const rulesEl = document.getElementById('mode-info-rules');
+  if (rulesEl) {
+    rulesEl.innerHTML = def.rules
+      .map(r => `<div class="mode-rule-row ${r.type}">${r.type === 'ng' ? '❌' : '✅'} ${r.text}</div>`)
+      .join('');
+  }
+
+  const modebarLabel = document.getElementById('modebar-label');
+  if (modebarLabel) modebarLabel.textContent = def.modebarLabel;
+}
+
+// ===== ページ切り替え（ランディング / モード選択 / スキャン） =====
+(function () {
+  const landing    = document.getElementById('landing-page');
+  const modeSelect = document.getElementById('mode-select-page');
+  const scanner    = document.getElementById('scanner-page');
+
+  function showPage(page) {
+    [landing, modeSelect, scanner].forEach(p => { if (p) p.style.display = 'none'; });
+    if (page) page.style.display = 'block';
+  }
+
+  async function handleSession(session) {
+    if (!session) {
+      showPage(landing);
+      return;
+    }
+    try {
+      const token = sessionStorage.getItem('safeat_auth_token');
+      const res = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const settings = data?.data || {};
+      if (!settings.mode_selected) {
+        showPage(modeSelect);
+      } else {
+        applyModeDisplay(settings.mode || 'oriental');
+        showPage(scanner);
+      }
+    } catch {
+      applyModeDisplay('oriental');
+      showPage(scanner);
     }
   }
 
   if (window.SafeEatAuth) {
-    window.SafeEatAuth.getSession().then((session) => switchPage(session));
-    window.SafeEatAuth.onAuthStateChange((_event, session) => switchPage(session));
+    window.SafeEatAuth.getSession().then((session) => handleSession(session));
+    window.SafeEatAuth.onAuthStateChange((_event, session) => handleSession(session));
   }
 
+  // モード選択カードのクリック
+  document.querySelectorAll('.mode-select-card:not([disabled])').forEach(card => {
+    card.addEventListener('click', async () => {
+      const mode = card.dataset.mode;
+      try {
+        const token = sessionStorage.getItem('safeat_auth_token');
+        await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ mode, mode_selected: true }),
+        });
+      } catch {}
+      applyModeDisplay(mode);
+      showPage(scanner);
+    });
+  });
+
+  // モードバー ドロップダウン（一時切替）
+  const modeBtn      = document.getElementById('btn-mode-switch');
+  const modeDropdown = document.getElementById('modebar-dropdown');
+  modeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    modeDropdown.style.display = modeDropdown.style.display !== 'none' ? 'none' : 'block';
+  });
+  document.querySelectorAll('.modebar-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyModeDisplay(btn.dataset.mode);
+      modeDropdown.style.display = 'none';
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!modeBtn?.contains(e.target) && modeDropdown) modeDropdown.style.display = 'none';
+  });
+
+  // 「無料で始める」ボタン
   document.getElementById('btn-hero-signup')
     ?.addEventListener('click', () => openAuthModal('signup'));
   document.getElementById('btn-pricing-signup')
     ?.addEventListener('click', () => openAuthModal('signup'));
-
-  // モードバー ドロップダウン
-  const modeBtn = document.getElementById('btn-mode-switch');
-  const modeDropdown = document.getElementById('modebar-dropdown');
-  modeBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = modeDropdown.style.display !== 'none';
-    modeDropdown.style.display = isOpen ? 'none' : 'block';
-  });
-  document.querySelectorAll('.modebar-option').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.dataset.mode;
-      const labels = { oriental: 'オリエンタルベジ', vegan: 'ヴィーガン', lacto_ovo: 'ラクト・オボ' };
-      document.getElementById('modebar-label').textContent = labels[mode] || mode;
-      modeDropdown.style.display = 'none';
-    });
-  });
-  document.addEventListener('click', () => {
-    if (modeDropdown) modeDropdown.style.display = 'none';
-  });
 })();

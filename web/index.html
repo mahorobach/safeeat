@@ -114,6 +114,57 @@
 
   </div><!-- /#landing-page -->
 
+  <!-- ===== モード選択ページ（初回ログイン時） ===== -->
+  <div id="mode-select-page" style="display:none">
+    <section class="mode-select-wrap">
+      <div class="mode-select-header">
+        <div class="mode-select-emoji">🌿</div>
+        <h2 class="mode-select-title">食事スタイルを選んでください</h2>
+        <p class="mode-select-sub">あなたの食事スタイルに合わせて成分を判定します。<br>あとからユーザー設定で変更できます。</p>
+      </div>
+      <div class="mode-select-grid">
+
+        <button class="mode-select-card" data-mode="oriental">
+          <div class="msc-icon">🌿</div>
+          <div class="msc-name">オリエンタルベジタリアン</div>
+          <div class="msc-desc">五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚NG。卵・乳製品・蜂蜜はOK。仏教系菜食の方に。</div>
+          <div class="msc-rules">
+            <span class="msc-rule ng">❌ 五葷・肉・魚</span>
+            <span class="msc-rule ok">✅ 卵・乳製品・蜂蜜</span>
+          </div>
+        </button>
+
+        <button class="mode-select-card" data-mode="vegan">
+          <div class="msc-icon">🌱</div>
+          <div class="msc-name">ヴィーガン</div>
+          <div class="msc-desc">肉・魚・卵・乳製品・蜂蜜などすべての動物由来成分NG。最も厳格な菜食スタイル。</div>
+          <div class="msc-rules">
+            <span class="msc-rule ng">❌ 肉・魚・卵・乳製品・蜂蜜</span>
+            <span class="msc-rule ok">✅ 植物性成分すべて</span>
+          </div>
+        </button>
+
+        <button class="mode-select-card" data-mode="lacto_ovo">
+          <div class="msc-icon">🥚</div>
+          <div class="msc-name">ラクト・オボベジタリアン</div>
+          <div class="msc-desc">肉・魚のみNG。卵・乳製品はOK。一般的なベジタリアン。</div>
+          <div class="msc-rules">
+            <span class="msc-rule ng">❌ 肉・魚</span>
+            <span class="msc-rule ok">✅ 卵・乳製品・蜂蜜</span>
+          </div>
+        </button>
+
+        <button class="mode-select-card mode-select-card-disabled" data-mode="custom" disabled>
+          <div class="msc-badge">近日公開</div>
+          <div class="msc-icon">⚙️</div>
+          <div class="msc-name">カスタムモード</div>
+          <div class="msc-desc">自分だけのNG成分リストを設定。アレルギー対応にも。（有料プラン）</div>
+        </button>
+
+      </div>
+    </section>
+  </div><!-- /#mode-select-page -->
+
   <!-- ===== スキャンページ（ログイン後） ===== -->
   <div id="scanner-page" style="display:none">
 
@@ -131,12 +182,10 @@
     </div>
 
     <!-- Mode -->
-    <div class="card mode-card">
-      <div class="mode-title">🏮 オリエンタルベジタリアン</div>
-      <div class="mode-rules">
-        <div class="mode-rule-row ng">❌ ニンニク・ネギ・ニラ・らっきょう・玉ねぎ（五葷）</div>
-        <div class="mode-rule-row ng">❌ 肉類・魚介類すべて</div>
-        <div class="mode-rule-row ok">✅ 卵・乳製品・蜂蜜・ローヤルゼリー OK</div>
+    <div class="card mode-card" id="mode-info-card">
+      <div class="mode-title" id="mode-info-title">🌿 オリエンタルベジタリアン</div>
+      <div class="mode-rules" id="mode-info-rules">
+        <!-- JSで動的に生成 -->
       </div>
     </div>
 
