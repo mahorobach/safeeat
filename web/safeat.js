@@ -1367,3 +1367,49 @@ async function setProcessedBlob(blob) {
     showError("撮影した画像の処理に失敗しました。");
   }
 }
+
+// ===== ランディング⇔スキャンページ切り替え =====
+(function () {
+  const landing = document.getElementById('landing-page');
+  const scanner = document.getElementById('scanner-page');
+
+  function switchPage(session) {
+    if (session) {
+      if (landing) landing.style.display = 'none';
+      if (scanner) scanner.style.display = 'block';
+    } else {
+      if (landing) landing.style.display = 'block';
+      if (scanner) scanner.style.display = 'none';
+    }
+  }
+
+  if (window.SafeEatAuth) {
+    window.SafeEatAuth.getSession().then((session) => switchPage(session));
+    window.SafeEatAuth.onAuthStateChange((_event, session) => switchPage(session));
+  }
+
+  document.getElementById('btn-hero-signup')
+    ?.addEventListener('click', () => openAuthModal('signup'));
+  document.getElementById('btn-pricing-signup')
+    ?.addEventListener('click', () => openAuthModal('signup'));
+
+  // モードバー ドロップダウン
+  const modeBtn = document.getElementById('btn-mode-switch');
+  const modeDropdown = document.getElementById('modebar-dropdown');
+  modeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = modeDropdown.style.display !== 'none';
+    modeDropdown.style.display = isOpen ? 'none' : 'block';
+  });
+  document.querySelectorAll('.modebar-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      const labels = { oriental: 'オリエンタルベジ', vegan: 'ヴィーガン', lacto_ovo: 'ラクト・オボ' };
+      document.getElementById('modebar-label').textContent = labels[mode] || mode;
+      modeDropdown.style.display = 'none';
+    });
+  });
+  document.addEventListener('click', () => {
+    if (modeDropdown) modeDropdown.style.display = 'none';
+  });
+})();

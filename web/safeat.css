@@ -1198,3 +1198,125 @@ header { justify-content: space-between; }
   padding: 4px;
 }
 .btn-auth-link:hover { color: var(--green); }
+
+/* ===== ランディングページ ===== */
+#landing-page { background: var(--gray-light); }
+
+.btn-hero-cta {
+  display: inline-block; margin-top: 1.2rem;
+  background: #2D7A3A; color: #fff;
+  border: none; border-radius: 2rem; padding: 0.9rem 2.5rem;
+  font-size: 1.1rem; font-weight: bold; cursor: pointer;
+  transition: transform 0.15s;
+}
+.btn-hero-cta:hover { transform: scale(1.03); }
+.hero-note { font-size: 0.85rem; color: #888; margin-top: 0.5rem; }
+
+/* LPセクション共通 */
+.lp-section { padding: 2.5rem 1rem; max-width: 900px; margin: 0 auto; }
+.lp-section-title {
+  text-align: center; font-size: 1.4rem;
+  font-weight: bold; margin-bottom: 1.5rem; color: #2D7A3A;
+}
+
+/* 食事スタイルカード */
+.mode-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.mode-lp-card {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.2rem; text-align: center;
+}
+.mode-lp-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.mode-lp-name { font-weight: bold; margin-bottom: 0.4rem; font-size: 0.95rem; }
+.mode-lp-desc { font-size: 0.82rem; color: #666; line-height: 1.5; }
+
+/* 使い方ステップ */
+.howto-steps {
+  display: flex; align-items: center;
+  justify-content: center; gap: 0.5rem;
+  flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.howto-step {
+  text-align: center; background: #fff;
+  border-radius: 12px; padding: 1.2rem 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07); min-width: 130px;
+}
+.howto-num { font-size: 1.5rem; font-weight: bold; color: #2D7A3A; }
+.howto-title { font-weight: bold; margin: 0.3rem 0; }
+.howto-desc { font-size: 0.82rem; color: #888; }
+.howto-arrow { font-size: 1.5rem; color: #2D7A3A; }
+
+/* 動画プレースホルダー */
+.video-placeholder {
+  border: 2px dashed #ccc; border-radius: 12px;
+  padding: 2.5rem; text-align: center;
+  color: #aaa; font-size: 1rem; margin-top: 1rem;
+}
+
+/* 料金カード */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem; max-width: 600px; margin: 0 auto;
+}
+.pricing-card {
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.8rem; text-align: center;
+}
+.pricing-card-coming { opacity: 0.6; }
+.pricing-badge {
+  display: inline-block; background: #888;
+  color: #fff; border-radius: 1rem;
+  padding: 0.2rem 0.8rem; font-size: 0.8rem; margin-bottom: 0.5rem;
+}
+.pricing-plan { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.3rem; }
+.pricing-price { font-size: 2rem; font-weight: bold; color: #2D7A3A; margin-bottom: 1rem; }
+.pricing-features { list-style: none; padding: 0; margin-bottom: 1.2rem; text-align: left; }
+.pricing-features li { padding: 0.3rem 0; font-size: 0.9rem; }
+.btn-coming-soon {
+  background: #ccc; color: #fff; border: none;
+  border-radius: 2rem; padding: 0.7rem 2rem;
+  font-size: 1rem; cursor: not-allowed;
+}
+
+/* ===== モードバー（スキャンページ上部） ===== */
+.scanner-modebar {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.8rem 1rem; background: #fff;
+  border-bottom: 1px solid #eee; position: relative;
+  margin-bottom: 16px; border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.btn-modebar {
+  background: #f0f7f1; border: 1px solid #2D7A3A;
+  border-radius: 2rem; padding: 0.4rem 1rem;
+  color: #2D7A3A; font-weight: bold; cursor: pointer;
+}
+.modebar-dropdown {
+  position: absolute; top: 3rem; left: 1rem;
+  background: #fff; border: 1px solid #ddd;
+  border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100; min-width: 200px;
+}
+.modebar-option {
+  display: block; width: 100%; text-align: left;
+  padding: 0.7rem 1rem; border: none; background: none;
+  cursor: pointer; font-size: 0.95rem;
+}
+.modebar-option:hover { background: #f0f7f1; }
+.btn-user-page {
+  margin-left: auto; color: #2D7A3A;
+  text-decoration: none; font-size: 0.9rem;
+}
+
+/* ===== スマホ対応（LP） ===== */
+@media (max-width: 600px) {
+  .howto-arrow { display: none; }
+  .howto-steps { flex-direction: column; }
+  .mode-cards-grid { grid-template-columns: 1fr 1fr; }
+}
