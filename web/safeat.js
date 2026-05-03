@@ -1448,8 +1448,7 @@ function applyModeDisplay(mode) {
         showPage(scanner);
       }
     } catch {
-      applyModeDisplay('oriental');
-      showPage(scanner);
+      showPage(modeSelect);
     }
   }
 
