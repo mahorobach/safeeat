@@ -1170,6 +1170,8 @@ function setAuthModalMode(mode) {
 
 async function checkAndShowAdminLink() {
   try {
+    document.querySelectorAll('.btn-admin-link').forEach(el => el.remove());
+
     const token = sessionStorage.getItem('safeat_auth_token');
     const res = await fetch(`${SAFEAT_API_URL}/api/admin/check`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -1192,17 +1194,22 @@ async function updateAuthUI(session) {
   if (session?.user) {
     const token = session.access_token;
     let remaining = "?";
+    let plan = "free";
     try {
-      const r = await fetch(`${SAFEAT_API_URL}/api/user/scan-count`, {
+      const r = await fetch(`${SAFEAT_API_URL}/api/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await r.json();
-      if (d.ok) remaining = d.remaining;
+      if (d.ok) { remaining = d.data.remaining; plan = d.data.plan; }
     } catch {}
+
+    const badgeHtml = plan === "free"
+      ? `<span class="scan-badge${remaining === 0 ? " exhausted" : ""}" id="scan-badge">残り ${remaining} 回</span>`
+      : `<span class="scan-badge-unlimited">✨ 無制限</span>`;
 
     area.innerHTML = `
       <span class="auth-email">${esc(session.user.email)}</span>
-      <span class="scan-badge${remaining === 0 ? " exhausted" : ""}" id="scan-badge">残り ${remaining} 回</span>
+      ${badgeHtml}
       <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
     document.getElementById("btn-signout")?.addEventListener("click", () =>
       window.SafeEatAuth?.signOut()

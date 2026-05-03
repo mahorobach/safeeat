@@ -1198,6 +1198,14 @@ header { justify-content: space-between; }
   padding: 4px;
 }
 .btn-auth-link:hover { color: var(--green); }
+.scan-badge-unlimited {
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 1rem;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
 .btn-admin-link {
   color: #fff;
   background: rgba(255,255,255,0.2);
