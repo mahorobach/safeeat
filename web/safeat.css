@@ -1367,3 +1367,78 @@ header { justify-content: space-between; }
 @media (max-width: 600px) {
   .mode-select-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== ユーザー設定ページ ===== */
+.user-settings-wrap {
+  max-width: 600px; margin: 0 auto; padding: 1.5rem 1rem;
+}
+.user-settings-header {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+}
+.btn-back {
+  background: none; border: 1px solid #ddd; border-radius: 2rem;
+  padding: 0.4rem 1rem; cursor: pointer; color: #555; font-size: 0.9rem;
+}
+.btn-back:hover { background: #f5f5f5; }
+.user-settings-title { font-size: 1.3rem; font-weight: bold; color: #2D7A3A; }
+
+.settings-card {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.4rem; margin-bottom: 1.2rem;
+}
+.settings-card-title {
+  font-weight: bold; font-size: 1rem;
+  color: #2D7A3A; margin-bottom: 1rem;
+  padding-bottom: 0.5rem; border-bottom: 1px solid #eee;
+}
+.settings-card-desc { font-size: 0.85rem; color: #888; margin-bottom: 1rem; }
+.settings-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 0.6rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-label { color: #666; font-size: 0.9rem; }
+.settings-value { font-weight: bold; font-size: 0.9rem; }
+
+.settings-mode-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem; }
+.settings-mode-item {
+  display: flex; align-items: center; gap: 0.8rem;
+  border: 2px solid #eee; border-radius: 10px;
+  padding: 0.9rem; cursor: pointer; transition: border-color 0.2s;
+}
+.settings-mode-item:hover:not(.settings-mode-item-disabled) { border-color: #2D7A3A; }
+.settings-mode-item input[type="radio"] { accent-color: #2D7A3A; width: 18px; height: 18px; flex-shrink: 0; }
+.settings-mode-item-disabled { opacity: 0.5; cursor: not-allowed; }
+.settings-mode-content { display: flex; align-items: center; gap: 0.8rem; }
+.settings-mode-icon { font-size: 1.6rem; }
+.settings-mode-name { font-weight: bold; font-size: 0.95rem; }
+.settings-mode-desc { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
+.settings-coming-badge {
+  background: #888; color: #fff; border-radius: 1rem;
+  padding: 0.1rem 0.5rem; font-size: 0.72rem; margin-left: 0.4rem;
+}
+
+.btn-settings-save {
+  width: 100%; background: #2D7A3A; color: #fff;
+  border: none; border-radius: 2rem; padding: 0.9rem;
+  font-size: 1rem; font-weight: bold; cursor: pointer;
+  transition: transform 0.15s;
+}
+.btn-settings-save:hover { transform: scale(1.02); }
+.btn-settings-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.settings-save-msg {
+  text-align: center; margin-top: 0.7rem; font-size: 0.9rem; min-height: 1.2rem;
+}
+.settings-save-msg.success { color: #2D7A3A; }
+.settings-save-msg.error   { color: #c0392b; }
+
+.settings-card-danger .settings-card-title { color: #c0392b; }
+.btn-settings-logout {
+  width: 100%; background: #fff; color: #c0392b;
+  border: 2px solid #c0392b; border-radius: 2rem;
+  padding: 0.8rem; font-size: 1rem; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-settings-logout:hover { background: #c0392b; color: #fff; }

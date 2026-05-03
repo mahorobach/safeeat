@@ -362,6 +362,103 @@
 
   </div><!-- /#scanner-page -->
 
+  <!-- ===== ユーザー設定ページ ===== -->
+  <div id="user-settings-page" style="display:none">
+    <div class="user-settings-wrap">
+
+      <!-- ヘッダー -->
+      <div class="user-settings-header">
+        <button type="button" class="btn-back" id="btn-settings-back">← 戻る</button>
+        <h2 class="user-settings-title">👤 ユーザー設定</h2>
+      </div>
+
+      <!-- アカウント情報 -->
+      <div class="settings-card">
+        <div class="settings-card-title">アカウント情報</div>
+        <div class="settings-row">
+          <span class="settings-label">メールアドレス</span>
+          <span class="settings-value" id="settings-email">—</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">プラン</span>
+          <span class="settings-value" id="settings-plan">無料プラン</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">今月の残り回数</span>
+          <span class="settings-value" id="settings-remaining">— 回</span>
+        </div>
+      </div>
+
+      <!-- デフォルトモード設定 -->
+      <div class="settings-card">
+        <div class="settings-card-title">デフォルトの食事スタイル</div>
+        <p class="settings-card-desc">ログイン時に最初に表示されるモードです。スキャン中に一時切替もできます。</p>
+        <div class="settings-mode-list">
+
+          <label class="settings-mode-item">
+            <input type="radio" name="settings-mode" value="oriental">
+            <div class="settings-mode-content">
+              <span class="settings-mode-icon">🌿</span>
+              <div>
+                <div class="settings-mode-name">オリエンタルベジタリアン</div>
+                <div class="settings-mode-desc">五葷・肉・魚NG。卵・乳製品・蜂蜜OK。</div>
+              </div>
+            </div>
+          </label>
+
+          <label class="settings-mode-item">
+            <input type="radio" name="settings-mode" value="vegan">
+            <div class="settings-mode-content">
+              <span class="settings-mode-icon">🌱</span>
+              <div>
+                <div class="settings-mode-name">ヴィーガン</div>
+                <div class="settings-mode-desc">すべての動物由来成分NG。</div>
+              </div>
+            </div>
+          </label>
+
+          <label class="settings-mode-item">
+            <input type="radio" name="settings-mode" value="lacto_ovo">
+            <div class="settings-mode-content">
+              <span class="settings-mode-icon">🥚</span>
+              <div>
+                <div class="settings-mode-name">ラクト・オボベジタリアン</div>
+                <div class="settings-mode-desc">肉・魚のみNG。卵・乳製品OK。</div>
+              </div>
+            </div>
+          </label>
+
+          <label class="settings-mode-item settings-mode-item-disabled">
+            <input type="radio" name="settings-mode" value="custom" disabled>
+            <div class="settings-mode-content">
+              <span class="settings-mode-icon">⚙️</span>
+              <div>
+                <div class="settings-mode-name">カスタムモード <span class="settings-coming-badge">近日公開</span></div>
+                <div class="settings-mode-desc">自分だけのNG成分リスト（有料プラン）。</div>
+              </div>
+            </div>
+          </label>
+
+        </div>
+
+        <button type="button" class="btn-settings-save" id="btn-settings-save">
+          <span class="spinner" id="settings-spinner" style="display:none"></span>
+          <span id="settings-save-label">この設定を保存する</span>
+        </button>
+        <div class="settings-save-msg" id="settings-save-msg"></div>
+      </div>
+
+      <!-- ログアウト -->
+      <div class="settings-card settings-card-danger">
+        <div class="settings-card-title">アカウント操作</div>
+        <button type="button" class="btn-settings-logout" id="btn-settings-logout">
+          ログアウト
+        </button>
+      </div>
+
+    </div>
+  </div><!-- /#user-settings-page -->
+
 </main>
 
 <footer>SafeEat v0.5.1 &nbsp;|&nbsp; オリエンタルベジタリアン特化版</footer>
