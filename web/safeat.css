@@ -51,6 +51,18 @@ header {
 }
 .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: .04em; }
 .tagline { font-size: .78rem; opacity: .85; margin-top: 2px; }
+.header-left { display: flex; flex-direction: column; }
+.header-nav {
+  display: flex; align-items: center; gap: 1.2rem;
+  margin-left: auto; margin-right: 1rem;
+}
+.header-nav-link {
+  color: rgba(255,255,255,0.9); text-decoration: none;
+  font-size: 0.9rem; font-weight: bold;
+  transition: color 0.15s;
+}
+.header-nav-link:hover { color: #fff; text-decoration: underline; }
+@media (max-width: 600px) { .header-nav { display: none; } }
 
 /* ===== Layout ===== */
 main {
@@ -860,11 +872,22 @@ main {
 
 /* ===== Footer ===== */
 footer {
-  text-align: center;
-  font-size: .73rem;
-  color: var(--gray);
-  padding: 16px;
+  background: var(--green);
+  color: rgba(255,255,255,0.8);
+  padding: 1.2rem 1rem;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0.5rem;
 }
+.footer-links {
+  display: flex; gap: 1.2rem; flex-wrap: wrap;
+  justify-content: center;
+}
+.footer-link {
+  color: rgba(255,255,255,0.8); text-decoration: none;
+  font-size: 0.85rem;
+}
+.footer-link:hover { color: #fff; text-decoration: underline; }
+.footer-copy { color: rgba(255,255,255,0.6); font-size: 0.8rem; }
 
 /* ===== 新しい食品を解析するボタン（結果下） ===== */
 .result-reset-wrap {

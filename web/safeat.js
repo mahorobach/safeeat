@@ -1509,6 +1509,38 @@ function applyModeDisplay(mode) {
     ?.addEventListener('click', () => openAuthModal('signup'));
 })();
 
+// ===== ヘッダーナビ =====
+(function () {
+  const ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page'];
+
+  function showById(id) {
+    ALL_PAGES.forEach(p => {
+      const el = document.getElementById(p);
+      if (el) el.style.display = 'none';
+    });
+    const page = document.getElementById(id);
+    if (page) page.style.display = 'block';
+  }
+
+  document.getElementById('nav-top')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showById('landing-page');
+    window.scrollTo(0, 0);
+  });
+
+  document.getElementById('nav-app')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (!window.SafeEatAuth) return;
+    window.SafeEatAuth.getSession().then((session) => {
+      if (session?.user) {
+        showById('scanner-page');
+      } else {
+        openAuthModal('login');
+      }
+    });
+  });
+})();
+
 // ===== ロゴクリックでトップへ =====
 document.getElementById('btn-logo-home')?.addEventListener('click', (e) => {
   e.preventDefault();
