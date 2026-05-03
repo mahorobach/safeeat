@@ -1509,19 +1509,19 @@ function applyModeDisplay(mode) {
     ?.addEventListener('click', () => openAuthModal('signup'));
 })();
 
+// ===== 共通ページ切替ユーティリティ =====
+const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page'];
+function showById(id) {
+  _ALL_PAGES.forEach(p => {
+    const el = document.getElementById(p);
+    if (el) el.style.display = 'none';
+  });
+  const page = document.getElementById(id);
+  if (page) page.style.display = 'block';
+}
+
 // ===== ヘッダーナビ =====
 (function () {
-  const ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page'];
-
-  function showById(id) {
-    ALL_PAGES.forEach(p => {
-      const el = document.getElementById(p);
-      if (el) el.style.display = 'none';
-    });
-    const page = document.getElementById(id);
-    if (page) page.style.display = 'block';
-  }
-
   document.getElementById('nav-top')?.addEventListener('click', (e) => {
     e.preventDefault();
     showById('landing-page');
@@ -1530,6 +1530,52 @@ function applyModeDisplay(mode) {
 
   document.getElementById('nav-app')?.addEventListener('click', (e) => {
     e.preventDefault();
+    if (!window.SafeEatAuth) return;
+    window.SafeEatAuth.getSession().then((session) => {
+      if (session?.user) {
+        showById('scanner-page');
+      } else {
+        openAuthModal('login');
+      }
+    });
+  });
+})();
+
+// ===== ハンバーガーメニュー =====
+(function () {
+  const hamburger     = document.getElementById('btn-hamburger');
+  const drawerMenu    = document.getElementById('drawer-menu');
+  const drawerClose   = document.getElementById('drawer-close');
+  const drawerOverlay = document.getElementById('drawer-overlay');
+
+  function openDrawer() {
+    hamburger?.classList.add('is-open');
+    drawerMenu?.classList.add('is-open');
+    drawerMenu?.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    hamburger?.classList.remove('is-open');
+    drawerMenu?.classList.remove('is-open');
+    drawerMenu?.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  hamburger?.addEventListener('click', openDrawer);
+  drawerClose?.addEventListener('click', closeDrawer);
+  drawerOverlay?.addEventListener('click', closeDrawer);
+
+  document.getElementById('drawer-nav-top')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeDrawer();
+    showById('landing-page');
+    window.scrollTo(0, 0);
+  });
+
+  document.getElementById('drawer-nav-app')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeDrawer();
     if (!window.SafeEatAuth) return;
     window.SafeEatAuth.getSession().then((session) => {
       if (session?.user) {

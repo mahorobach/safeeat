@@ -15,13 +15,33 @@
       <div class="tagline">成分表を写真で撮るだけ。あなたの食事スタイルに合わせた成分チェッカー</div>
     </a>
   </div>
-  <nav class="header-nav">
+  <nav class="header-nav" id="header-nav">
     <a href="#" class="header-nav-link" id="nav-top">Top</a>
     <a href="#" class="header-nav-link" id="nav-app">アプリ</a>
     <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="header-nav-link">お問い合わせ</a>
   </nav>
   <div class="auth-area" id="auth-area"></div>
+  <button type="button" class="btn-hamburger" id="btn-hamburger" aria-label="メニュー">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
 </header>
+
+<!-- スマホ用ドロワーメニュー -->
+<div class="drawer-menu" id="drawer-menu" aria-hidden="true">
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <div class="drawer-content">
+    <button type="button" class="drawer-close" id="drawer-close">✕</button>
+    <nav class="drawer-nav">
+      <a href="#" class="drawer-nav-link" id="drawer-nav-top">Top</a>
+      <a href="#" class="drawer-nav-link" id="drawer-nav-app">アプリ</a>
+      <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="drawer-nav-link">お問い合わせ</a>
+      <a href="privacy.html" class="drawer-nav-link">プライバシーポリシー</a>
+      <a href="terms.html" class="drawer-nav-link">利用規約</a>
+    </nav>
+  </div>
+</div>
 
 <main>
 
