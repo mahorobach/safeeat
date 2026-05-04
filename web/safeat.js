@@ -1074,8 +1074,6 @@ function setLoading(on) {
   document.querySelector(".btn-label").textContent = on
     ? "解析中..."
     : onImageTab ? "この画像で読み取る" : "成分を解析する";
-  const note = document.getElementById("analyzing-note");
-  if (note) note.style.display = on ? "block" : "none";
 }
 function showError(msg) {
   errorBox.textContent = msg;
@@ -1514,6 +1512,13 @@ function applyModeDisplay(mode) {
     ?.addEventListener('click', () => openAuthModal('signup'));
   document.getElementById('btn-pricing-signup')
     ?.addEventListener('click', () => openAuthModal('signup'));
+
+  // URLハッシュ #signup で新規登録モーダルを自動表示
+  // ランディングページの「成分をチェックする」ボタンから飛んできた場合に対応
+  if (window.location.hash === '#signup') {
+    setTimeout(() => openAuthModal('signup'), 300);
+    history.replaceState(null, '', window.location.pathname);
+  }
 })();
 
 // ===== 共通ページ切替ユーティリティ =====
