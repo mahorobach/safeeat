@@ -13,8 +13,11 @@
 <header>
   <div class="header-left">
     <a href="#" class="logo-link" id="btn-logo-home">
-      <div class="logo">🥬 EatEase</div>
-      <div class="tagline">成分表を写真で撮るだけ。あなたの食事スタイルに合わせた成分チェッカー</div>
+      <span class="logo-icon">🥬</span>
+      <div class="logo-text">
+        <div class="logo">EatEase</div>
+        <div class="tagline">成分チェッカー</div>
+      </div>
     </a>
   </div>
   <nav class="header-nav" id="header-nav">
@@ -302,11 +305,11 @@
       </details>
 
       <!-- Overall -->
-      <div class="overall-banner" id="overall-banner">
-        <div class="overall-icon" id="overall-icon"></div>
-        <div class="overall-text">
-          <div class="verdict" id="overall-verdict"></div>
-          <div class="summary" id="overall-summary"></div>
+      <div class="ee-overall-banner" id="overall-banner">
+        <div class="ee-overall-mark" id="overall-icon"></div>
+        <div class="ee-overall-text">
+          <div class="ee-overall-verdict" id="overall-verdict"></div>
+          <div class="ee-overall-summary" id="overall-summary"></div>
         </div>
       </div>
 
@@ -320,39 +323,39 @@
       </div>
 
       <!-- NG -->
-      <div class="result-list-card">
-        <div class="result-list-header ng" id="ng-header">
-          ❌ NGな成分
-          <span class="count"></span>
+      <div class="ee-result-card">
+        <div class="ee-result-header ee-result-header--ng" id="ng-header">
+          <span>NG な成分</span>
+          <span class="ee-result-count" id="ng-count"></span>
         </div>
-        <ul class="result-list" id="ng-list"></ul>
+        <ul class="ee-result-list" id="ng-list"></ul>
       </div>
 
       <!-- Gray -->
-      <div class="result-list-card">
-        <div class="result-list-header gray" id="gray-header">
-          🟡 グレー（由来要確認）
-          <span class="count"></span>
+      <div class="ee-result-card">
+        <div class="ee-result-header ee-result-header--warn" id="gray-header">
+          <span>要確認（由来不明）</span>
+          <span class="ee-result-count" id="gray-count"></span>
         </div>
-        <ul class="result-list" id="gray-list"></ul>
+        <ul class="ee-result-list" id="gray-list"></ul>
       </div>
 
       <!-- OK -->
-      <div class="result-list-card">
-        <div class="result-list-header ok" id="ok-header">
-          ✅ OK な成分
-          <span class="count"></span>
+      <div class="ee-result-card">
+        <div class="ee-result-header ee-result-header--ok" id="ok-header">
+          <span>OK な成分</span>
+          <span class="ee-result-count" id="ok-count"></span>
         </div>
-        <ul class="result-list" id="ok-list"></ul>
+        <ul class="ee-result-list" id="ok-list"></ul>
       </div>
 
       <!-- Unknown (🔍推測) — hidden if empty -->
-      <div class="result-list-card" id="unknown-card" style="display:none">
-        <div class="result-list-header unknown" id="unknown-header">
-          🔍 推測判定（DBに未登録）
-          <span class="count"></span>
+      <div class="ee-result-card" id="unknown-card" style="display:none">
+        <div class="ee-result-header ee-result-header--unknown" id="unknown-header">
+          <span>推測判定（未登録）</span>
+          <span class="ee-result-count"></span>
         </div>
-        <ul class="result-list" id="unknown-list"></ul>
+        <ul class="ee-result-list" id="unknown-list"></ul>
       </div>
 
       <!-- Detailed result (Gemini 詳細モード) -->
@@ -375,9 +378,9 @@
       </div>
 
       <!-- 新しい食品を解析するボタン -->
-      <div class="result-reset-wrap" id="result-reset-wrap" style="display:none">
-        <button type="button" class="btn-result-reset" id="btn-result-reset">
-          🔄 新しい食品を解析する
+      <div class="ee-result-reset-wrap" id="result-reset-wrap" style="display:none">
+        <button type="button" class="ee-btn-secondary" id="btn-result-reset">
+          新しい食品を解析する
         </button>
       </div>
 

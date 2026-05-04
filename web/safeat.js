@@ -745,10 +745,11 @@ function renderDetailedResult(data, imageDataUrl) {
   const decisionMap = { OK: "ok", NG: "ng", Pending: "gray" };
   const overall = decisionMap[data.final_decision] || "gray";
   const cfg = OVERALL_CONFIG[overall];
-  document.getElementById("overall-icon").textContent    = cfg.icon;
+  document.getElementById("overall-icon").textContent    = overall === 'ng' ? '✕' : overall === 'ok' ? '✓' : '△';
   document.getElementById("overall-verdict").textContent = cfg.label;
-  document.getElementById("overall-verdict").className   = `verdict ${overall}`;
-  document.getElementById("overall-banner").className    = `overall-banner ${overall}`;
+  const bannerElD = document.getElementById("overall-banner");
+  bannerElD.classList.remove('ng', 'ok', 'warn');
+  bannerElD.classList.add(overall === 'gray' ? 'warn' : overall);
   document.getElementById("overall-summary").textContent =
     `Gemini 詳細モード / ${data.ingredients.length}件の成分を解析`;
 
@@ -816,9 +817,8 @@ function renderExtractOnlyResult(extractedText, options = {}) {
   }
 
   const banner = document.getElementById("overall-banner");
-  banner.className = "overall-banner extract-only";
+  banner.classList.remove('ng', 'ok', 'warn');
   document.getElementById("overall-icon").textContent = "📄";
-  document.getElementById("overall-verdict").className = "verdict";
   const extractActions = document.getElementById("extract-only-actions");
 
   if (autoClassifyNext) {
@@ -851,10 +851,9 @@ function renderExtractOnlyResult(extractedText, options = {}) {
 /** 自動判定に失敗したあと、手動で「この内容で成分判定する」を出す */
 function restoreExtractOnlyManualStep(ingredientsText) {
   const banner = document.getElementById("overall-banner");
-  banner.className = "overall-banner extract-only";
+  banner.classList.remove('ng', 'ok', 'warn');
   document.getElementById("overall-icon").textContent = "📄";
   document.getElementById("overall-verdict").textContent = "読み取りのみ完了（判定は未実行）";
-  document.getElementById("overall-verdict").className = "verdict";
   document.getElementById("overall-summary").textContent =
     "テキスト欄に読み取り結果を入れました。余分な行を直したあと、下のボタンで成分判定に進めます。";
   const extractActions = document.getElementById("extract-only-actions");
@@ -918,16 +917,17 @@ function renderResult(result, isOffline, extractedText) {
   if (dbNote) dbNote.style.display = "";
 
   const cfg = OVERALL_CONFIG[result.overall] || OVERALL_CONFIG.gray;
-  document.getElementById("overall-icon").textContent = cfg.icon;
+  document.getElementById("overall-icon").textContent = result.overall === 'ng' ? '✕' : result.overall === 'ok' ? '✓' : '△';
 
   const verdict = document.getElementById("overall-verdict");
   verdict.textContent = cfg.label;
-  verdict.className = `verdict ${result.overall}`;
 
   const summaryEl = document.getElementById("overall-summary");
   summaryEl.textContent = result.summary + (isOffline ? "（オフライン判定）" : "");
 
-  document.getElementById("overall-banner").className = `overall-banner ${result.overall}`;
+  const bannerEl = document.getElementById("overall-banner");
+  bannerEl.classList.remove('ng', 'ok', 'warn');
+  bannerEl.classList.add(result.overall === 'gray' ? 'warn' : (result.overall || 'warn'));
 
   renderExtractedAccordion(extractedText, false);
   renderNgList(result.ng || []);
@@ -1058,7 +1058,7 @@ function updateUserDBBadge() {
 // --- UI helpers ---
 function setHeaderCount(headerId, count) {
   const el = document.getElementById(headerId);
-  if (el) el.querySelector(".count").textContent = `${count}件`;
+  if (el) el.querySelector(".ee-result-count").textContent = `${count}件`;
 }
 function makeLi(html) {
   const li = document.createElement("li");
@@ -1189,17 +1189,17 @@ async function updateAuthUI(session) {
       if (d.ok) { remaining = d.data.remaining; plan = d.data.plan; }
     } catch {}
 
+    const email = esc(session.user.email);
     const badgeHtml = plan === "free"
       ? `<span class="scan-badge${remaining === 0 ? " exhausted" : ""}" id="scan-badge">残り ${remaining} 回</span>`
       : `<span class="scan-badge-unlimited">✨ 無制限</span>`;
 
     area.innerHTML = `
-      <span class="auth-email">${esc(session.user.email)}</span>
       ${badgeHtml}
-      <button class="btn-auth-outline" id="btn-signout" type="button">ログアウト</button>`;
-    document.getElementById("btn-signout")?.addEventListener("click", () => {
-      window.SafeEatAuth?.signOut();
-    });
+      <div class="user-icon-wrap" id="user-icon-wrap" title="${email}">
+        <span class="user-icon-inner">👤</span>
+        <span class="user-tooltip">${email}</span>
+      </div>`;
   } else {
     area.innerHTML = `
       <button class="btn-auth" id="btn-open-login" type="button">ログイン</button>
@@ -1605,6 +1605,17 @@ document.getElementById('btn-logo-home')?.addEventListener('click', (e) => {
     const page = document.getElementById(target);
     if (page) page.style.display = 'block';
   });
+});
+
+// ===== ユーザーアイコン タップでツールチップ表示（スマホ対応）=====
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('user-icon-wrap');
+  if (!wrap) return;
+  if (wrap.contains(e.target)) {
+    wrap.classList.toggle('tooltip-visible');
+  } else {
+    wrap.classList.remove('tooltip-visible');
+  }
 });
 
 // ===== ユーザー設定ページ =====

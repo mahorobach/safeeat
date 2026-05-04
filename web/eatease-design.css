@@ -229,3 +229,126 @@
   font-family: var(--ee-font-body);
   letter-spacing: 0.04em;
 }
+
+/* ========================================
+   結果表示セクション
+   ======================================== */
+
+/* オーバーオールバナー */
+.ee-overall-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--ee-radius-lg);
+  border: 0.5px solid var(--ee-neutral-100);
+  background: var(--ee-neutral-50);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* JSが動的にng/ok/warnクラスを付与する想定 */
+.ee-overall-banner.ng {
+  background: var(--ee-ng-bg);
+  border-color: #f0b8b3;
+}
+.ee-overall-banner.ok {
+  background: var(--ee-ok-bg);
+  border-color: #b2d4ac;
+}
+.ee-overall-banner.warn {
+  background: var(--ee-warn-bg);
+  border-color: #dfc98a;
+}
+
+.ee-overall-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: var(--ee-neutral-100);
+  color: var(--ee-neutral-700);
+}
+.ee-overall-banner.ng  .ee-overall-mark { background: var(--ee-ng);   color: var(--ee-ng-bg); }
+.ee-overall-banner.ok  .ee-overall-mark { background: var(--ee-ok);   color: var(--ee-ok-bg); }
+.ee-overall-banner.warn .ee-overall-mark { background: var(--ee-warn); color: var(--ee-warn-bg); }
+
+.ee-overall-verdict {
+  font-family: var(--ee-font-display);
+  font-size: var(--ee-text-lg);
+  font-weight: 400;
+  color: var(--ee-neutral-700);
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+.ee-overall-banner.ng  .ee-overall-verdict { color: var(--ee-ng); }
+.ee-overall-banner.ok  .ee-overall-verdict { color: var(--ee-ok); }
+.ee-overall-banner.warn .ee-overall-verdict { color: var(--ee-warn); }
+
+.ee-overall-summary {
+  font-size: var(--ee-text-sm);
+  color: var(--ee-neutral-500);
+  line-height: 1.6;
+}
+
+/* 結果カード */
+.ee-result-card {
+  background: var(--ee-neutral-0);
+  border-radius: var(--ee-radius-lg);
+  border: 0.5px solid var(--ee-neutral-100);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.ee-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  font-size: var(--ee-text-sm);
+  font-family: var(--ee-font-body);
+  letter-spacing: 0.04em;
+  border-bottom: 0.5px solid var(--ee-neutral-100);
+}
+.ee-result-header--ng   { background: var(--ee-ng-bg);   color: var(--ee-ng); }
+.ee-result-header--warn { background: var(--ee-warn-bg); color: var(--ee-warn); }
+.ee-result-header--ok   { background: var(--ee-ok-bg);   color: var(--ee-ok); }
+.ee-result-header--unknown {
+  background: var(--ee-neutral-50);
+  color: var(--ee-neutral-500);
+}
+
+.ee-result-count {
+  font-weight: 500;
+  font-size: var(--ee-text-xs);
+  opacity: 0.8;
+}
+
+/* 成分リスト */
+.ee-result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.ee-result-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 0.5px solid var(--ee-neutral-100);
+  font-size: var(--ee-text-sm);
+  color: var(--ee-neutral-700);
+  font-family: var(--ee-font-body);
+}
+.ee-result-list li:first-child { border-top: none; }
+.ee-result-list li:hover { background: var(--ee-neutral-50); }
+
+/* リセットボタンラッパー */
+.ee-result-reset-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+}
