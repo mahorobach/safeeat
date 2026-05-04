@@ -199,7 +199,7 @@ function getAuthHeaders() {
  *   extractedText: string
  * }>}
  */
-async function analyzeImageWithGeminiDetailed(imageData, mediaType) {
+async function analyzeImageWithGeminiDetailed(imageData, mediaType, dietMode = "oriental") {
   await ensureApiWarm();
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), 130_000);
@@ -210,7 +210,7 @@ async function analyzeImageWithGeminiDetailed(imageData, mediaType) {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         signal: ctrl.signal,
-        body: JSON.stringify({ image: { data: imageData, mediaType } }),
+        body: JSON.stringify({ image: { data: imageData, mediaType }, diet_mode: dietMode }),
       },
       3,
       2200,
@@ -237,7 +237,7 @@ async function analyzeImageWithGeminiDetailed(imageData, mediaType) {
  * 画像から成分抽出＋判定を1ステップで実行（Gemini）
  * @returns {Promise<{ data, extractedText }>}
  */
-async function analyzeImageWithGemini(imageData, mediaType) {
+async function analyzeImageWithGemini(imageData, mediaType, dietMode = "oriental") {
   await ensureApiWarm();
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), 130_000);
@@ -248,7 +248,7 @@ async function analyzeImageWithGemini(imageData, mediaType) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
-        body: JSON.stringify({ image: { data: imageData, mediaType } }),
+        body: JSON.stringify({ image: { data: imageData, mediaType }, diet_mode: dietMode }),
       },
       3,
       2200,
@@ -275,12 +275,12 @@ async function analyzeImageWithGemini(imageData, mediaType) {
  * テキスト成分を Gemini で判定
  * @returns {Promise<{ok, gray, ng, unknown, overall, summary}>}
  */
-async function analyzeTextWithGemini(ingredientsText) {
+async function analyzeTextWithGemini(ingredientsText, dietMode = "oriental") {
   await ensureApiWarm();
   const res = await fetchWithRetry(`${API_BASE}/api/analyze/gemini/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-    body: JSON.stringify({ ingredients: ingredientsText }),
+    body: JSON.stringify({ ingredients: ingredientsText, diet_mode: dietMode }),
   });
 
   const data = await res.json();

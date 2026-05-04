@@ -32,7 +32,12 @@ function getSupabase() {
 }
 
 const FREE_PLAN_LIMIT = 10;
-const DIET_MODE = "oriental"; // Phase 4 で動的にする
+const VALID_DIET_MODES = ["oriental", "vegan", "lacto_ovo", "custom"];
+
+function getDietMode(reqBody) {
+  const mode = reqBody?.diet_mode;
+  return VALID_DIET_MODES.includes(mode) ? mode : "oriental";
+}
 
 async function checkScanLimit(req, res) {
   if (!req.user) return true;
@@ -64,11 +69,11 @@ async function incrementScanCount(userId) {
   await sb.from("user_profiles").update({ scan_count: newCount, scan_month: month }).eq("id", userId);
 }
 
-async function insertScanLog(userId) {
+async function insertScanLog(userId, dietMode = "oriental") {
   if (!userId) return;
   const sb = getSupabase();
   if (!sb) return;
-  try { await sb.from("scan_logs").insert({ user_id: userId, diet_mode: DIET_MODE }); } catch {}
+  try { await sb.from("scan_logs").insert({ user_id: userId, diet_mode: dietMode }); } catch {}
 }
 
 function hashIngredientText(text) {
@@ -82,7 +87,7 @@ function hashIngredientText(text) {
   return crypto.createHash("sha256").update(normalized).digest("hex");
 }
 
-async function getCached(hash) {
+async function getCached(hash, dietMode = "oriental") {
   const sb = getSupabase();
   if (!sb) return null;
   try {
@@ -90,13 +95,13 @@ async function getCached(hash) {
       .from("ingredient_cache")
       .select("analysis_result, hit_count")
       .eq("ingredient_hash", hash)
-      .eq("diet_mode", DIET_MODE)
+      .eq("diet_mode", dietMode)
       .single();
     if (error || !data) return null;
     sb.from("ingredient_cache")
       .update({ hit_count: data.hit_count + 1 })
       .eq("ingredient_hash", hash)
-      .eq("diet_mode", DIET_MODE)
+      .eq("diet_mode", dietMode)
       .then(() => {}).catch(() => {});
     console.log(`[Cache HIT] hash=${hash.slice(0, 8)}...`);
     return data.analysis_result;
@@ -105,12 +110,12 @@ async function getCached(hash) {
   }
 }
 
-async function setCache(hash, text, result) {
+async function setCache(hash, text, result, dietMode = "oriental") {
   const sb = getSupabase();
   if (!sb) { console.error("[Cache] Supabase 未設定（環境変数を確認）"); return; }
   try {
     const { error } = await sb.from("ingredient_cache").upsert(
-      { ingredient_hash: hash, ingredient_text: text, analysis_result: result, diet_mode: DIET_MODE },
+      { ingredient_hash: hash, ingredient_text: text, analysis_result: result, diet_mode: dietMode },
       { onConflict: "ingredient_hash,diet_mode" },
     );
     if (error) {
@@ -246,6 +251,7 @@ function extractGeminiText(data) {
 // =============================================
 router.post("/image", async (req, res, next) => {
   const { image } = req.body;
+  const dietMode = getDietMode(req.body);
 
   if (!image?.data) {
     return res.status(400).json({ ok: false, error: "image.data は必須です（Base64文字列）" });
@@ -326,13 +332,14 @@ router.post("/text", async (req, res, next) => {
   const apiKey = getGeminiKey(res);
   if (!apiKey) return;
 
+  const dietMode = getDietMode(req.body);
   const ingredientsStr = String(ingredients).trim();
   const hash = hashIngredientText(ingredientsStr);
 
   try {
     if (!await checkScanLimit(req, res)) return;
 
-    const cached = await getCached(hash);
+    const cached = await getCached(hash, dietMode);
     if (cached) {
       await incrementScanCount(req.user?.id);
       return res.json({ ok: true, data: cached, fromCache: true });
@@ -354,9 +361,9 @@ router.post("/text", async (req, res, next) => {
     const result = parseGeminiResponse(extractGeminiText(geminiData));
     if (!Array.isArray(result.unknown)) result.unknown = [];
 
-    await setCache(hash, ingredientsStr, result);
+    await setCache(hash, ingredientsStr, result, dietMode);
     await incrementScanCount(req.user?.id);
-    await insertScanLog(req.user?.id);
+    await insertScanLog(req.user?.id, dietMode);
     res.json({ ok: true, data: result });
   } catch (e) {
     next(e);
@@ -448,6 +455,7 @@ async function geminiCall(apiKey, body) {
 
 router.post("/image/detailed", async (req, res, next) => {
   const { image } = req.body;
+  const dietMode = getDietMode(req.body);
 
   if (!image?.data) {
     return res.status(400).json({ ok: false, error: "image.data は必須です（Base64文字列）" });
@@ -543,9 +551,9 @@ router.post("/image/detailed", async (req, res, next) => {
     const extractedText = parsed.ingredients.map((i) => i.text.replace(/\s*\[?\?\]?\s*$/, "").trim()).join("、");
 
     const cacheHash = hashIngredientText(extractedText);
-    await setCache(cacheHash, extractedText, parsed);
+    await setCache(cacheHash, extractedText, parsed, dietMode);
     await incrementScanCount(req.user?.id);
-    await insertScanLog(req.user?.id);
+    await insertScanLog(req.user?.id, dietMode);
 
     res.json({ ok: true, data: parsed, extractedText });
   } catch (e) {
