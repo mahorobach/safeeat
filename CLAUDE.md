@@ -1,6 +1,6 @@
 # SafeEat — Claude Code 指示
 
-**作業前に `README.md` を読むこと。** アーキテクチャ・フロー・環境変数・ロードマップがすべて揃っている。
+**作業前に `README.md` を読むこと。**
 
 ## 絶対ルール
 
@@ -9,60 +9,63 @@
 | `web/` から Claude / Gemini API を直接呼ばない | APIキー漏洩防止 |
 | APIキーを `web/` に置かない | 環境変数はサーバー側のみ |
 | `safeat.js` は UI操作のみ記述する | ビジネスロジックをUIに混在させない |
+| 認証ロジックは `web/auth.js` に分離する | safeat.js の肥大化防止 |
 
-## 現在の解析エンジン（固定）
+## 現在の画面構成（index.html内）
 
-**Gemini 詳細モード（`gemini-2.5-flash`）のみ使用。** Claude エンジン・通常 Gemini の選択UIは廃止済み。
+```
+#landing-page      未ログイン時のランディングページ
+#mode-select-page  初回ログイン時のモード選択
+#scanner-page      スキャン画面（ログイン後）
+#user-settings-page ユーザー設定ページ
+```
 
-- エンジン選択: `getSelectedEngine()` は常に `"gemini-detailed"` を返す
+showPage(page) 関数で切り替える。この関数は全ページをdisplay:noneにしてから指定ページだけ表示する。
+
+## 認証フロー
+
+```
+ログイン → handleSession() → /api/user/settings を取得
+  → mode_selected が false/未設定 → #mode-select-page
+  → mode_selected が true → #scanner-page
+```
+
+## モード管理
+
+- `MODE_DEFINITIONS` オブジェクトでモード別の表示内容を管理
+- `applyModeDisplay(mode)` でスキャンページの表示を切り替え
+- スキャンページでのモード切替はセッション中のみ（DBに保存しない）
+- ユーザー設定ページでの変更は `PUT /api/user/settings` でDB保存
+
+## 解析エンジン（固定）
+
 - 画像解析: `POST /api/analyze/gemini/image/detailed`
 - テキスト解析: `POST /api/analyze/gemini/text`
+- `type: "image"` かつ `extractOnly` なしは廃止（400）
 
-## 写真フロー（変更禁止）
+## キャッシュ
 
-**Gemini 1ステップフロー（現行）:**
+- 主キーは `(ingredient_hash, diet_mode)` の複合キー
+- モードが違う成分は別エントリ
 
-1. **解析:** `POST /api/analyze/gemini/image/detailed` with `{ image: { data, mediaType } }`
-   → `{ data: { ingredients, final_decision }, extractedText }` が返る
-2. フロントで `extractedText` をテキストエリアに表示・写真と並べて確認
-3. 必要に応じてテキストを手動修正後、`POST /api/analyze/gemini/text` で再判定
+## ユーザー認証（実装済み）
 
-**旧 Claude 2ステップフロー（参考・廃止はしていない）:**
-1. `POST /api/analyze` with `{ type: "image", extractOnly: true }` → `extractedText`
-2. `POST /api/analyze` with `{ ingredients: "..." }`
+- 無料プランは全モード合算で月10回まで
+- tester・pro・business は無制限
+- `scan_month`（YYYY-MM）で月替わり自動リセット
+- 管理者リンクはユーザー設定ページ内に表示（ヘッダーには出さない）
 
-`type: "image"` かつ `extractOnly` なしのワンショットは **廃止（400）**。
+## メール設定（未完了）
 
-## Gemini API 設定
-
-- APIバージョン: `v1beta`（コード内に固定、環境変数では変更不可）
-- モデル: `GEMINI_MODEL` 環境変数で切替（デフォルト: `gemini-1.5-flash`）
-- `models/` プレフィックス付きで設定しても自動的に除去される
-- `responseMimeType: "application/json"` はテキストルートのみ有効
-
-## キャッシュ（Supabase `ingredient_cache`）
-
-- `/text` ルート: 成分テキストの SHA-256 ハッシュでキャッシュ検索 → ヒット時は Gemini API 不使用
-- `/image/detailed` ルート: OCR 後の `extractedText` をキャッシュに保存（検索はしない）
-- Supabase 未設定時はキャッシュを無視して正常動作
-
-## 判定ロジックの場所
-
-- ブラウザ用（オフライン）: `web/lib/rules.js`
-- 共通版（Node.js + ブラウザ）: `shared/rules.js`
-- Claude 判定プロンプト: `server/routes/analyze.js`
-- Gemini 判定プロンプト: `server/routes/analyze-gemini.js`
-
-## 二重送信・リトライの制御
-
-- フロントエンド: `_isAnalyzing` フラグで解析中の重複クリックを防止
-- `fetchWithRetry`: **429（クォータ超過）はリトライしない**（リトライするとクォータをさらに消費）
-- サーバー: `geminiCall()` に 45 秒の AbortController タイムアウト
+- 現在「Confirm email」はOFF
+- Resendの `daisho-kikaku.com` DNS設定が完了したらONに戻す
+- 本番前に必ず対応すること
 
 ## 作業後チェックリスト
 
 - [ ] `web/` にシークレットを置いていない
-- [ ] Gemini ルートの `geminiRes.json()` は try-catch で囲む
 - [ ] 新ルート追加時は CORS・`server/index.js` のマウント確認
 - [ ] 本番URL変更時は `web/site-config.js` と `ALLOWED_ORIGINS` の両方
-- [ ] モデル変更は Railway の `GEMINI_MODEL` 環境変数のみ（コード変更不要）
+- [ ] 認証ミドルウェアを通さないルートを作らない（`/api/health` 以外）
+- [ ] **本番リリース前に Supabase の「Confirm email」をONに戻す**
+- [ ] **本番リリース前にDNS設定・Resendドメイン認証を完了する**
