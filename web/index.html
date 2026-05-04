@@ -289,21 +289,6 @@
     <!-- Results -->
     <section id="result-section">
 
-      <!-- 写真読み取りフロー時: 判別・テキストと照合できるよう掲示 -->
-      <div id="result-compare-photo-wrap" class="result-compare-photo-wrap" hidden>
-        <div class="result-compare-photo-title">📷 読み取りに使った写真</div>
-        <div class="result-compare-photo-inner">
-          <img id="result-compare-photo" class="result-compare-photo" alt="読み取りに使った写真">
-        </div>
-        <p class="result-compare-photo-hint">読み取ったテキストとパッケージの表示を照合してください。</p>
-      </div>
-
-      <!-- Extracted text accordion (image mode only) -->
-      <details class="extracted-accordion" id="extracted-accordion" style="display:none">
-        <summary>📄 読み取った成分テキスト</summary>
-        <div class="extracted-text" id="extracted-text"></div>
-      </details>
-
       <!-- Overall -->
       <div class="ee-overall-banner" id="overall-banner">
         <div class="ee-overall-mark" id="overall-icon"></div>
@@ -330,6 +315,21 @@
         </div>
         <ul class="ee-result-list" id="ng-list"></ul>
       </div>
+
+      <!-- 写真（グレーの前に表示） -->
+      <div id="result-compare-photo-wrap" class="result-compare-photo-wrap" hidden>
+        <div class="result-compare-photo-title">📷 読み取りに使った写真</div>
+        <div class="result-compare-photo-inner">
+          <img id="result-compare-photo" class="result-compare-photo" alt="読み取りに使った写真">
+        </div>
+        <p class="result-compare-photo-hint">読み取ったテキストとパッケージの表示を照合してください。</p>
+      </div>
+
+      <!-- Extracted text accordion (image mode only) -->
+      <details class="extracted-accordion" id="extracted-accordion" style="display:none">
+        <summary>📄 読み取った成分テキスト</summary>
+        <div class="extracted-text" id="extracted-text"></div>
+      </details>
 
       <!-- Gray -->
       <div class="ee-result-card">
