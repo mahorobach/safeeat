@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: #fff; color: #1a1a1a; }
+    a { text-decoration: none; color: inherit; }
+
+    header { background: #2e7d32; padding: 14px 32px; display: flex; align-items: center; gap: 12px; }
+    .logo-name { color: #fff; font-size: 18px; font-weight: 700; }
+    .logo-tagline-pc { color: rgba(255,255,255,0.65); font-size: 10px; }
+    .logo-text { display: flex; flex-direction: column; gap: 1px; }
+    .header-nav { margin-left: auto; display: flex; gap: 24px; align-items: center; }
+    .header-nav a { color: rgba(255,255,255,0.75); font-size: 13px; }
+    .btn-login { border: 1.5px solid rgba(255,255,255,0.5); border-radius: 999px; padding: 6px 16px; color: #fff !important; font-size: 13px; }
+    .btn-signup-nav { background: #1b5e20; border-radius: 999px; padding: 6px 16px; color: #fff !important; font-size: 13px; }
+
+    /* Hero */
+    .hero { background: #fffbf0; padding: 96px 40px 80px; text-align: center; position: relative; overflow: hidden; border-bottom: 0.5px solid #f0ede6; }
+    .hero-dots { position: absolute; inset: 0; background-image: radial-gradient(circle, #d4e8d0 1.5px, transparent 1.5px); background-size: 28px 28px; opacity: 0.5; }
+    .hero-pills { display: flex; justify-content: center; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; position: relative; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+    .pill-green  { background: #e8f5e9; color: #2e7d32; }
+    .pill-pink   { background: #fce4ec; color: #c62828; }
+    .pill-amber  { background: #fff8e1; color: #f57f17; }
+    .hero-title { font-size: 52px; font-weight: 500; color: #1a1a1a; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 18px; position: relative; }
+    .hero-title mark { background: none; color: #2e7d32; border-bottom: 4px solid #a5d6a7; }
+    .hero-sub { font-size: 16px; color: #666; line-height: 1.8; margin-bottom: 40px; position: relative; }
+    .btn-hero { display: inline-flex; align-items: center; gap: 8px; background: #1b5e20; color: #fff; border: 2px solid #1b5e20; border-radius: 999px; padding: 16px 40px; font-size: 16px; font-weight: 500; cursor: pointer; position: relative; transition: background 0.2s, color 0.2s; text-decoration: none; }
+    .btn-hero:hover { background: #fff; color: #1b5e20; }
+    .hero-note { font-size: 12px; color: #bbb; margin-top: 14px; position: relative; }
+
+    /* Section */
+    .section { padding: 80px 40px; max-width: 900px; margin: 0 auto; }
+    .section-header { text-align: center; margin-bottom: 44px; }
+    .section-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+    .section-title { font-size: 30px; font-weight: 500; color: #1a1a1a; letter-spacing: -0.01em; }
+    .divider { border: none; border-top: 0.5px solid #f0f0f0; }
+
+    /* モード */
+    .mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .mode-card { border-radius: 16px; padding: 24px; position: relative; }
+    .mc-oriental { background: #e8f5e9; }
+    .mc-vegan    { background: #fce4ec; }
+    .mc-lacto    { background: #fff8e1; }
+    .mc-custom   { background: #ede7f6; }
+    .mode-icon { font-size: 30px; margin-bottom: 12px; }
+    .mode-name { font-size: 14px; font-weight: 500; color: #1a1a1a; margin-bottom: 6px; }
+    .mode-desc { font-size: 13px; color: #555; line-height: 1.6; }
+    .mode-badge { display: inline-block; font-size: 10px; border-radius: 999px; padding: 3px 10px; margin-top: 10px; font-weight: 500; }
+    .tag-green  { background: #c8e6c9; color: #1b5e20; }
+    .tag-pink   { background: #f8bbd0; color: #880e4f; }
+    .tag-amber  { background: #ffe082; color: #e65100; }
+    .tag-purple { background: #d1c4e9; color: #4527a0; }
+
+    /* ステップ */
+    .steps-bg { background: #f9fafb; border-top: 0.5px solid #f0f0f0; border-bottom: 0.5px solid #f0f0f0; }
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { background: #fff; border-radius: 16px; padding: 22px; display: flex; align-items: flex-start; gap: 16px; border: 0.5px solid #f0f0f0; }
+    .step-num { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; flex-shrink: 0; }
+    .sn1 { background: #e8f5e9; color: #2e7d32; }
+    .sn2 { background: #fff3e0; color: #e65100; }
+    .sn3 { background: #fce4ec; color: #c62828; }
+    .step-title { font-size: 15px; font-weight: 500; color: #1a1a1a; margin-bottom: 4px; }
+    .step-desc  { font-size: 13px; color: #777; line-height: 1.6; }
+
+    /* 料金 */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .pricing-card { border-radius: 16px; padding: 28px; border: 1.5px solid #e0e0e0; background: #fff; }
+    .pricing-featured { border-color: #2e7d32; background: #f1f8e9; }
+    .pricing-plan { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin-bottom: 14px; }
+    .pricing-price { font-size: 42px; font-weight: 500; color: #1a1a1a; letter-spacing: -0.02em; }
+    .pricing-sub { font-size: 13px; color: #aaa; margin-bottom: 20px; }
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
+    .feature-list li { font-size: 13px; color: #555; display: flex; align-items: center; gap: 8px; }
+    .fc { width: 16px; height: 16px; border-radius: 50%; background: #c8e6c9; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .fc::after { content: ''; width: 7px; height: 4px; border-left: 1.5px solid #2e7d32; border-bottom: 1.5px solid #2e7d32; transform: rotate(-45deg) translateY(-1px); }
+    .btn-free { width: 100%; padding: 13px; border-radius: 999px; background: #1b5e20; color: #fff; border: 2px solid #1b5e20; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s, color 0.2s; }
+    .btn-free:hover { background: #fff; color: #1b5e20; }
+    .btn-soon { width: 100%; padding: 13px; border-radius: 999px; background: transparent; color: #aaa; border: 1.5px solid #e0e0e0; font-size: 14px; cursor: not-allowed; }
+
+    /* CTA bottom */
+    .cta-bottom { background: linear-gradient(135deg, #e8f5e9 0%, #fff8e1 50%, #fce4ec 100%); padding: 96px 40px; text-align: center; border-top: 0.5px solid #e8e8e8; }
+    .cta-bottom-title { font-size: 32px; font-weight: 500; color: #1a1a1a; margin-bottom: 12px; letter-spacing: -0.01em; }
+    .cta-bottom-sub { font-size: 15px; color: #777; margin-bottom: 36px; }
+
+    footer { background: #111; padding: 32px 40px; text-align: center; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; }
+    .footer-links a { color: rgba(255,255,255,0.4); font-size: 12px; }
+    .footer-copy { color: rgba(255,255,255,0.25); font-size: 11px; }
+
+    @media (max-width: 600px) {
+      .hero-title { font-size: 34px; }
+      .mode-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .header-nav { display: none; }
+      .section { padding: 56px 20px; }
+      .hero-pills { gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:22px;">🥬</span>
+  <div class="logo-text">
+    <span class="logo-name">VegEatEase</span>
+    <span class="logo-tagline-pc">成分チェッカー</span>
+  </div>
+  <nav class="header-nav">
+    <a href="#lp-modes">食事スタイル</a>
+    <a href="#lp-howto">使い方</a>
+    <a href="#lp-pricing">料金</a>
+    <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank">お問い合わせ</a>
+    <a href="index.html" class="btn-login">ログイン</a>
+    <a href="index.html" class="btn-signup-nav">新規登録</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="hero-dots"></div>
+  <div class="hero-pills">
+    <span class="pill pill-green">🌿 オリエンタルベジ</span>
+    <span class="pill pill-pink">🌱 ヴィーガン</span>
+    <span class="pill pill-amber">🥚 ラクト・オボ</span>
+  </div>
+  <h1 class="hero-title">これ、食べても<br><mark>大丈夫？</mark></h1>
+  <p class="hero-sub">成分表を写真で撮るだけ。<br>あなたの食事スタイルに合わせて安全性を判定します。</p>
+  <a href="index.html" class="btn-hero">無料で始める →</a>
+  <p class="hero-note">無料登録でどのモードも月10回まで使えます</p>
+</div>
+
+<hr class="divider">
+<section class="section" id="lp-modes">
+  <div class="section-header">
+    <div class="section-label">食事スタイル</div>
+    <div class="section-title">あなたの食べ方に合わせて判定</div>
+  </div>
+  <div class="mode-grid">
+    <div class="mode-card mc-oriental">
+      <div class="mode-icon">🌿</div>
+      <div class="mode-name">オリエンタルベジタリアン</div>
+      <div class="mode-desc">五葷＋肉・魚NG。卵・乳製品・蜂蜜はOK。</div>
+      <span class="mode-badge tag-green">利用可能</span>
+    </div>
+    <div class="mode-card mc-vegan">
+      <div class="mode-icon">🌱</div>
+      <div class="mode-name">ヴィーガン</div>
+      <div class="mode-desc">すべての動物由来成分NG。</div>
+      <span class="mode-badge tag-pink">利用可能</span>
+    </div>
+    <div class="mode-card mc-lacto">
+      <div class="mode-icon">🥚</div>
+      <div class="mode-name">ラクト・オボ</div>
+      <div class="mode-desc">肉・魚のみNG。卵・乳製品はOK。</div>
+      <span class="mode-badge tag-amber">利用可能</span>
+    </div>
+    <div class="mode-card mc-custom">
+      <div class="mode-icon">⚙️</div>
+      <div class="mode-name">カスタムモード</div>
+      <div class="mode-desc">自分だけのNGリストを設定。</div>
+      <span class="mode-badge tag-purple">近日公開</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+<div class="steps-bg">
+  <section class="section" id="lp-howto">
+    <div class="section-header">
+      <div class="section-label">使い方</div>
+      <div class="section-title">3ステップですぐ使える</div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num sn1">1</div>
+        <div>
+          <div class="step-title">無料登録（30秒）</div>
+          <div class="step-desc">メールアドレスとパスワードだけで登録完了。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num sn2">2</div>
+        <div>
+          <div class="step-title">食事スタイルを選ぶ</div>
+          <div class="step-desc">4つのモードから選択。あとから変更もできます。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num sn3">3</div>
+        <div>
+          <div class="step-title">成分表を読み取る</div>
+          <div class="step-desc">写真を撮るか、テキストを貼り付けるだけ。AIが即座に判定します。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<hr class="divider">
+<section class="section" id="lp-pricing">
+  <div class="section-header">
+    <div class="section-label">料金</div>
+    <div class="section-title">まずは無料で試してみて</div>
+  </div>
+  <div class="pricing-grid">
+    <div class="pricing-card pricing-featured">
+      <div class="pricing-plan">無料プラン</div>
+      <div class="pricing-price">0円</div>
+      <div class="pricing-sub">月10回まで</div>
+      <ul class="feature-list">
+        <li><span class="fc"></span>全モード対応</li>
+        <li><span class="fc"></span>写真・テキスト両対応</li>
+        <li><span class="fc"></span>登録30秒</li>
+      </ul>
+      <a href="index.html"><button class="btn-free">無料で始める</button></a>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-plan">有料プラン</div>
+      <div class="pricing-price">準備中</div>
+      <div class="pricing-sub">&nbsp;</div>
+      <ul class="feature-list">
+        <li><span class="fc"></span>スキャン無制限</li>
+        <li><span class="fc"></span>カスタムモード</li>
+        <li><span class="fc"></span>履歴保存</li>
+      </ul>
+      <button class="btn-soon" disabled>近日公開</button>
+    </div>
+  </div>
+</section>
+
+<div class="cta-bottom">
+  <div class="cta-bottom-title">食べる前に、確かめよう。</div>
+  <div class="cta-bottom-sub">無料登録でどのモードも月10回まで使えます</div>
+  <a href="index.html" class="btn-hero">無料で始める →</a>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="privacy.html">プライバシーポリシー</a>
+    <a href="terms.html">利用規約</a>
+    <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank">お問い合わせ</a>
+  </div>
+  <div class="footer-copy">© 2026 VegEatEase</div>
+</footer>
+
+</body>
+</html>
