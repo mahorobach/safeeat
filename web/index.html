@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
+  <title>EatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
   <link rel="stylesheet" href="safeat.css?v=0.5.1">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
@@ -15,9 +15,8 @@
     <a href="#" class="logo-link" id="btn-logo-home">
       <span class="logo-icon">🥬</span>
       <div class="logo-text">
-        <div class="logo">VegEatEase</div>
-        <div class="tagline tagline-full">成分表を写真で撮るだけ。あなたの食事スタイルに合わせた成分チェッカー</div>
-        <div class="tagline tagline-short">成分チェッカー</div>
+        <div class="logo">EatEase</div>
+        <div class="tagline">成分チェッカー</div>
       </div>
     </a>
   </div>
@@ -284,6 +283,12 @@
       <span class="btn-label">🔍 今すぐチェックする</span>
     </button>
 
+    <!-- 解析中の注意書き（解析中のみ表示） -->
+    <p class="analyzing-note" id="analyzing-note" style="display:none">
+      ⏳ 解析中です。そのままお待ちください。<br>
+      <span>画面を切り替えるとエラーになる場合があります。</span>
+    </p>
+
     <!-- Error -->
     <div class="error-box" id="error-box"></div>
 
@@ -508,7 +513,7 @@
     <a href="terms.html" class="footer-link">利用規約</a>
     <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="footer-link">お問い合わせ</a>
   </div>
-  <div class="footer-copy">© 2026 VegEatEase</div>
+  <div class="footer-copy">© 2026 EatEase</div>
 </footer>
 
 <!-- Camera overlay -->

@@ -566,7 +566,7 @@ async function handleTextAnalyze() {
   }
 
   try {
-    const result = await analyzeTextWithGemini(ingredientsText, currentSessionMode);
+    const result = await analyzeTextWithGemini(ingredientsText);
     const promoted = promoteFromUserDB(result);
     renderResult(promoted, false, ingredientsText);
     refreshScanBadge();
@@ -621,7 +621,7 @@ async function handleImageAnalyze() {
 async function handleImageAnalyzeGemini() {
   try {
     _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
-    const { data, extractedText } = await analyzeImageWithGemini(_imageBase64, _imageMediaType, currentSessionMode);
+    const { data, extractedText } = await analyzeImageWithGemini(_imageBase64, _imageMediaType);
     const text = String(extractedText || "").trim();
     clearError();
     switchToTextInputTab();
@@ -640,7 +640,7 @@ async function handleImageAnalyzeGemini() {
 async function handleImageAnalyzeGeminiDetailed() {
   try {
     _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
-    const { data, extractedText } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType, currentSessionMode);
+    const { data, extractedText } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType);
     const text = String(extractedText || "").trim();
     clearError();
     switchToTextInputTab();
@@ -1074,6 +1074,8 @@ function setLoading(on) {
   document.querySelector(".btn-label").textContent = on
     ? "解析中..."
     : onImageTab ? "この画像で読み取る" : "成分を解析する";
+  const note = document.getElementById("analyzing-note");
+  if (note) note.style.display = on ? "block" : "none";
 }
 function showError(msg) {
   errorBox.textContent = msg;

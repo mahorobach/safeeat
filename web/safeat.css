@@ -53,15 +53,9 @@ header {
 .logo-link { display: flex; flex-direction: row; align-items: center; gap: 10px; text-decoration: none; color: inherit; cursor: pointer; }
 .logo-link:hover { opacity: 0.85; }
 .logo-icon { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
-.logo-svg {
-  height: 34px;
-  width: auto;
-  flex-shrink: 0;
-}
 .logo-text { display: flex; flex-direction: column; gap: 2px; }
 .logo { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.02em; line-height: 1.1; color: #fff; }
 .tagline { font-size: 0.68rem; color: rgba(255,255,255,0.7); letter-spacing: 0.03em; }
-.tagline-short { display: none; }
 .header-nav {
   display: flex; align-items: center; gap: 1.2rem;
   margin-left: auto; margin-right: 1rem;
@@ -74,25 +68,28 @@ header {
 .header-nav-link:hover { color: #fff; text-decoration: underline; }
 @media (max-width: 600px) {
   header {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     padding: 0.5rem 0.8rem;
-    gap: 8px;
+    gap: 0;
   }
-  .tagline-full { display: none; }
-  .tagline-short { display: block; font-size: 0.6rem; }
-  .logo-svg { height: 28px; }
+  .tagline { display: none !important; }
   .header-left { flex: 1; min-width: 0; }
-  .logo { font-size: 1rem; }
+  .logo { font-size: 1.1rem; }
   .btn-hamburger { display: flex; margin-left: auto; }
   .header-nav { display: none !important; }
   .auth-area {
+    order: 10;
+    width: 100%;
     display: flex !important;
     flex-direction: row;
+    justify-content: flex-end;
     align-items: center;
     gap: 0.4rem;
+    padding-top: 0.4rem;
+    margin-top: 0.3rem;
     flex-wrap: nowrap;
-    flex-shrink: 0;
+    overflow: hidden;
   }
   .scan-badge,
   .scan-badge-unlimited {
@@ -1621,3 +1618,20 @@ header { justify-content: space-between; }
   transition: background 0.15s, color 0.15s;
 }
 .btn-settings-logout:hover { background: #c0392b; color: #fff; }
+
+/* 解析中の注意書き */
+.analyzing-note {
+  text-align: center;
+  font-size: 0.82rem;
+  color: #888;
+  margin-top: 0.6rem;
+  line-height: 1.6;
+  padding: 8px 16px;
+  background: #fff8e1;
+  border-radius: 8px;
+  border: 0.5px solid #ffe082;
+}
+.analyzing-note span {
+  color: #e65100;
+  font-size: 0.78rem;
+}
