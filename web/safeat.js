@@ -902,6 +902,8 @@ function localFallback(text) {
   return rules.judgeIngredients(ingredients, db);
 }
 
+let _lastAnalysisResult = null;
+
 // --- Result rendering ---
 const OVERALL_CONFIG = {
   ok:   { icon: "✅", label: "オリエンタルベジタリアンとして食べられます" },
@@ -935,6 +937,10 @@ function renderResult(result, isOffline, extractedText) {
   renderOkList(result.ok || []);
   renderUnknownList(result.unknown || []);
   updateUserDBBadge();
+
+  _lastAnalysisResult = result;
+  const saveSec = document.getElementById("save-product-section");
+  if (saveSec) saveSec.style.display = "";
 
   updateResultComparePhoto();
   resultSection.classList.add("visible");
@@ -1440,6 +1446,7 @@ function applyModeDisplay(mode) {
       document.getElementById('mode-select-page'),
       document.getElementById('scanner-page'),
       document.getElementById('user-settings-page'),
+      document.getElementById('mylist-page'),
     ];
     allPages.forEach(p => { if (p) p.style.display = 'none'; });
     if (page) page.style.display = 'block';
@@ -1522,7 +1529,7 @@ function applyModeDisplay(mode) {
 })();
 
 // ===== 共通ページ切替ユーティリティ =====
-const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page'];
+const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page'];
 function showById(id) {
   _ALL_PAGES.forEach(p => {
     const el = document.getElementById(p);
@@ -1728,6 +1735,157 @@ document.addEventListener('click', (e) => {
       }
     } catch (err) {
       console.error('設定ページの情報取得に失敗:', err);
+    }
+  }
+})();
+
+// ===== バーコードスキャン・マイリスト保存 =====
+(function () {
+  let _zxingReader = null;
+  let _scannedProduct = null;
+
+  function stopBarcodeScanner() {
+    if (_zxingReader) {
+      _zxingReader.reset();
+      _zxingReader = null;
+    }
+    const video = document.getElementById('barcode-video');
+    if (video?.srcObject) {
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
+    }
+  }
+
+  function closeBarcodeArea() {
+    stopBarcodeScanner();
+    _scannedProduct = null;
+    const area = document.getElementById('barcode-scan-area');
+    const preview = document.getElementById('barcode-result-preview');
+    const errEl = document.getElementById('barcode-scan-error');
+    if (area) area.style.display = 'none';
+    if (preview) preview.style.display = 'none';
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  }
+
+  document.getElementById('btn-save-product-open')?.addEventListener('click', () => {
+    if (!window.SafeEatAuth) return;
+    const area = document.getElementById('barcode-scan-area');
+    if (!area) return;
+    area.style.display = '';
+    document.getElementById('barcode-result-preview').style.display = 'none';
+    document.getElementById('barcode-scan-error').style.display = 'none';
+
+    const video = document.getElementById('barcode-video');
+    try {
+      _zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
+      _zxingReader.decodeFromVideoDevice(null, video, async (result, err) => {
+        if (!result) return;
+        const janCode = result.getText();
+        stopBarcodeScanner();
+
+        const errEl = document.getElementById('barcode-scan-error');
+        errEl.style.display = 'none';
+        try {
+          const product = await lookupProduct(janCode);
+          _scannedProduct = product;
+          document.getElementById('barcode-product-name').textContent = product.product_name;
+          const img = document.getElementById('barcode-product-image');
+          img.src = product.image_url || '';
+          img.style.display = product.image_url ? '' : 'none';
+          const link = document.getElementById('barcode-product-link');
+          link.href = product.shop_url || '#';
+          document.getElementById('barcode-result-preview').style.display = '';
+        } catch (e) {
+          errEl.textContent = e.message || '商品情報の取得に失敗しました';
+          errEl.style.display = '';
+        }
+      });
+    } catch (e) {
+      document.getElementById('barcode-scan-error').textContent = 'カメラを起動できませんでした';
+      document.getElementById('barcode-scan-error').style.display = '';
+    }
+  });
+
+  document.getElementById('btn-barcode-close')?.addEventListener('click', closeBarcodeArea);
+  document.getElementById('btn-barcode-cancel')?.addEventListener('click', closeBarcodeArea);
+
+  document.getElementById('btn-barcode-save')?.addEventListener('click', async () => {
+    if (!_scannedProduct) return;
+    const btn = document.getElementById('btn-barcode-save');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+    try {
+      await saveProduct({
+        jan_code:        _scannedProduct.jan_code,
+        product_name:    _scannedProduct.product_name,
+        image_url:       _scannedProduct.image_url,
+        shop_url:        _scannedProduct.shop_url,
+        diet_mode:       currentSessionMode || 'oriental',
+        analysis_result: _lastAnalysisResult || null,
+      });
+      btn.textContent = '✅ 保存しました';
+      setTimeout(closeBarcodeArea, 1200);
+    } catch (e) {
+      const errEl = document.getElementById('barcode-scan-error');
+      errEl.textContent = e.message || '保存に失敗しました';
+      errEl.style.display = '';
+      btn.disabled = false;
+      btn.textContent = '保存する';
+    }
+  });
+
+  // ===== マイリストページ =====
+  document.getElementById('drawer-nav-mylist')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    showById('mylist-page');
+    await loadMyList();
+  });
+
+  document.getElementById('btn-mylist-back')?.addEventListener('click', () => {
+    showById('scanner-page');
+  });
+
+  async function loadMyList() {
+    const itemsEl = document.getElementById('mylist-items');
+    const emptyEl = document.getElementById('mylist-empty');
+    if (!itemsEl) return;
+    itemsEl.innerHTML = '<p style="text-align:center;color:#888;padding:2rem;">読み込み中…</p>';
+    try {
+      const items = await getMyList();
+      itemsEl.innerHTML = '';
+      if (items.length === 0) {
+        if (emptyEl) emptyEl.style.display = '';
+        return;
+      }
+      if (emptyEl) emptyEl.style.display = 'none';
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'mylist-card';
+        card.innerHTML = `
+          ${item.image_url ? `<img class="mylist-card-image" src="${esc(item.image_url)}" alt="">` : '<div class="mylist-card-no-image">📦</div>'}
+          <div class="mylist-card-body">
+            <div class="mylist-card-name">${esc(item.product_name)}</div>
+            <div class="mylist-card-mode">${esc(item.diet_mode)}</div>
+            ${item.shop_url ? `<a class="mylist-card-link" href="${esc(item.shop_url)}" target="_blank" rel="noopener">楽天で見る →</a>` : ''}
+          </div>
+          <button class="mylist-card-delete" data-id="${esc(item.id)}" aria-label="削除">✕</button>
+        `;
+        card.querySelector('.mylist-card-delete')?.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          if (!confirm('このアイテムを削除しますか？')) return;
+          try {
+            await deleteProduct(id);
+            card.remove();
+            const remaining = itemsEl.querySelectorAll('.mylist-card');
+            if (remaining.length === 0 && emptyEl) emptyEl.style.display = '';
+          } catch (err) {
+            alert(err.message || '削除に失敗しました');
+          }
+        });
+        itemsEl.appendChild(card);
+      });
+    } catch (e) {
+      itemsEl.innerHTML = `<p style="text-align:center;color:#c00;padding:2rem;">${e.message || '取得に失敗しました'}</p>`;
     }
   }
 })();

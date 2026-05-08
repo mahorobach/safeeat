@@ -9,6 +9,7 @@ import ingredientsRouter from "./routes/ingredients.js";
 import userRouter from "./routes/user.js";
 import subscriptionRouter, { webhookHandler } from "./routes/subscription.js";
 import adminRouter from "./routes/admin.js";
+import productRouter from "./routes/product.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** cwd に依存しない（リポジトリルートから node server/index.js でも server/.env を読む） */
@@ -83,6 +84,7 @@ app.use("/api/ingredients",  ingredientsRouter);
 app.use("/api/user",         userRouter);
 app.use("/api/subscription", subscriptionRouter);
 app.use("/api/admin",        adminRouter);
+app.use("/api/product",      productRouter);
 
 // --- 404 ---
 app.use((_req, res) => res.status(404).json({ ok: false, error: "Not Found" }));

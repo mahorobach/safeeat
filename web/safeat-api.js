@@ -290,3 +290,44 @@ async function analyzeTextWithGemini(ingredientsText, dietMode = "oriental") {
 
   return data.data;
 }
+
+// ===== 商品検索・マイリスト API =====
+
+async function lookupProduct(janCode) {
+  const res = await fetch(`${API_BASE}/api/product/lookup?jan=${encodeURIComponent(janCode)}`, {
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) throw new Error(data.error || "商品が見つかりませんでした");
+  return data.data;
+}
+
+async function saveProduct(productData) {
+  const res = await fetch(`${API_BASE}/api/product/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(productData),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) throw new Error(data.error || "保存に失敗しました");
+  return data;
+}
+
+async function getMyList() {
+  const res = await fetch(`${API_BASE}/api/product/mylist`, {
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) throw new Error(data.error || "取得に失敗しました");
+  return data.data;
+}
+
+async function deleteProduct(id) {
+  const res = await fetch(`${API_BASE}/api/product/mylist/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) throw new Error(data.error || "削除に失敗しました");
+  return data;
+}

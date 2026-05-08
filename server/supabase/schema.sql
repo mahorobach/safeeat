@@ -181,3 +181,28 @@ CREATE POLICY "users can read own scan logs"
 
 CREATE POLICY "users can insert own scan logs"
   ON public.scan_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ===== saved_products（マイリスト） =====
+CREATE TABLE IF NOT EXISTS public.saved_products (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  jan_code        TEXT NOT NULL,
+  product_name    TEXT NOT NULL,
+  image_url       TEXT NOT NULL DEFAULT '',
+  shop_url        TEXT NOT NULL DEFAULT '',
+  diet_mode       TEXT NOT NULL DEFAULT 'oriental',
+  analysis_result JSONB,
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (user_id, jan_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_products_user ON public.saved_products (user_id, created_at DESC);
+
+ALTER TABLE public.saved_products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "saved_products_own_select" ON public.saved_products
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "saved_products_own_insert" ON public.saved_products
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "saved_products_own_delete" ON public.saved_products
+  FOR DELETE USING (auth.uid() = user_id);

@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
+  <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
   <link rel="stylesheet" href="safeat.css?v=0.5.1">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
+  <script src="https://unpkg.com/@zxing/browser@latest/umd/index.min.js"></script>
 </head>
 <body>
 
@@ -15,8 +16,9 @@
     <a href="#" class="logo-link" id="btn-logo-home">
       <span class="logo-icon">🥬</span>
       <div class="logo-text">
-        <div class="logo">EatEase</div>
-        <div class="tagline">成分チェッカー</div>
+        <div class="logo">VegEatEase</div>
+        <div class="tagline tagline-full">成分表を写真で撮るだけ。あなたの食事スタイルに合わせた成分チェッカー</div>
+        <div class="tagline tagline-short">成分チェッカー</div>
       </div>
     </a>
   </div>
@@ -41,6 +43,7 @@
     <nav class="drawer-nav">
       <a href="#" class="drawer-nav-link" id="drawer-nav-top">Top</a>
       <a href="#" class="drawer-nav-link" id="drawer-nav-app">アプリ</a>
+      <a href="#" class="drawer-nav-link" id="drawer-nav-mylist">📦 マイリスト</a>
       <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="drawer-nav-link">お問い合わせ</a>
       <a href="privacy.html" class="drawer-nav-link">プライバシーポリシー</a>
       <a href="terms.html" class="drawer-nav-link">利用規約</a>
@@ -384,6 +387,35 @@
         </button>
       </div>
 
+      <!-- マイリスト保存セクション -->
+      <div id="save-product-section" style="display:none">
+        <div class="save-product-card">
+          <button type="button" class="btn-save-product-open" id="btn-save-product-open">
+            📦 この商品をマイリストに保存する
+          </button>
+          <!-- バーコードスキャンエリア -->
+          <div id="barcode-scan-area" style="display:none">
+            <p class="barcode-hint">商品のバーコードにカメラを向けてください</p>
+            <video id="barcode-video" class="barcode-video" autoplay playsinline muted></video>
+            <div id="barcode-result-preview" style="display:none">
+              <div class="barcode-product-preview">
+                <img id="barcode-product-image" class="barcode-product-image" src="" alt="">
+                <div class="barcode-product-info">
+                  <div class="barcode-product-name" id="barcode-product-name"></div>
+                  <a class="barcode-product-link" id="barcode-product-link" target="_blank" rel="noopener">楽天で見る →</a>
+                </div>
+              </div>
+              <div class="barcode-actions">
+                <button type="button" class="btn-barcode-save" id="btn-barcode-save">保存する</button>
+                <button type="button" class="btn-barcode-cancel" id="btn-barcode-cancel">キャンセル</button>
+              </div>
+            </div>
+            <div id="barcode-scan-error" class="barcode-scan-error" style="display:none"></div>
+            <button type="button" class="btn-barcode-close" id="btn-barcode-close">✕ 閉じる</button>
+          </div>
+        </div>
+      </div>
+
       <!-- User DB badge -->
       <p class="user-db-note">
         <span id="user-db-count" style="display:none"></span>
@@ -499,6 +531,20 @@
     </div>
   </div><!-- /#user-settings-page -->
 
+  <!-- ===== マイリストページ ===== -->
+  <div id="mylist-page" style="display:none">
+    <div class="user-settings-wrap">
+      <div class="user-settings-header">
+        <button type="button" class="btn-back" id="btn-mylist-back">← 戻る</button>
+        <h2 class="user-settings-title">📦 マイリスト</h2>
+      </div>
+      <div id="mylist-container">
+        <p class="mylist-empty" id="mylist-empty" style="display:none">まだ保存された商品はありません</p>
+        <div id="mylist-items"></div>
+      </div>
+    </div>
+  </div><!-- /#mylist-page -->
+
 </main>
 
 <footer>
@@ -507,7 +553,7 @@
     <a href="terms.html" class="footer-link">利用規約</a>
     <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="footer-link">お問い合わせ</a>
   </div>
-  <div class="footer-copy">© 2026 EatEase</div>
+  <div class="footer-copy">© 2026 VegEatEase</div>
 </footer>
 
 <!-- Camera overlay -->
