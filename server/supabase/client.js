@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 /**
  * 本番は .env に必ず SUPABASE_* を設定すること。
@@ -18,9 +19,12 @@ const serviceKey = envOr(
 );
 
 // anon key: 一般公開クエリ用（RLSで保護）
-export const supabase = createClient(url, anonKey);
+export const supabase = createClient(url, anonKey, {
+  realtime: { transport: ws },
+});
 
 // service_role key: RLSをバイパスしてサーバー側でのみ使用
 export const supabaseAdmin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
+  realtime: { transport: ws },
 });
