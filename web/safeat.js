@@ -1411,6 +1411,9 @@ function applyModeDisplay(mode) {
       showPage(landing);
       return;
     }
+    // カメラ復帰などで onAuthStateChange が再発火しても、
+    // 既にスキャナーページ表示中なら再ナビゲートしない
+    if (scanner && scanner.style.display !== 'none') return;
     try {
       const token = sessionStorage.getItem('safeat_auth_token');
       const res = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
