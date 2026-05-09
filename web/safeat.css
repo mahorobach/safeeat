@@ -1086,23 +1086,24 @@ footer {
   width: 88%;
   max-width: 520px;
   aspect-ratio: 1 / 1;
+  border: 2px solid rgba(255,255,255,0.75);
+  border-radius: 8px;
   /* box-shadow でフレーム外を暗くする */
   box-shadow: 0 0 0 200vmax rgba(0,0,0,.62);
-  border-radius: 6px;
 }
 
 /* コーナーマーカー（L字）*/
 .cgc {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-color: #fff;
   border-style: solid;
 }
-.cgc.tl { top: -2px; left: -2px;  border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
-.cgc.tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 3px 0 0; }
-.cgc.bl { bottom: -2px; left: -2px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
-.cgc.br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
+.cgc.tl { top: -3px; left: -3px;  border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }
+.cgc.tr { top: -3px; right: -3px; border-width: 3px 3px 0 0; border-radius: 0 6px 0 0; }
+.cgc.bl { bottom: -3px; left: -3px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 6px; }
+.cgc.br { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; border-radius: 0 0 6px 0; }
 
 /* 撮影ボタン周辺 */
 .camera-buttons {
