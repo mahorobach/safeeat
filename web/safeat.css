@@ -1877,6 +1877,36 @@ header { justify-content: space-between; }
   text-align: left;
 }
 
+/* ===== マイリスト保存完了後リンク ===== */
+.mylist-saved-links {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0;
+}
+.mylist-saved-links a {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.mylist-saved-links a:first-child {
+  background: #bf0000;
+  color: #fff;
+}
+.mylist-saved-links a:last-child {
+  background: #ff9900;
+  color: #fff;
+}
+.mylist-saved-goto {
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+  color: #27ae60;
+  font-size: 0.9rem;
+}
+
 /* ===== フィードバックボタン ===== */
 .btn-feedback {
   background: none;

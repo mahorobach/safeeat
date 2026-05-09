@@ -2059,16 +2059,31 @@ document.addEventListener('click', (e) => {
     if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
     try {
       await saveProduct({
-        ingredient_text: _lastExtractedText  || null,
-        diet_mode:       currentSessionMode  || 'oriental',
+        ingredient_text: _lastExtractedText || null,
+        diet_mode:       currentSessionMode || 'oriental',
         is_safe:         true,
         ...productData,
       });
-      if (saveArea) saveArea.style.display = 'none';
-      if (statusEl) { statusEl.textContent = '✅ マイリストに保存しました'; statusEl.style.display = ''; }
-      setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3000);
+      if (btn) btn.style.display = 'none';
+      if (statusEl) {
+        const shopUrl   = productData.shop_url   || null;
+        const amazonUrl = productData.amazon_url || null;
+        const linksHtml = (shopUrl || amazonUrl) ? `
+          <div class="mylist-saved-links">
+            ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener">🛒 楽天で購入 →</a>` : ''}
+            ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener">📦 Amazonで購入 →</a>` : ''}
+          </div>` : '';
+        statusEl.innerHTML = `<p>✅ マイリストに保存しました</p>${linksHtml}<a href="#" class="mylist-saved-goto">📋 マイリストはこちら</a>`;
+        statusEl.style.display = '';
+        statusEl.querySelector('.mylist-saved-goto')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          showById('mylist-page');
+          loadMyList();
+        });
+      }
+      if (saveArea) saveArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = '📷 バーコードを読み取り、この商品をリストに登録'; }
+      if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = '📷 バーコードを読み取り、この商品をリストに登録'; }
       if (statusEl) { statusEl.textContent = '保存に失敗しました: ' + (e.message || ''); statusEl.style.display = ''; }
     }
   }
