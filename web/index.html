@@ -393,18 +393,22 @@
       <div id="save-product-section" style="display:none">
         <div class="save-product-card">
           <button type="button" class="btn-save-product-open" id="btn-save-product-open">
-            📦 この商品をマイリストに保存する
+            ✅ この商品をマイリストに登録する
           </button>
           <!-- バーコードスキャンエリア -->
           <div id="barcode-scan-area" style="display:none">
             <p class="barcode-hint">商品のバーコードにカメラを向けてください</p>
             <div id="qr-reader" class="barcode-video"></div>
+            <button type="button" class="btn-barcode-skip" id="btn-barcode-skip">バーコードなしで保存する</button>
             <div id="barcode-result-preview" style="display:none">
               <div class="barcode-product-preview">
                 <img id="barcode-product-image" class="barcode-product-image" src="" alt="">
                 <div class="barcode-product-info">
                   <div class="barcode-product-name" id="barcode-product-name"></div>
-                  <a class="barcode-product-link" id="barcode-product-link" target="_blank" rel="noopener">楽天で見る →</a>
+                  <div class="barcode-product-links">
+                    <a class="barcode-product-link" id="barcode-product-link" target="_blank" rel="noopener">楽天で見る →</a>
+                    <a class="barcode-product-link barcode-product-link--amazon" id="barcode-amazon-link" target="_blank" rel="noopener">Amazonで見る →</a>
+                  </div>
                 </div>
               </div>
               <div class="barcode-actions">

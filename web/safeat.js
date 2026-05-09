@@ -903,6 +903,7 @@ function localFallback(text) {
 }
 
 let _lastAnalysisResult = null;
+let _lastExtractedText  = null;
 
 // --- Result rendering ---
 const OVERALL_CONFIG = {
@@ -939,8 +940,33 @@ function renderResult(result, isOffline, extractedText) {
   updateUserDBBadge();
 
   _lastAnalysisResult = result;
+  _lastExtractedText  = extractedText || null;
+
   const saveSec = document.getElementById("save-product-section");
-  if (saveSec) saveSec.style.display = "";
+  if (saveSec && getToken()) {
+    if (result.overall === 'ok') {
+      saveSec.style.display = '';
+      saveSec.dataset.ingredientText = extractedText || '';
+      saveSec.dataset.dietMode       = currentSessionMode || 'oriental';
+
+    } else if (result.overall === 'gray') {
+      const confirmed = window.confirm(
+        '由来確認が必要な成分が含まれています。\nご自身でOKと判断した場合、マイリストに登録できます。\n\n登録しますか？'
+      );
+      if (confirmed) {
+        saveSec.style.display = '';
+        saveSec.dataset.ingredientText = extractedText || '';
+        saveSec.dataset.dietMode       = currentSessionMode || 'oriental';
+      } else {
+        saveSec.style.display = 'none';
+      }
+
+    } else {
+      saveSec.style.display = 'none';
+    }
+  } else if (saveSec) {
+    saveSec.style.display = 'none';
+  }
 
   updateResultComparePhoto();
   resultSection.classList.add("visible");
@@ -1863,6 +1889,9 @@ document.addEventListener('click', (e) => {
             img.style.display = product.image_url ? '' : 'none';
             const link = document.getElementById('barcode-product-link');
             link.href = product.shop_url || '#';
+            const amazonLink = document.getElementById('barcode-amazon-link');
+            const amazonQuery = product.jan_code || product.product_name;
+            amazonLink.href = `https://www.amazon.co.jp/s?k=${encodeURIComponent(amazonQuery)}&i=grocery&tag=vegeatease-22`;
             document.getElementById('barcode-result-preview').style.display = '';
           } catch (e) {
             errEl.textContent = e.message || '商品情報の取得に失敗しました';
@@ -1880,6 +1909,27 @@ document.addEventListener('click', (e) => {
   document.getElementById('btn-barcode-close')?.addEventListener('click', closeBarcodeArea);
   document.getElementById('btn-barcode-cancel')?.addEventListener('click', closeBarcodeArea);
 
+  document.getElementById('btn-barcode-skip')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-barcode-skip');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+    try {
+      await saveProduct({
+        diet_mode:       currentSessionMode || 'oriental',
+        ingredient_text: _lastExtractedText || null,
+        is_safe:         true,
+      });
+      btn.textContent = '✅ 保存しました';
+      setTimeout(closeBarcodeArea, 1200);
+    } catch (e) {
+      const errEl = document.getElementById('barcode-scan-error');
+      errEl.textContent = e.message || '保存に失敗しました';
+      errEl.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'バーコードなしで保存する';
+    }
+  });
+
   document.getElementById('btn-barcode-save')?.addEventListener('click', async () => {
     if (!_scannedProduct) return;
     const btn = document.getElementById('btn-barcode-save');
@@ -1891,8 +1941,10 @@ document.addEventListener('click', (e) => {
         product_name:    _scannedProduct.product_name,
         image_url:       _scannedProduct.image_url,
         shop_url:        _scannedProduct.shop_url,
+        amazon_url:      `https://www.amazon.co.jp/s?k=${encodeURIComponent(_scannedProduct.jan_code)}&i=grocery&tag=vegeatease-22`,
         diet_mode:       currentSessionMode || 'oriental',
-        analysis_result: _lastAnalysisResult || null,
+        ingredient_text: _lastExtractedText || null,
+        is_safe:         true,
       });
       btn.textContent = '✅ 保存しました';
       setTimeout(closeBarcodeArea, 1200);

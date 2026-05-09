@@ -1,11 +1,11 @@
-# SafeEat 開発指示書【完全版】
-## Claude Code + Gemini 2.5 Flash + Railway + Supabase + GitHub Pages
+# VegeEatEase 開発指示書【完全版】
+## Claude Code + Gemini 2.5 Flash + Railway + Supabase + Cloudflare Pages
 
 ---
 
 ## 1. プロジェクト概要
 
-**アプリ名：SafeEat**
+**アプリ名：VegeEatEase**
 **目的：** 食品の成分表を入力し、食事スタイル別に成分の安全性を判定するWebアプリ
 
 ### ターゲットユーザー
@@ -19,6 +19,22 @@
 - オーナーはRakuten Marketで菜食専門店「菜食健美」を2011年より運営
 - 市場に菜食カテゴリを細かく分類できる成分チェックツールが少ない
 - 自身の食事スタイル（乳・ローヤルゼリーはOK）を含む多様な菜食スタイルに対応したい
+
+### サービス展開方針（2サービス）
+
+```
+app.eatease.net（VegeEatEase）
+  → 全モード対応・将来課金・メイン事業
+  → 新UIはPhase 5で設計
+
+daisho-kikaku.com（菜食健美 成分チェッカー）
+  → 現在のUIをそのまま流用
+  → オリエンタルベジ専用・無料・Xserverに直置き
+  → 菜食健美の既存顧客向け
+
+バックエンド・Supabaseは両サービスで共用
+  → ingredient_cacheが共通蓄積 → Gemini API費用削減
+```
 
 ---
 
@@ -34,10 +50,11 @@
 | AI解析（予備） | Claude API `claude-sonnet-4-6`系（テキスト判定・`/api/analyze`） |
 | キャッシュ | Supabase `ingredient_cache` テーブル（SHA-256ハッシュ・モード別複合キー） |
 | APIホスティング | **Railway**（本番） |
-| フロントホスティング | GitHub Pages |
-| ソース管理 | GitHub |
+| フロントホスティング | **Cloudflare Pages**（app.eatease.net） |
+| メール送信 | **Resend**（noreply@eatease.net・認証済み） |
+| ドメイン | **Cloudflare**（eatease.net・約$10/年） |
+| ソース管理 | GitHub（**プライベート**） |
 | 決済（将来） | Stripe |
-| 本番移行先（将来） | Xserver（PHP + MySQL） |
 
 ---
 
@@ -79,7 +96,7 @@
 ## 4. フォルダ構成
 
 ```
-SafeEat/
+VegeEatEase/（リポジトリ名: safeeat）
 ├── web/
 │   ├── index.html
 │   ├── site-config.js            # API_BASE・SUPABASE_URL・SUPABASE_ANON_KEY
@@ -87,6 +104,9 @@ SafeEat/
 │   ├── safeat-api.js             # API クライアント
 │   ├── auth.js                   # Supabase Auth クライアント（window.SafeEatAuth）
 │   ├── safeat.css
+│   ├── admin.html                # 管理者ページ
+│   ├── privacy.html              # プライバシーポリシー
+│   ├── terms.html                # 利用規約
 │   └── lib/
 │       ├── ingredients-db.js
 │       └── rules.js
@@ -206,18 +226,13 @@ GET  /api/admin/check                  → 管理者チェック
 GET  /api/admin/stats                  → 統計情報
 GET  /api/admin/users                  → ユーザー一覧
 PUT  /api/admin/users/:userId/plan     → プラン変更
-GET  /api/product/lookup               → バーコード商品情報検索（Open Food Facts利用）
+GET  /api/product/lookup               → バーコード商品情報検索（楽天API利用）
 POST /api/product/save                 → マイリスト保存
 GET  /api/product/mylist               → マイリスト取得
 DELETE /api/product/mylist/:id         → マイリスト削除
 GET  /api/subscription/status          → サブスク状態確認
 POST /api/subscription/cancel          → サブスク解約
 ```
-
-### 本番リリース前に必ずやること
-
-- [ ] Supabase「Confirm email」をONに戻す
-- [ ] SendGridまたはResendのSMTPを設定する
 
 ---
 
@@ -227,6 +242,7 @@ POST /api/subscription/cancel          → サブスク解約
 - `/api/analyze/gemini/image/detailed`: OCR後テキストをキャッシュ保存（検索なし）
 - **`ingredient_cache` の主キーは `(ingredient_hash, diet_mode)` の複合キー**
   - モードが違う成分は別エントリ。将来のモード追加に対応済み
+- ハッシュ正規化は実装済み・再検討不要（analyze-gemini.js の hashIngredientText() 参照）
 
 ---
 
@@ -245,6 +261,8 @@ POST /api/subscription/cancel          → サブスク解約
 | `ALLOWED_ORIGINS` | 本番推奨 | CORS許可オリジン（末尾スラッシュなし） |
 | `PORT` | 任意 | 未設定時は3000 |
 
+現在の ALLOWED_ORIGINS: `https://app.eatease.net,https://mahorobach.github.io`
+
 `web/site-config.js` に設定するもの（公開可）：`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`API_BASE`
 
 ---
@@ -257,8 +275,10 @@ POST /api/subscription/cancel          → サブスク解約
 | 2 | Gemini 1ステップ解析 + Supabaseキャッシュ | **完了** |
 | 3 | ユーザー認証（Supabase Auth）・月10回制限・管理者ページ | **完了** |
 | 3.5 | ランディングページ・モード選択・法的ページ | **完了** |
-| 3.6 | メール送信設定（Resend・daisho-kikaku.comドメイン認証） | **⚠️ 途中** |
-| 4 | テストユーザー招待・フィードバック収集 | **← 現在** |
+| 3.6 | メール設定（Resend・eatease.net認証） | **✅ 完了** |
+| 3.7 | インフラ整備（Cloudflare Pages・ドメイン取得・GitHub Private化） | **✅ 完了** |
+| 3.8 | バーコードスキャン → 楽天・Amazonリンク | **✅ 完了** |
+| 4 | テストユーザー招待・フィードバック収集（9名） | **← 現在** |
 | 5 | UIデザイン改善・集客 | 次 |
 | 6 | サブスク課金（Stripe）・プラン管理 | ユーザー数を見て判断 |
 | 7 | グレー確認フロー（有料プランの核心） | 有料プランの核心機能 |
@@ -270,9 +290,6 @@ POST /api/subscription/cancel          → サブスク解約
 ### 収益方針
 
 **まずユーザーを集めることを最優先。** 課金設計はユーザーが一定数集まってから判断する。
-
-- Apple Developer費用（年間12,000円）はiOSアプリが必要になるタイミングまで不要
-- iOSアプリが有効になるのはバーコードスキャン実装時（Phase 11）
 
 ### プラン設計（暫定）
 
@@ -293,6 +310,8 @@ POST /api/subscription/cancel          → サブスク解約
 | 16 | Email rate limit exceeded | Supabase無料プランは1時間4通制限 | 開発中はConfirm emailをOFF・本番は外部SMTP |
 | 17 | 残り回数が「？」・500エラー | `user_profiles` テーブルが未作成 | Supabase SQL EditorでCREATE TABLE実行 |
 | 18 | 既存ユーザーにプロファイルがない | トリガー設定前に登録したユーザー | `INSERT INTO user_profiles SELECT id FROM auth.users ON CONFLICT DO NOTHING` |
+| 19 | 管理リンクが複数表示 | onAuthStateChangeが複数回発火 | ユーザー設定ページ内に管理リンクを移動 |
+| 20 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
 
 ---
 
@@ -300,12 +319,25 @@ POST /api/subscription/cancel          → サブスク解約
 
 | 項目 | URL |
 |---|---|
-| フロントエンド | https://mahorobach.github.io/safeeat/web/index.html |
+| フロントエンド | https://app.eatease.net |
+| 管理者ページ | https://app.eatease.net/admin.html |
 | APIサーバー | https://safeeat-production-b7c5.up.railway.app |
 | API死活確認 | https://safeeat-production-b7c5.up.railway.app/api/health |
-| GitHubリポジトリ | https://github.com/mahorobach/safeeat |
+| GitHubリポジトリ | https://github.com/mahorobach/safeeat（プライベート） |
+
+---
+
+## 13. サービス別アカウントメモ
+
+| サービス | 備考 |
+|---|---|
+| Cloudflare | Dokakao@gmail.com / ドメイン: eatease.net / Pages: safeeat（app.eatease.net） |
+| Railway | プロジェクト: safeeat |
+| Supabase | Confirm email: ON / Sender: noreply@eatease.net / Site URL: https://app.eatease.net |
+| Resend | ドメイン: eatease.net（認証済み） |
+| GitHub | mahorobach/safeeat（プライベート） |
 
 ---
 
 *作成日：2026年4月28日*
-*最終更新：2026年5月9日（Claudeモデル更新・フォルダ構成/APIエンドポイント追記・ロードマップをREADMEと整合）*
+*最終更新：2026年5月9日（ブランド名をVegeEatEaseに変更・Cloudflare Pages移行・メール設定完了・バーコード機能追加・tester9名付与・URL全面更新）*

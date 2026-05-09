@@ -43,24 +43,63 @@ router.get("/lookup", async (req, res, next) => {
 // POST /api/product/save
 router.post("/save", async (req, res, next) => {
   try {
-    const { jan_code, product_name, image_url, shop_url, diet_mode, analysis_result } = req.body;
-    if (!jan_code || !product_name) {
-      return res.status(400).json({ ok: false, error: "jan_code・product_name は必須です" });
-    }
-
-    const { error } = await supabaseAdmin.from("saved_products").insert({
-      user_id: req.user.id,
+    const {
       jan_code,
       product_name,
-      image_url: image_url || "",
-      shop_url: shop_url || "",
-      diet_mode: diet_mode || "oriental",
-      analysis_result: analysis_result || null,
+      image_url,
+      shop_url,
+      amazon_url,
+      diet_mode       = "oriental",
+      ingredient_text,
+      is_safe         = true,
+    } = req.body;
+
+    // ① saved_products に保存（個人マイリスト）
+    const { error: saveError } = await supabaseAdmin.from("saved_products").insert({
+      user_id:         req.user.id,
+      jan_code:        jan_code        ?? null,
+      product_name:    product_name    ?? null,
+      image_url:       image_url       ?? null,
+      shop_url:        shop_url        ?? null,
+      amazon_url:      amazon_url      ?? null,
+      diet_mode,
+      ingredient_text: ingredient_text ?? null,
+      is_safe,
     });
 
-    if (error) {
-      if (error.code === "23505") return res.status(409).json({ ok: false, error: "すでに保存済みです" });
-      throw error;
+    if (saveError) {
+      if (saveError.code === "23505") return res.status(409).json({ ok: false, error: "すでに保存済みです" });
+      throw saveError;
+    }
+
+    // ② JANコードがある場合のみ product_catalog へ upsert
+    if (jan_code) {
+      const { error: catalogError } = await supabaseAdmin
+        .from("product_catalog")
+        .upsert(
+          {
+            jan_code,
+            diet_mode,
+            product_name:    product_name    ?? null,
+            ingredient_text: ingredient_text ?? null,
+            is_safe,
+            image_url:       image_url       ?? null,
+            shop_url:        shop_url        ?? null,
+            amazon_url:      amazon_url      ?? null,
+            scan_count:      1,
+            last_scanned_at: new Date().toISOString(),
+          },
+          { onConflict: "jan_code,diet_mode", ignoreDuplicates: false }
+        );
+
+      if (catalogError) {
+        console.error("product_catalog upsert failed:", catalogError.message);
+      } else {
+        await supabaseAdmin.rpc("increment_catalog_scan_count", {
+          p_jan_code:  jan_code,
+          p_diet_mode: diet_mode,
+        });
+      }
     }
 
     res.json({ ok: true });

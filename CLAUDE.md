@@ -1,4 +1,4 @@
-# SafeEat — Claude Code 指示
+# VegeEatEase — Claude Code 指示
 
 **作業前に `README.md` を読むこと。**
 
@@ -14,9 +14,9 @@
 ## 現在の画面構成（index.html内）
 
 ```
-#landing-page      未ログイン時のランディングページ
-#mode-select-page  初回ログイン時のモード選択
-#scanner-page      スキャン画面（ログイン後）
+#landing-page       未ログイン時のランディングページ
+#mode-select-page   初回ログイン時のモード選択
+#scanner-page       スキャン画面（ログイン後）
 #user-settings-page ユーザー設定ページ
 ```
 
@@ -54,12 +54,21 @@ showPage(page) 関数で切り替える。この関数は全ページをdisplay:
 - tester・pro・business は無制限
 - `scan_month`（YYYY-MM）で月替わり自動リセット
 - 管理者リンクはユーザー設定ページ内に表示（ヘッダーには出さない）
+- testerプランは現在9名に付与済み
 
-## メール設定（未完了）
+## メール設定（✅ 完了）
 
-- 現在「Confirm email」はOFF
-- Resendの `daisho-kikaku.com` DNS設定が完了したらONに戻す
-- 本番前に必ず対応すること
+- Resend + eatease.net ドメイン認証済み
+- Sender email: noreply@eatease.net
+- Supabase「Confirm email」: ON
+- ※ daisho-kikaku.com のDNS設定は不要になった（eatease.netに移行済み）
+
+## インフラ
+
+- フロント: Cloudflare Pages（app.eatease.net）
+- リポジトリ: GitHub Private（mahorobach/safeeat）
+- API: Railway（safeeat-production-b7c5.up.railway.app）
+- ALLOWED_ORIGINS: `https://app.eatease.net,https://mahorobach.github.io`
 
 ## 作業後チェックリスト
 
@@ -67,5 +76,3 @@ showPage(page) 関数で切り替える。この関数は全ページをdisplay:
 - [ ] 新ルート追加時は CORS・`server/index.js` のマウント確認
 - [ ] 本番URL変更時は `web/site-config.js` と `ALLOWED_ORIGINS` の両方
 - [ ] 認証ミドルウェアを通さないルートを作らない（`/api/health` 以外）
-- [ ] **本番リリース前に Supabase の「Confirm email」をONに戻す**
-- [ ] **本番リリース前にDNS設定・Resendドメイン認証を完了する**

@@ -1,4 +1,4 @@
-# SafeEat — 食品成分チェッカー
+# VegeEatEase — 食品成分チェッカー
 
 食品の成分表を入力し、食事スタイル別に成分の安全性を判定するWebアプリ。
 
@@ -23,12 +23,12 @@
 | データベース | Supabase（PostgreSQL） |
 | 認証 | Supabase Auth（メール＋パスワード） |
 | AI解析（現在） | **Gemini 2.5 Flash**（OCR + 判定 1ステップ） |
-| AI解析（Claude・予備） | `claude-sonnet-4-5` 系 |
+| AI解析（Claude・予備） | `claude-sonnet-4-6` 系 |
 | キャッシュ | Supabase `ingredient_cache`（SHA-256・モード別複合キー） |
-| メール送信 | Resend（SMTP）※設定途中 |
-| フロントホスティング | GitHub Pages |
+| メール送信 | Resend（noreply@eatease.net・認証済み） |
+| フロントホスティング | Cloudflare Pages |
 | APIホスティング | Railway |
-| ソース管理 | GitHub |
+| ソース管理 | GitHub（プライベート） |
 | 決済（将来） | Stripe |
 
 ---
@@ -37,11 +37,30 @@
 
 | 項目 | URL |
 |---|---|
-| フロントエンド | https://mahorobach.github.io/safeeat/web/index.html |
+| フロントエンド（VegeEatEase） | https://app.eatease.net |
+| フロントエンド（菜食健美チェッカー） | https://daisho-kikaku.com（将来） |
 | APIサーバー | https://safeeat-production-b7c5.up.railway.app |
 | API死活確認 | https://safeeat-production-b7c5.up.railway.app/api/health |
 | GitHubリポジトリ | https://github.com/mahorobach/safeeat |
-| 管理者ページ | https://mahorobach.github.io/safeeat/web/admin.html |
+| 管理者ページ | https://app.eatease.net/admin.html |
+
+---
+
+## サービス展開方針（2サービス）
+
+```
+app.eatease.net（VegeEatEase）
+  → 全モード対応・将来課金・メイン事業
+  → 新UIはPhase 5で設計
+
+daisho-kikaku.com（菜食健美 成分チェッカー）
+  → 現在のUIをそのまま流用
+  → オリエンタルベジ専用・無料・Xserverに直置き
+  → 菜食健美の既存顧客向け
+
+バックエンド・Supabaseは両サービスで共用
+  → ingredient_cacheが共通蓄積 → Gemini API費用削減
+```
 
 ---
 
@@ -80,7 +99,7 @@
 | プラン | スキャン回数 | 対象 |
 |---|---|---|
 | `free` | 月10回（全モード合算） | 一般ユーザー |
-| `tester` | 無制限 | 管理者が付与したテストユーザー |
+| `tester` | 無制限 | 管理者が付与したテストユーザー（現在9名） |
 | `pro` | 無制限 | 将来の有料ユーザー |
 | `business` | 無制限 | 将来の法人ユーザー |
 
@@ -96,15 +115,23 @@ ingredient_cache (ingredient_hash, diet_mode, ingredient_text, analysis_result, 
 ### APIエンドポイント（実装済み）
 
 ```
-GET  /api/user/me                    → ユーザー情報・残り回数
-GET  /api/user/scan-count            → 残り回数（未ログインも可）
-POST /api/user/scan-count/increment  → 回数+1・月替わりで自動リセット
-GET  /api/user/settings              → 設定取得
-PUT  /api/user/settings              → 設定保存（mode・mode_selected）
-GET  /api/admin/check                → 管理者チェック
-GET  /api/admin/stats                → 統計情報
-GET  /api/admin/users                → ユーザー一覧
-PUT  /api/admin/users/:id/plan       → プラン変更
+GET  /api/user/me                      → ユーザー情報・残り回数
+GET  /api/user/scan-count              → 残り回数（未ログインも可）
+POST /api/user/scan-count/increment    → 回数+1・月替わりで自動リセット
+GET  /api/user/profile                 → プロファイル取得
+GET  /api/user/settings                → 設定取得
+PUT  /api/user/settings                → 設定保存（mode・mode_selected）
+POST /api/user/analysis                → 分析ログ保存
+GET  /api/admin/check                  → 管理者チェック
+GET  /api/admin/stats                  → 統計情報
+GET  /api/admin/users                  → ユーザー一覧
+PUT  /api/admin/users/:userId/plan     → プラン変更
+GET  /api/product/lookup               → バーコード商品情報検索
+POST /api/product/save                 → マイリスト保存
+GET  /api/product/mylist               → マイリスト取得
+DELETE /api/product/mylist/:id         → マイリスト削除
+GET  /api/subscription/status          → サブスク状態確認
+POST /api/subscription/cancel          → サブスク解約
 ```
 
 ---
@@ -120,50 +147,16 @@ PUT  /api/admin/users/:id/plan       → プラン変更
 
 ---
 
-## メール送信設定（★未完了・要対応）
-
-### 現状
-- Supabase の「Confirm email」は**OFF**（テスト期間中）
-- テスターはメール認証なしで登録・即ログイン可能
-
-### Resend設定状況
+## メール送信設定（✅ 完了）
 
 | 項目 | 状態 |
 |---|---|
 | Resendアカウント作成 | ✅ 完了 |
 | APIキー作成 | ✅ 完了 |
-| Supabase SMTP設定 | ✅ 設定済み（Host: smtp.resend.com / User: resend） |
-| `daisho-kikaku.com` ドメイン追加 | ✅ Resendに追加済み |
-| XserverでDNSレコード追加 | ⚠️ **途中（要対応）** |
-| ドメイン認証完了 | ❌ 未完了 |
-| Confirm email をONに戻す | ❌ 未完了 |
-
-### 残りのDNS設定作業
-
-**Xserverパネル → DNS設定 → daisho-kikaku.com → DNSレコード追加**
-
-Resend Dashboard → Domains → daisho-kikaku.com で表示される値を入力：
-
-```
-1. DKIM（TXTレコード）
-   ホスト名：resend._domainkey
-   内容：p=MIGfMA...（Resendに表示されるフルの値）
-
-2. SPF（MXレコード）
-   ホスト名：send
-   内容：feedback-smtp.ap-northeast-1.amazonses.com
-   優先度：10
-
-3. SPF（TXTレコード）
-   ホスト名：send
-   内容：v=spf1 include:amazonses.com ~all
-```
-
-DNS登録後の手順：
-1. Resend → 「I've added the records」をクリック
-2. ドメインが「Verified」になるまで待つ（最大24時間）
-3. Supabase → SMTP Settings → Sender email を `noreply@daisho-kikaku.com` に変更
-4. Supabase → Sign In / Providers → Email → 「Confirm email」をONに戻す
+| Supabase SMTP設定 | ✅ 完了 |
+| `eatease.net` ドメイン認証 | ✅ 完了（Cloudflare Auto configure） |
+| Sender email | ✅ noreply@eatease.net |
+| Confirm email | ✅ ON |
 
 ---
 
@@ -178,6 +171,8 @@ DNS登録後の手順：
 | `SUPABASE_SERVICE_ROLE_KEY` | **はい** | サービスロール（秘匿） |
 | `ADMIN_EMAIL` | **はい** | 管理者メールアドレス |
 | `CLAUDE_API_KEY` | 予備 | Anthropic APIキー |
+| `STRIPE_SECRET_KEY` | 課金時 | Stripeシークレットキー |
+| `STRIPE_WEBHOOK_SECRET` | Webhook時 | Stripe署名検証用 |
 | `ALLOWED_ORIGINS` | 本番推奨 | CORS許可オリジン |
 | `PORT` | 任意 | 未設定時は3000 |
 
@@ -191,23 +186,16 @@ DNS登録後の手順：
 | 2 | Gemini 1ステップ解析 + Supabaseキャッシュ | **完了** |
 | 3 | ユーザー認証・月10回制限・管理者ページ | **完了** |
 | 3.5 | ランディングページ・モード選択・法的ページ | **完了** |
-| 3.6 | メール送信設定（Resend） | **⚠️ 途中** |
-| 4 | テストユーザー招待・フィードバック収集 | **← 現在** |
+| 3.6 | メール設定（Resend・eatease.net認証） | **✅ 完了** |
+| 3.7 | インフラ整備（Cloudflare Pages・ドメイン取得・リポジトリPrivate化） | **✅ 完了** |
+| 3.8 | バーコードスキャン → 楽天・Amazonリンク | **✅ 完了** |
+| 4 | テストユーザー招待・フィードバック収集（9名） | **← 現在** |
 | 5 | UIデザイン改善・集客 | 次 |
 | 6 | サブスク課金（Stripe）・プラン管理 | ユーザー数を見て判断 |
 | 7 | グレー確認フロー | 有料プランの核心機能 |
 | 8 | 判定履歴・お気に入り商品 | ユーザー体験向上 |
 | 9 | iOSアプリ化（バーコードスキャン実装時） | 将来 |
 | 10 | App Store申請・リリース | 最終ゴール |
-
----
-
-## 本番リリース前に必ずやること
-
-- [ ] XserverでDNSレコード追加完了
-- [ ] Resendでドメイン認証完了
-- [ ] Supabase Sender emailを `noreply@daisho-kikaku.com` に変更
-- [ ] Supabase「Confirm email」をONに戻す
 
 ---
 
@@ -221,9 +209,8 @@ DNS登録後の手順：
 | 17 | 残り回数が「？」・500エラー | `user_profiles`テーブル未作成 | SQL EditorでCREATE TABLE実行 |
 | 18 | 既存ユーザーにプロファイルがない | トリガー設定前に登録 | `INSERT INTO user_profiles SELECT id FROM auth.users ON CONFLICT DO NOTHING` |
 | 19 | 管理リンクが複数表示 | onAuthStateChangeが複数回発火 | ユーザー設定ページ内に管理リンクを移動 |
-| 20 | Resendでメール送れない | 独自ドメイン未認証 | daisho-kikaku.comのDNS設定を完了させる |
-| 21 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
+| 20 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
 
 ---
 
-*最終更新: 2026-05-03（Phase 3完了・ランディングページ・管理者ページ・法的ページ追加・Resend設定途中）*
+*最終更新: 2026-05-09（ブランド名をVegeEatEaseに変更・Cloudflare Pages移行・メール設定完了・バーコード機能追加・tester9名付与を反映）*

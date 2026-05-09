@@ -1695,10 +1695,19 @@ header { justify-content: space-between; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.barcode-product-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
 .barcode-product-link {
   font-size: 0.8rem;
   color: var(--green);
   text-decoration: none;
+}
+.barcode-product-link--amazon {
+  color: #e77600;
 }
 .barcode-actions {
   display: flex;
@@ -1718,6 +1727,20 @@ header { justify-content: space-between; }
 }
 .btn-barcode-save:hover:not(:disabled) { background: var(--green-mid); }
 .btn-barcode-save:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-barcode-skip {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  background: #f0f0f0;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-barcode-skip:hover:not(:disabled) { background: #e0e0e0; }
+.btn-barcode-skip:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-barcode-cancel {
   flex: 1;
   background: none;
