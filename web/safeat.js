@@ -648,7 +648,7 @@ async function handleImageAnalyzeGeminiDetailed() {
     // 写真＋読み取りテキストをClaude フローと同様に表示
     renderExtractedAccordion(text, false);
     updateResultComparePhoto();
-    renderDetailedResult(data, _comparePhotoDataUrl);
+    renderDetailedResult(data, _comparePhotoDataUrl, text);
     refreshScanBadge();
   } catch (err) {
     if (err.message === "scan_limit_exceeded") {
@@ -737,7 +737,7 @@ function buildDetailedItem(item, imageDataUrl) {
   return li;
 }
 
-function renderDetailedResult(data, imageDataUrl) {
+function renderDetailedResult(data, imageDataUrl, extractedText) {
   const wrap = document.getElementById("detailed-result-wrap");
   if (!wrap) return;
 
@@ -786,6 +786,10 @@ function renderDetailedResult(data, imageDataUrl) {
   showResultResetBtn();
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  _lastExtractedText = extractedText || null;
+  window._lastAnalysisResult = { overall };
+  showSaveButtonIfSafe({ overall }, extractedText, currentSessionMode);
 }
 
 function hideDetailedResult() {
