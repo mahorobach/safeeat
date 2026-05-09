@@ -1531,6 +1531,12 @@ function applyModeDisplay(mode) {
 // ===== 共通ページ切替ユーティリティ =====
 const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page'];
 function showById(id) {
+  if (window.currentStream) {
+    window.currentStream.getTracks().forEach(t => t.stop());
+    window.currentStream = null;
+    const barcodeVideo = document.getElementById('barcode-video');
+    if (barcodeVideo) barcodeVideo.srcObject = null;
+  }
   _ALL_PAGES.forEach(p => {
     const el = document.getElementById(p);
     if (el) el.style.display = 'none';
@@ -1749,6 +1755,10 @@ document.addEventListener('click', (e) => {
       _zxingReader.reset();
       _zxingReader = null;
     }
+    if (window.currentStream) {
+      window.currentStream.getTracks().forEach(t => t.stop());
+      window.currentStream = null;
+    }
     const video = document.getElementById('barcode-video');
     if (video?.srcObject) {
       video.srcObject.getTracks().forEach(t => t.stop());
@@ -1767,7 +1777,7 @@ document.addEventListener('click', (e) => {
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   }
 
-  document.getElementById('btn-save-product-open')?.addEventListener('click', () => {
+  document.getElementById('btn-save-product-open')?.addEventListener('click', async () => {
     if (!window.SafeEatAuth) return;
     const area = document.getElementById('barcode-scan-area');
     if (!area) return;
@@ -1775,10 +1785,28 @@ document.addEventListener('click', (e) => {
     document.getElementById('barcode-result-preview').style.display = 'none';
     document.getElementById('barcode-scan-error').style.display = 'none';
 
+    if (window.currentStream) {
+      window.currentStream.getTracks().forEach(t => t.stop());
+      window.currentStream = null;
+    }
+
     const video = document.getElementById('barcode-video');
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+
     try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+      window.currentStream = stream;
+      await video.play();
+
       _zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
-      _zxingReader.decodeFromVideoDevice(null, video, async (result, err) => {
+      _zxingReader.decodeFromStream(stream, video, async (result, err) => {
         if (!result) return;
         const janCode = result.getText();
         stopBarcodeScanner();
@@ -1866,7 +1894,10 @@ document.addEventListener('click', (e) => {
           <div class="mylist-card-body">
             <div class="mylist-card-name">${esc(item.product_name)}</div>
             <div class="mylist-card-mode">${esc(item.diet_mode)}</div>
-            ${item.shop_url ? `<a class="mylist-card-link" href="${esc(item.shop_url)}" target="_blank" rel="noopener">楽天で見る →</a>` : ''}
+            <div class="mylist-card-links">
+              ${item.shop_url ? `<a class="mylist-card-link" href="${esc(item.shop_url)}" target="_blank" rel="noopener">楽天 →</a>` : ''}
+              <a class="mylist-card-link mylist-card-link--amazon" href="https://www.amazon.co.jp/s?k=${encodeURIComponent(item.jan_code)}&tag=vegeatease-22" target="_blank" rel="noopener">Amazon →</a>
+            </div>
           </div>
           <button class="mylist-card-delete" data-id="${esc(item.id)}" aria-label="削除">✕</button>
         `;
