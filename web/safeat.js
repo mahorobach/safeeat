@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.10';
+const APP_VERSION = '0.5.11';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2023,6 +2023,8 @@ document.addEventListener('click', (e) => {
   function openSaveBarcodePage() {
     showById('save-barcode-page');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    const resultArea = document.getElementById('barcode-save-result');
+    if (resultArea) resultArea.style.display = 'none';
     _saveBarcodeScanner = new Html5Qrcode('save-qr-reader');
     _saveBarcodeScanner.start(
       { facingMode: 'environment' },
@@ -2030,11 +2032,17 @@ document.addEventListener('click', (e) => {
       async (janCode) => {
         await _saveBarcodeScanner.stop().catch(() => {});
         _saveBarcodeScanner = null;
-        showById('scanner-page');
         await onSaveBarcodeScanned(janCode);
       },
       () => {}
     ).catch(() => {});
+  }
+
+  async function stopSaveBarcodeScanner() {
+    if (_saveBarcodeScanner) {
+      await _saveBarcodeScanner.stop().catch(() => {});
+      _saveBarcodeScanner = null;
+    }
   }
 
   function closeSaveBarcodePage() {
@@ -2057,17 +2065,15 @@ document.addEventListener('click', (e) => {
       shop_url:     productData?.shop_url     ?? null,
       amazon_url:   `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
     });
-    setTimeout(() => {
-      document.getElementById('save-to-mylist-area')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 1);
   }
 
   async function doSaveToMylist(productData = {}) {
-    const saveArea = document.getElementById('save-to-mylist-area');
-    const statusEl = document.getElementById('save-to-mylist-status');
-    const btn      = document.getElementById('btn-save-to-mylist');
+    const btn = document.getElementById('btn-save-to-mylist');
     if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+
+    let savedOk = false;
+    let is409   = false;
+
     try {
       await saveProduct({
         ingredient_text: _lastExtractedText || null,
@@ -2075,70 +2081,61 @@ document.addEventListener('click', (e) => {
         is_safe:         true,
         ...productData,
       });
-      document.getElementById('btn-save-to-mylist').style.display = 'none';
-      if (statusEl) {
-        const shopUrl   = productData?.shop_url   || null;
-        const amazonUrl = productData?.amazon_url || null;
-        let linksHtml = '';
-        if (shopUrl || amazonUrl) {
-          linksHtml = `<div class="mylist-saved-links">
-            ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener">🛒 楽天で購入 →</a>`   : ''}
-            ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener">📦 Amazonで購入 →</a>` : ''}
-          </div>`;
-        }
-        statusEl.innerHTML = `
-          <p>✅ マイリストに保存しました</p>
-          ${linksHtml}
-          <a href="#" class="mylist-saved-goto">📋 マイリストはこちら</a>
-        `;
-        statusEl.querySelector('.mylist-saved-goto')?.addEventListener('click', (e) => {
-          e.preventDefault();
-          showById('mylist-page');
-          loadMyList();
-        });
-        statusEl.style.display = '';
-      }
-      if (saveArea) saveArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      savedOk = true;
     } catch (e) {
       if (e.message?.includes('保存済み')) {
-        if (btn) btn.style.display = 'none';
-        if (statusEl) {
-          const shopUrl   = productData?.shop_url   || null;
-          const amazonUrl = productData?.amazon_url || null;
-          let linksHtml = '';
-          if (shopUrl || amazonUrl) {
-            linksHtml = `<div class="mylist-saved-links">
-              ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener">🛒 楽天で購入 →</a>`   : ''}
-              ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener">📦 Amazonで購入 →</a>` : ''}
-            </div>`;
-          }
-          statusEl.innerHTML = `
-            <p>📋 この商品はすでにマイリストに保存済みです</p>
-            ${linksHtml}
-            <a href="#" class="mylist-saved-goto">📋 マイリストはこちら</a>
-          `;
-          statusEl.querySelector('.mylist-saved-goto')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            showById('mylist-page');
-            loadMyList();
-          });
-          statusEl.style.display = '';
-        }
+        is409 = true;
       } else {
         if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = '📷 バーコードを読み取り、この商品をリストに登録'; }
-        if (statusEl) { statusEl.textContent = '保存に失敗しました: ' + (e.message || ''); statusEl.style.display = ''; }
+        const resultArea = document.getElementById('barcode-save-result');
+        const statusEl   = document.getElementById('barcode-save-status');
+        if (statusEl) statusEl.textContent = '保存に失敗しました: ' + (e.message || '');
+        if (resultArea) resultArea.style.display = '';
+        return;
       }
     }
+
+    // 成功 or 保存済み
+    await stopSaveBarcodeScanner();
+
+    const resultArea = document.getElementById('barcode-save-result');
+    const statusEl   = document.getElementById('barcode-save-status');
+    const linksEl    = document.getElementById('barcode-shop-links');
+
+    if (statusEl) statusEl.textContent = savedOk
+      ? '✅ マイリストに保存しました'
+      : '📋 この商品はすでにマイリストに保存済みです';
+
+    const shopUrl   = productData?.shop_url   || null;
+    const amazonUrl = productData?.amazon_url || null;
+    if (linksEl) {
+      linksEl.innerHTML = `
+        ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener" class="btn-feedback">🛒 楽天で購入 →</a>`   : ''}
+        ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener" class="btn-feedback">📦 Amazonで購入 →</a>` : ''}
+      `;
+    }
+
+    if (resultArea) resultArea.style.display = '';
   }
 
   document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodePage);
 
   document.getElementById('btn-save-barcode-skip')?.addEventListener('click', async () => {
-    closeSaveBarcodePage();
+    await stopSaveBarcodeScanner();
     await doSaveToMylist({});
   });
 
   document.getElementById('btn-save-barcode-cancel')?.addEventListener('click', closeSaveBarcodePage);
+
+  document.getElementById('barcode-goto-mylist')?.addEventListener('click', () => {
+    showById('mylist-page');
+    loadMyList();
+  });
+
+  document.getElementById('barcode-new-scan')?.addEventListener('click', () => {
+    showById('scanner-page');
+    document.getElementById('btn-result-reset')?.click();
+  });
 
   // ===== マイリストページ =====
   document.getElementById('drawer-nav-mylist')?.addEventListener('click', async (e) => {

@@ -1921,6 +1921,45 @@ header { justify-content: space-between; }
 }
 .btn-feedback:hover { border-color: #999; color: #555; }
 
+/* ===== バーコードスキャン結果エリア ===== */
+#barcode-save-result {
+  padding: 20px 16px;
+  background: rgba(255,255,255,0.05);
+}
+#barcode-save-status {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 0 4px;
+}
+#barcode-goto-mylist {
+  width: 100%;
+  padding: 14px;
+  margin: 12px 0 8px;
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+#barcode-shop-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+#barcode-shop-links a {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+#barcode-new-scan {
+  width: 100%;
+  margin-top: 8px;
+}
+
 /* ===== マイリスト登録用バーコードスキャンページ ===== */
 #save-barcode-page {
   display: flex;
