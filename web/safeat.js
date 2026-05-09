@@ -1293,19 +1293,11 @@ const cameraGuideBox   = document.getElementById("camera-guide-box");
 const btnCameraCapture = document.getElementById("btn-camera-capture");
 const btnCameraCancel  = document.getElementById("btn-camera-cancel");
 
-// iOS は getUserMedia が不安定なため input[type=file] を使用
-// Android / Desktop は getUserMedia でガイド枠付きオーバーレイを使用
-const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
 if (btnOpenCamera) btnOpenCamera.style.display = "inline-block";
 
 btnOpenCamera?.addEventListener("click", (e) => {
   e.stopPropagation();
-  if (_isIOS) {
-    imageInput.click();
-  } else {
-    openCameraOverlay();
-  }
+  openCameraOverlay();
 });
 
 btnCameraCapture?.addEventListener("click", () => captureFromCamera());
@@ -1323,16 +1315,27 @@ async function openCameraOverlay() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     } catch (err) {
-      const msg = err.name === "NotAllowedError"
-        ? "カメラのアクセスが拒否されています。ブラウザの設定でカメラを許可してください。"
-        : `カメラを起動できませんでした（${err.message}）`;
-      showError(msg);
+      if (err.name === "NotAllowedError") {
+        showError("カメラのアクセスが拒否されています。ブラウザの設定でカメラを許可してください。");
+        return;
+      }
+      // getUserMedia 非対応端末は file input にフォールバック
+      imageInput.click();
       return;
     }
   }
   _cameraStream = stream;
   cameraVideo.srcObject = stream;
   try { await cameraVideo.play(); } catch { /* autoplay属性で再生済みの場合は無視 */ }
+
+  // 映像が実際に取得できているか確認（真っ暗＝0x0 の場合は file input fallback）
+  await new Promise(r => setTimeout(r, 600));
+  if (cameraVideo.videoWidth === 0) {
+    closeCameraOverlay();
+    imageInput.click();
+    return;
+  }
+
   cameraOverlay.removeAttribute("hidden");
 }
 
