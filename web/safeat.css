@@ -1847,18 +1847,16 @@ header { justify-content: space-between; }
   padding: 16px;
   margin-top: 8px;
   margin-bottom: 8px;
-  background: #2ecc71;
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
   color: #fff;
   border: none;
-  border-radius: 12px;
+  border-radius: 50px;
   font-size: 1.1rem;
   font-weight: bold;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(46,204,113,0.3);
+  display: block;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(46,204,113,0.4);
 }
 .btn-save-mylist:hover:not(:disabled) { background: var(--green-mid); }
 .btn-save-mylist:disabled { opacity: 0.6; cursor: not-allowed; }
