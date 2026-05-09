@@ -1293,62 +1293,13 @@ const cameraGuideBox   = document.getElementById("camera-guide-box");
 const btnCameraCapture = document.getElementById("btn-camera-capture");
 const btnCameraCancel  = document.getElementById("btn-camera-cancel");
 
-// getUserMedia 非対応 or カメラなし → ボタンを隠したまま
-(async () => {
-  try {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    if (devices.some((d) => d.kind === "videoinput")) {
-      if (btnOpenCamera) btnOpenCamera.style.display = "inline-block";
-    }
-  } catch {
-    // 非対応環境はボタン非表示のまま
-  }
-})();
+// input[type=file] capture方式はiOS含む全環境で動作するため常時表示
+if (btnOpenCamera) btnOpenCamera.style.display = "inline-block";
 
 btnOpenCamera?.addEventListener("click", (e) => {
   e.stopPropagation();
-  openCameraOverlay();
+  imageInput.click();
 });
-btnCameraCapture?.addEventListener("click", () => captureFromCamera());
-btnCameraCancel?.addEventListener("click",  () => closeCameraOverlay());
-
-// Escape キーでも閉じる
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && cameraOverlay && !cameraOverlay.hidden) closeCameraOverlay();
-});
-
-async function openCameraOverlay() {
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-  } catch {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-    } catch (err) {
-      const msg = err.name === "NotAllowedError"
-        ? "カメラのアクセスが拒否されています。ブラウザの設定でカメラを許可してください。"
-        : `カメラを起動できませんでした（${err.message}）`;
-      showError(msg);
-      return;
-    }
-  }
-  _cameraStream = stream;
-  window.currentCameraStream = stream;
-  cameraVideo.srcObject = stream;
-  try { await cameraVideo.play(); } catch { /* autoplay属性で再生済みの場合は無視 */ }
-  cameraOverlay.removeAttribute("hidden");
-}
-
-function closeCameraOverlay() {
-  if (_cameraStream) {
-    _cameraStream.getTracks().forEach((t) => t.stop());
-    _cameraStream = null;
-  }
-  window.currentCameraStream = null;
-  cameraVideo.srcObject = null;
-  cameraOverlay.setAttribute("hidden", "");
-}
 
 function captureFromCamera() {
   const vw = cameraVideo.videoWidth;
