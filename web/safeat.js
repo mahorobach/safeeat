@@ -559,6 +559,10 @@ async function classifyExtractedText(ingredientsText, recoverManualStepOnFail = 
 }
 
 async function handleTextAnalyze() {
+  const saveArea = document.getElementById('save-to-mylist-area');
+  if (saveArea) saveArea.style.display = 'none';
+  window._lastAnalysisResult = undefined;
+
   const ingredientsText = textarea.value.trim();
   if (!ingredientsText) {
     showError("成分表を入力してください。");
@@ -585,6 +589,10 @@ async function handleTextAnalyze() {
 }
 
 async function handleImageAnalyze() {
+  const saveArea = document.getElementById('save-to-mylist-area');
+  if (saveArea) saveArea.style.display = 'none';
+  window._lastAnalysisResult = undefined;
+
   if (!_imageBase64) {
     showError("画像を選択してください。");
     return;
@@ -638,6 +646,10 @@ async function handleImageAnalyzeGemini() {
 // =============================================
 
 async function handleImageAnalyzeGeminiDetailed() {
+  const saveArea = document.getElementById('save-to-mylist-area');
+  if (saveArea) saveArea.style.display = 'none';
+  window._lastAnalysisResult = undefined;
+
   try {
     _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
     const { data, extractedText } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType);

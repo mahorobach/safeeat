@@ -1845,8 +1845,9 @@ header { justify-content: space-between; }
 .btn-save-mylist {
   width: 100%;
   padding: 16px;
-  margin-top: 20px;
-  background: var(--color-safe, #2ecc71);
+  margin-top: 8px;
+  margin-bottom: 8px;
+  background: #2ecc71;
   color: #fff;
   border: none;
   border-radius: 12px;
