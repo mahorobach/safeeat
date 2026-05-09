@@ -16,7 +16,14 @@
     return;
   }
 
-  const _sb = window.supabase.createClient(url, key);
+  const _sb = window.supabase.createClient(url, key, {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  });
 
   window.SafeEatAuth = {
     /** @returns {Promise<{data, error}>} */
