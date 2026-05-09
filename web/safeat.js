@@ -940,37 +940,44 @@ function renderResult(result, isOffline, extractedText) {
   renderUnknownList(result.unknown || []);
   updateUserDBBadge();
 
-  _lastAnalysisResult = result;
-  _lastExtractedText  = extractedText || null;
+  _lastExtractedText = extractedText || null;
 
+  updateResultComparePhoto();
+  resultSection.classList.add("visible");
+  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  window._lastAnalysisResult = result;
+  showSaveButtonIfSafe(result, extractedText, currentSessionMode);
+}
+
+function showSaveButtonIfSafe(result, ingredientText, currentMode) {
   // 既存の inline バーコード保存セクションは常に非表示（新モーダルフローに統一）
   const oldSaveSec = document.getElementById("save-product-section");
   if (oldSaveSec) oldSaveSec.style.display = 'none';
 
   const saveArea = document.getElementById('save-to-mylist-area');
-  if (saveArea && getAuthToken()) {
-    const statusEl = document.getElementById('save-to-mylist-status');
-    if (statusEl) statusEl.style.display = 'none';
-
-    if (result.overall === 'ok') {
-      saveArea.style.display = '';
-
-    } else if (result.overall === 'gray') {
-      const confirmed = window.confirm(
-        '由来確認が必要な成分が含まれています。\nご自身でOKと判断した場合、マイリストに登録できます。\n\n登録しますか？'
-      );
-      saveArea.style.display = confirmed ? '' : 'none';
-
-    } else {
-      saveArea.style.display = 'none';
-    }
-  } else if (saveArea) {
-    saveArea.style.display = 'none';
+  if (!saveArea || !getAuthToken()) {
+    if (saveArea) saveArea.style.display = 'none';
+    return;
   }
 
-  updateResultComparePhoto();
-  resultSection.classList.add("visible");
-  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  const statusEl = document.getElementById('save-to-mylist-status');
+  if (statusEl) statusEl.style.display = 'none';
+  const btn = document.getElementById('btn-save-to-mylist');
+  if (btn) { btn.disabled = false; btn.textContent = '✅ この商品をマイリストに登録する'; }
+
+  if (result.overall === 'ok') {
+    saveArea.style.display = '';
+
+  } else if (result.overall === 'gray') {
+    const confirmed = window.confirm(
+      '由来確認が必要な成分が含まれています。\nご自身でOKと判断した場合、マイリストに登録できます。\n\n登録しますか？'
+    );
+    saveArea.style.display = confirmed ? '' : 'none';
+
+  } else {
+    saveArea.style.display = 'none';
+  }
 }
 
 function renderExtractedAccordion(text, openNow) {
