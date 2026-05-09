@@ -111,6 +111,7 @@ async function fetchWithRetry(url, options, maxRetries = 3, baseDelayMs = 1000) 
           "解析がタイムアウトしました。写真をもっと小さく切り取るか、しばらくして再試行してください。",
         );
       }
+      console.error(`[fetchWithRetry] attempt=${attempt} name=${err?.name} msg=${err?.message}`);
       lastError = err;
       if (isLikelyNetworkError(err)) {
         lastError = new Error(networkFailureUserMessage());
