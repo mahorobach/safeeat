@@ -1554,6 +1554,7 @@ function applyModeDisplay(mode) {
       document.getElementById('scanner-page'),
       document.getElementById('user-settings-page'),
       document.getElementById('mylist-page'),
+      document.getElementById('save-barcode-page'),
     ];
     allPages.forEach(p => { if (p) p.style.display = 'none'; });
     if (page) page.style.display = 'block';
@@ -1643,7 +1644,7 @@ function applyModeDisplay(mode) {
 })();
 
 // ===== 共通ページ切替ユーティリティ =====
-const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page'];
+const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page', 'save-barcode-page'];
 function showById(id) {
   if (window._stopBarcodeScanner) window._stopBarcodeScanner();
   _ALL_PAGES.forEach(p => {
@@ -1977,32 +1978,29 @@ document.addEventListener('click', (e) => {
     }
   });
 
-  // ===== 判定OK後マイリスト登録モーダル =====
+  // ===== 判定OK後マイリスト登録バーコードスキャンページ =====
   let _saveBarcodeScanner = null;
 
-  function openSaveBarcodeModal() {
-    const modal = document.getElementById('save-barcode-modal');
-    if (!modal) return;
-    modal.style.display = 'flex';
+  function openSaveBarcodePage() {
+    showById('save-barcode-page');
     _saveBarcodeScanner = new Html5Qrcode('save-qr-reader');
     _saveBarcodeScanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 100 }, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] },
+      { fps: 10, qrbox: { width: 280, height: 100 }, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] },
       async (janCode) => {
         await _saveBarcodeScanner.stop().catch(() => {});
         _saveBarcodeScanner = null;
-        modal.style.display = 'none';
+        showById('scanner-page');
         await onSaveBarcodeScanned(janCode);
       },
       () => {}
     ).catch(() => {});
   }
 
-  function closeSaveBarcodeModal() {
+  function closeSaveBarcodePage() {
     _saveBarcodeScanner?.stop().catch(() => {});
     _saveBarcodeScanner = null;
-    const modal = document.getElementById('save-barcode-modal');
-    if (modal) modal.style.display = 'none';
+    showById('scanner-page');
   }
 
   async function onSaveBarcodeScanned(janCode) {
@@ -2037,19 +2035,19 @@ document.addEventListener('click', (e) => {
       if (statusEl) { statusEl.textContent = '✅ マイリストに保存しました'; statusEl.style.display = ''; }
       setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3000);
     } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = '✅ この商品をマイリストに登録する'; }
+      if (btn) { btn.disabled = false; btn.textContent = '📷 バーコードを読み取り、この商品をリストに登録'; }
       if (statusEl) { statusEl.textContent = '保存に失敗しました: ' + (e.message || ''); statusEl.style.display = ''; }
     }
   }
 
-  document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodeModal);
+  document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodePage);
 
   document.getElementById('btn-save-barcode-skip')?.addEventListener('click', async () => {
-    closeSaveBarcodeModal();
+    closeSaveBarcodePage();
     await doSaveToMylist({});
   });
 
-  document.getElementById('btn-save-barcode-cancel')?.addEventListener('click', closeSaveBarcodeModal);
+  document.getElementById('btn-save-barcode-cancel')?.addEventListener('click', closeSaveBarcodePage);
 
   // ===== マイリストページ =====
   document.getElementById('drawer-nav-mylist')?.addEventListener('click', async (e) => {

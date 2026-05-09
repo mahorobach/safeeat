@@ -1877,46 +1877,59 @@ header { justify-content: space-between; }
   text-align: left;
 }
 
-/* ===== バーコードスキャンモーダル（マイリスト登録用） ===== */
-.save-barcode-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
+/* ===== マイリスト登録用バーコードスキャンページ ===== */
+#save-barcode-page {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #000;
+  color: #fff;
 }
-.save-barcode-modal-content {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  width: min(90vw, 400px);
+.save-barcode-header {
+  padding: 24px 16px 16px;
   text-align: center;
+  background: rgba(0,0,0,0.8);
 }
-.save-barcode-modal-content h3 { margin: 0 0 8px; }
-.save-barcode-modal-content p {
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 16px;
+.save-barcode-header h3 {
+  font-size: 1.2rem;
+  margin: 0 0 8px;
+  color: #fff;
 }
-#save-qr-reader { width: 100%; margin-bottom: 16px; }
+.save-barcode-header p {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.8);
+  margin: 0;
+  line-height: 1.5;
+}
+#save-qr-reader {
+  flex: 1;
+  width: 100%;
+}
+.save-barcode-actions {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0,0,0,0.8);
+}
 .btn-save-barcode-skip {
   width: 100%;
-  padding: 10px;
-  background: #f0f0f0;
-  border: none;
+  padding: 12px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 8px;
+  color: #fff;
   cursor: pointer;
-  margin-bottom: 8px;
   font-size: 0.9rem;
   transition: background 0.15s;
 }
-.btn-save-barcode-skip:hover { background: #e0e0e0; }
+.btn-save-barcode-skip:hover { background: rgba(255,255,255,0.25); }
 .btn-save-barcode-cancel {
   background: none;
   border: none;
-  color: #999;
+  color: rgba(255,255,255,0.6);
   cursor: pointer;
   font-size: 0.85rem;
+  text-align: center;
+  padding: 4px;
 }

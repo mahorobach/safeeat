@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.5.1">
+  <link rel="stylesheet" href="safeat.css?v=0.5.3">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -385,7 +385,7 @@
       <!-- 判定OK後のマイリスト登録ボタン（result-reset-wrap の直前） -->
       <div id="save-to-mylist-area" style="display:none">
         <button type="button" id="btn-save-to-mylist" class="btn-save-mylist">
-          ✅ この商品をマイリストに登録する
+          📷 バーコードを読み取り、この商品をリストに登録
         </button>
         <p id="save-to-mylist-status" class="save-mylist-status" style="display:none"></p>
       </div>
@@ -437,20 +437,6 @@
       </p>
 
     </section>
-
-  <!-- バーコードスキャン（商品名取得）モーダル -->
-  <div id="save-barcode-modal" class="save-barcode-modal" style="display:none">
-    <div class="save-barcode-modal-content">
-      <h3>バーコードをスキャン</h3>
-      <p>商品のバーコードを読み取ると、商品名が自動で登録されます。<br>
-         バーコードありの商品はみんなのカタログにも追加されます。</p>
-      <div id="save-qr-reader"></div>
-      <button type="button" id="btn-save-barcode-skip" class="btn-save-barcode-skip">
-        スキップして成分テキストのみ保存
-      </button>
-      <button type="button" id="btn-save-barcode-cancel" class="btn-save-barcode-cancel">キャンセル</button>
-    </div>
-  </div>
 
   </div><!-- /#scanner-page -->
 
@@ -573,6 +559,22 @@
     </div>
   </div><!-- /#mylist-page -->
 
+  <!-- ===== マイリスト登録用バーコードスキャンページ ===== -->
+  <div id="save-barcode-page" style="display:none">
+    <div class="save-barcode-header">
+      <h3>バーコードをスキャン</h3>
+      <p>商品のバーコードを読み取ると、商品名が自動で登録されます。<br>
+         バーコードありの商品はみんなのカタログにも追加されます。</p>
+    </div>
+    <div id="save-qr-reader"></div>
+    <div class="save-barcode-actions">
+      <button type="button" id="btn-save-barcode-skip" class="btn-save-barcode-skip">
+        スキップして成分テキストのみ保存
+      </button>
+      <button type="button" id="btn-save-barcode-cancel" class="btn-save-barcode-cancel">キャンセル</button>
+    </div>
+  </div><!-- /#save-barcode-page -->
+
 </main>
 
 <footer>
@@ -639,6 +641,6 @@
 <script src="lib/ingredients-db.js?v=0.5.1"></script>
 <script src="lib/rules.js?v=0.5.1"></script>
 <script src="safeat-api.js?v=0.5.1"></script>
-<script src="safeat.js?v=0.5.2"></script>
+<script src="safeat.js?v=0.5.3"></script>
 </body>
 </html>
