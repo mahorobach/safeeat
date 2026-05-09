@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.7';
+const APP_VERSION = '0.5.8';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2022,6 +2022,7 @@ document.addEventListener('click', (e) => {
 
   function openSaveBarcodePage() {
     showById('save-barcode-page');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     _saveBarcodeScanner = new Html5Qrcode('save-qr-reader');
     _saveBarcodeScanner.start(
       { facingMode: 'environment' },
@@ -2049,6 +2050,7 @@ document.addEventListener('click', (e) => {
     } catch (e) {
       console.warn('楽天API失敗、商品名なしで保存', e);
     }
+    console.log('[onSaveBarcodeScanned] shop_url:', productData?.shop_url, 'amazon_url:', productData?.amazon_url);
     await doSaveToMylist({
       jan_code:     janCode,
       product_name: productData?.product_name ?? null,
@@ -2059,10 +2061,11 @@ document.addEventListener('click', (e) => {
     setTimeout(() => {
       document.getElementById('save-to-mylist-area')
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
+    }, 150);
   }
 
   async function doSaveToMylist(productData = {}) {
+    console.log('[doSaveToMylist] productData:', JSON.stringify(productData));
     const saveArea = document.getElementById('save-to-mylist-area');
     const statusEl = document.getElementById('save-to-mylist-status');
     const btn      = document.getElementById('btn-save-to-mylist');
