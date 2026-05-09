@@ -910,27 +910,12 @@ main {
 }
 .btn-zoom-bbox:hover { background: #e1bee7; }
 
-/* ズームエリア */
-.ingredient-zoom-area {
+/* アイテムインラインズームエリア */
+.item-zoom-area {
+  margin-top: 8px;
   background: #1a1a2e;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 14px;
-}
-.zoom-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.zoom-title { color: #fff; font-size: .85rem; font-weight: 600; }
-.zoom-close-btn {
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 2px 6px;
+  border-radius: 8px;
+  padding: 10px;
 }
 .zoom-canvas {
   display: block;
