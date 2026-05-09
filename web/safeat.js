@@ -2050,6 +2050,10 @@ document.addEventListener('click', (e) => {
       shop_url:     productData?.shop_url     ?? null,
       amazon_url:   `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
     });
+    setTimeout(() => {
+      document.getElementById('save-to-mylist-area')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
   }
 
   async function doSaveToMylist(productData = {}) {
@@ -2064,22 +2068,28 @@ document.addEventListener('click', (e) => {
         is_safe:         true,
         ...productData,
       });
-      if (btn) btn.style.display = 'none';
+      document.getElementById('btn-save-to-mylist').style.display = 'none';
       if (statusEl) {
-        const shopUrl   = productData.shop_url   || null;
-        const amazonUrl = productData.amazon_url || null;
-        const linksHtml = (shopUrl || amazonUrl) ? `
-          <div class="mylist-saved-links">
-            ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener">🛒 楽天で購入 →</a>` : ''}
+        const shopUrl   = productData?.shop_url   || null;
+        const amazonUrl = productData?.amazon_url || null;
+        let linksHtml = '';
+        if (shopUrl || amazonUrl) {
+          linksHtml = `<div class="mylist-saved-links">
+            ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener">🛒 楽天で購入 →</a>`   : ''}
             ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener">📦 Amazonで購入 →</a>` : ''}
-          </div>` : '';
-        statusEl.innerHTML = `<p>✅ マイリストに保存しました</p>${linksHtml}<a href="#" class="mylist-saved-goto">📋 マイリストはこちら</a>`;
-        statusEl.style.display = '';
+          </div>`;
+        }
+        statusEl.innerHTML = `
+          <p>✅ マイリストに保存しました</p>
+          ${linksHtml}
+          <a href="#" class="mylist-saved-goto">📋 マイリストはこちら</a>
+        `;
         statusEl.querySelector('.mylist-saved-goto')?.addEventListener('click', (e) => {
           e.preventDefault();
           showById('mylist-page');
           loadMyList();
         });
+        statusEl.style.display = '';
       }
       if (saveArea) saveArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {

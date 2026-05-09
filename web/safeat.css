@@ -1880,8 +1880,8 @@ header { justify-content: space-between; }
 /* ===== マイリスト保存完了後リンク ===== */
 .mylist-saved-links {
   display: flex;
-  gap: 12px;
-  margin: 8px 0;
+  gap: 8px;
+  margin: 10px 0;
 }
 .mylist-saved-links a {
   flex: 1;
@@ -1890,6 +1890,7 @@ header { justify-content: space-between; }
   text-align: center;
   font-size: 0.9rem;
   text-decoration: none;
+  font-weight: bold;
 }
 .mylist-saved-links a:first-child {
   background: #bf0000;
@@ -1947,6 +1948,12 @@ header { justify-content: space-between; }
 #save-qr-reader {
   flex: 1;
   width: 100%;
+  max-height: 240px;
+  overflow: hidden;
+}
+#save-qr-reader video {
+  max-height: 240px;
+  object-fit: cover;
 }
 .save-barcode-actions {
   padding: 16px;
