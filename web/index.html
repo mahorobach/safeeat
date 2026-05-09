@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="safeat.css?v=0.5.1">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
-  <script src="https://unpkg.com/@zxing/browser@latest/umd/index.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -396,7 +396,7 @@
           <!-- バーコードスキャンエリア -->
           <div id="barcode-scan-area" style="display:none">
             <p class="barcode-hint">商品のバーコードにカメラを向けてください</p>
-            <video id="barcode-video" class="barcode-video" autoplay playsinline muted></video>
+            <div id="qr-reader" class="barcode-video"></div>
             <div id="barcode-result-preview" style="display:none">
               <div class="barcode-product-preview">
                 <img id="barcode-product-image" class="barcode-product-image" src="" alt="">

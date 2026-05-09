@@ -1650,10 +1650,15 @@ header { justify-content: space-between; }
 }
 .barcode-video {
   width: 100%;
-  max-height: 240px;
-  object-fit: cover;
   border-radius: 8px;
   background: #000;
+  display: block;
+  overflow: hidden;
+}
+.barcode-video video {
+  width: 100% !important;
+  max-height: 240px;
+  object-fit: cover;
   display: block;
 }
 .barcode-product-preview {
@@ -1781,11 +1786,17 @@ header { justify-content: space-between; }
   color: var(--gray);
   margin-bottom: 4px;
 }
+.mylist-card-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .mylist-card-link {
   font-size: 0.78rem;
   color: var(--green);
   text-decoration: none;
 }
+.mylist-card-link--amazon { color: #c47d00; }
 .mylist-card-delete {
   background: none;
   border: none;

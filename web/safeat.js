@@ -1531,12 +1531,7 @@ function applyModeDisplay(mode) {
 // ===== 共通ページ切替ユーティリティ =====
 const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page'];
 function showById(id) {
-  if (window.currentStream) {
-    window.currentStream.getTracks().forEach(t => t.stop());
-    window.currentStream = null;
-    const barcodeVideo = document.getElementById('barcode-video');
-    if (barcodeVideo) barcodeVideo.srcObject = null;
-  }
+  if (window._stopBarcodeScanner) window._stopBarcodeScanner();
   _ALL_PAGES.forEach(p => {
     const el = document.getElementById(p);
     if (el) el.style.display = 'none';
@@ -1747,22 +1742,13 @@ document.addEventListener('click', (e) => {
 
 // ===== バーコードスキャン・マイリスト保存 =====
 (function () {
-  let _zxingReader = null;
+  let _html5QrCode = null;
   let _scannedProduct = null;
 
-  function stopBarcodeScanner() {
-    if (_zxingReader) {
-      _zxingReader.reset();
-      _zxingReader = null;
-    }
-    if (window.currentStream) {
-      window.currentStream.getTracks().forEach(t => t.stop());
-      window.currentStream = null;
-    }
-    const video = document.getElementById('barcode-video');
-    if (video?.srcObject) {
-      video.srcObject.getTracks().forEach(t => t.stop());
-      video.srcObject = null;
+  async function stopBarcodeScanner() {
+    if (_html5QrCode) {
+      try { await _html5QrCode.stop(); } catch (e) { /* ignore */ }
+      _html5QrCode = null;
     }
   }
 
@@ -1777,6 +1763,8 @@ document.addEventListener('click', (e) => {
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   }
 
+  window._stopBarcodeScanner = stopBarcodeScanner;
+
   document.getElementById('btn-save-product-open')?.addEventListener('click', async () => {
     if (!window.SafeEatAuth) return;
     const area = document.getElementById('barcode-scan-area');
@@ -1785,53 +1773,39 @@ document.addEventListener('click', (e) => {
     document.getElementById('barcode-result-preview').style.display = 'none';
     document.getElementById('barcode-scan-error').style.display = 'none';
 
-    if (window.currentStream) {
-      window.currentStream.getTracks().forEach(t => t.stop());
-      window.currentStream = null;
-    }
-
-    const video = document.getElementById('barcode-video');
-    video.setAttribute('playsinline', true);
-    video.setAttribute('autoplay', true);
-    video.muted = true;
-
+    const errEl = document.getElementById('barcode-scan-error');
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-      video.srcObject = stream;
-      window.currentStream = stream;
-      await video.play();
-
-      _zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
-      _zxingReader.decodeFromStream(stream, video, async (result, err) => {
-        if (!result) return;
-        const janCode = result.getText();
-        stopBarcodeScanner();
-
-        const errEl = document.getElementById('barcode-scan-error');
-        errEl.style.display = 'none';
-        try {
-          const product = await lookupProduct(janCode);
-          _scannedProduct = product;
-          document.getElementById('barcode-product-name').textContent = product.product_name;
-          const img = document.getElementById('barcode-product-image');
-          img.src = product.image_url || '';
-          img.style.display = product.image_url ? '' : 'none';
-          const link = document.getElementById('barcode-product-link');
-          link.href = product.shop_url || '#';
-          document.getElementById('barcode-result-preview').style.display = '';
-        } catch (e) {
-          errEl.textContent = e.message || '商品情報の取得に失敗しました';
-          errEl.style.display = '';
-        }
-      });
+      _html5QrCode = new Html5Qrcode('qr-reader');
+      await _html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 },
+          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        },
+        async (decodedText) => {
+          await stopBarcodeScanner();
+          errEl.style.display = 'none';
+          try {
+            const product = await lookupProduct(decodedText);
+            _scannedProduct = product;
+            document.getElementById('barcode-product-name').textContent = product.product_name;
+            const img = document.getElementById('barcode-product-image');
+            img.src = product.image_url || '';
+            img.style.display = product.image_url ? '' : 'none';
+            const link = document.getElementById('barcode-product-link');
+            link.href = product.shop_url || '#';
+            document.getElementById('barcode-result-preview').style.display = '';
+          } catch (e) {
+            errEl.textContent = e.message || '商品情報の取得に失敗しました';
+            errEl.style.display = '';
+          }
+        },
+        () => {}
+      );
     } catch (e) {
-      document.getElementById('barcode-scan-error').textContent = 'カメラを起動できませんでした';
-      document.getElementById('barcode-scan-error').style.display = '';
+      errEl.textContent = 'カメラを起動できませんでした';
+      errEl.style.display = '';
     }
   });
 
