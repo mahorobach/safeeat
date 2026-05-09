@@ -343,6 +343,16 @@
         <ul class="ee-result-list" id="gray-list"></ul>
       </div>
 
+      <!-- Zoom area (要確認ボックスの直下) -->
+      <div id="ingredient-zoom-area" class="ingredient-zoom-area" style="display:none">
+        <div class="zoom-header">
+          <span class="zoom-title">🔍 要確認箇所のズーム</span>
+          <button type="button" class="zoom-close-btn" id="zoom-close-btn">✕</button>
+        </div>
+        <canvas id="zoom-canvas" class="zoom-canvas"></canvas>
+        <p id="zoom-caption" class="zoom-caption"></p>
+      </div>
+
       <!-- OK -->
       <div class="ee-result-card">
         <div class="ee-result-header ee-result-header--ok" id="ok-header">

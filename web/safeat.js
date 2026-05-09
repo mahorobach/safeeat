@@ -659,8 +659,13 @@ async function handleImageAnalyzeGeminiDetailed() {
   }
 }
 
-/** bounding_box [ymin,xmin,ymax,xmax] (0-1000) の領域を指定 canvas にズーム描画 */
-function drawZoomToCanvas(imageDataUrl, bbox, canvasEl, captionEl, onDone) {
+/** bounding_box [ymin,xmin,ymax,xmax] (0-1000) の領域を共有 canvas にズーム描画 */
+function drawZoom(imageDataUrl, bbox, caption) {
+  const zoomArea   = document.getElementById('ingredient-zoom-area');
+  const zoomCanvas = document.getElementById('zoom-canvas');
+  const zoomCaption = document.getElementById('zoom-caption');
+  if (!zoomArea || !zoomCanvas) return;
+
   const img = new Image();
   img.onload = () => {
     const w = img.naturalWidth;
@@ -680,14 +685,21 @@ function drawZoomToCanvas(imageDataUrl, bbox, canvasEl, captionEl, onDone) {
     const sh = Math.min(h - sy, bh * (1 + pad * 2));
 
     const MAX_W = 380;
-    canvasEl.width  = Math.min(MAX_W, sw * 2);
-    canvasEl.height = Math.round(sh * (canvasEl.width / sw));
-    canvasEl.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, canvasEl.width, canvasEl.height);
+    zoomCanvas.width  = Math.min(MAX_W, sw * 2);
+    zoomCanvas.height = Math.round(sh * (zoomCanvas.width / sw));
+    zoomCanvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, zoomCanvas.width, zoomCanvas.height);
 
-    if (onDone) onDone();
+    if (zoomCaption) zoomCaption.textContent = caption || '';
+    zoomArea.style.display = 'block';
+    zoomArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
   img.src = imageDataUrl;
 }
+
+document.getElementById('zoom-close-btn')?.addEventListener('click', () => {
+  const el = document.getElementById('ingredient-zoom-area');
+  if (el) el.style.display = 'none';
+});
 
 const VEGE_STATUS_CONFIG = {
   Red:    { icon: "❌", label: "NG", cls: "ng" },
@@ -714,29 +726,13 @@ function buildDetailedItem(item, imageDataUrl) {
     ${item.user_prompt ? `<div class="user-prompt-text">💬 ${esc(item.user_prompt)}</div>` : ""}
     ${item.requires_user_check && imageDataUrl && item.bounding_box
       ? `<button class="btn-zoom-bbox" data-bbox="${esc(JSON.stringify(item.bounding_box))}"
-           data-caption="${esc(item.user_prompt || item.text)}">🔍 この箇所をズーム</button>
-         <div class="item-zoom-area" style="display:none">
-           <canvas class="zoom-canvas"></canvas>
-           <p class="zoom-caption">${esc(item.user_prompt || item.text)}</p>
-         </div>`
+           data-caption="${esc(item.user_prompt || item.text)}">🔍 この箇所をズーム</button>`
       : ""}`;
 
   li.querySelector(".btn-zoom-bbox")?.addEventListener("click", (e) => {
-    const btn = e.currentTarget;
-    const bbox = JSON.parse(btn.dataset.bbox);
-    const zoomArea = li.querySelector(".item-zoom-area");
-    const canvas = li.querySelector(".zoom-canvas");
-    const captionEl = li.querySelector(".zoom-caption");
-
-    if (zoomArea.style.display !== "none") {
-      zoomArea.style.display = "none";
-      return;
-    }
-
-    drawZoomToCanvas(imageDataUrl, bbox, canvas, captionEl, () => {
-      zoomArea.style.display = "block";
-      zoomArea.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
+    const bbox = JSON.parse(e.currentTarget.dataset.bbox);
+    const caption = e.currentTarget.dataset.caption;
+    drawZoom(imageDataUrl, bbox, caption);
   });
   return li;
 }
@@ -799,6 +795,8 @@ function hideDetailedResult() {
     const innerCard = wrap.querySelector(".result-list-card");
     if (innerCard) innerCard.style.display = "";
   }
+  const zoomArea = document.getElementById("ingredient-zoom-area");
+  if (zoomArea) zoomArea.style.display = "none";
 }
 
 /**
