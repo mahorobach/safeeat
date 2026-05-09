@@ -944,7 +944,7 @@ function renderResult(result, isOffline, extractedText) {
   _lastExtractedText  = extractedText || null;
 
   const saveSec = document.getElementById("save-product-section");
-  if (saveSec && getToken()) {
+  if (saveSec && getAuthToken()) {
     if (result.overall === 'ok') {
       saveSec.style.display = '';
       saveSec.dataset.ingredientText = extractedText || '';
