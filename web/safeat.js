@@ -1319,23 +1319,25 @@ document.addEventListener("keydown", (e) => {
 });
 
 async function openCameraOverlay() {
+  let stream;
   try {
-    _cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width:  { ideal: 1920 },
-        height: { ideal: 1080 },
-      },
-      audio: false,
-    });
-    cameraVideo.srcObject = _cameraStream;
-    cameraOverlay.removeAttribute("hidden");
-  } catch (err) {
-    const msg = err.name === "NotAllowedError"
-      ? "カメラのアクセスが拒否されています。ブラウザの設定でカメラを許可してください。"
-      : `カメラを起動できませんでした（${err.message}）`;
-    showError(msg);
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+  } catch {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch (err) {
+      const msg = err.name === "NotAllowedError"
+        ? "カメラのアクセスが拒否されています。ブラウザの設定でカメラを許可してください。"
+        : `カメラを起動できませんでした（${err.message}）`;
+      showError(msg);
+      return;
+    }
   }
+  _cameraStream = stream;
+  window.currentCameraStream = stream;
+  cameraVideo.srcObject = stream;
+  try { await cameraVideo.play(); } catch { /* autoplay属性で再生済みの場合は無視 */ }
+  cameraOverlay.removeAttribute("hidden");
 }
 
 function closeCameraOverlay() {
@@ -1343,6 +1345,7 @@ function closeCameraOverlay() {
     _cameraStream.getTracks().forEach((t) => t.stop());
     _cameraStream = null;
   }
+  window.currentCameraStream = null;
   cameraVideo.srcObject = null;
   cameraOverlay.setAttribute("hidden", "");
 }
