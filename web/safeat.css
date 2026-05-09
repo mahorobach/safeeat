@@ -1844,16 +1844,20 @@ header { justify-content: space-between; }
 /* ===== 判定OK後マイリスト登録エリア ===== */
 .btn-save-mylist {
   width: 100%;
-  padding: 12px;
-  margin-top: 16px;
-  background: var(--green);
+  padding: 16px;
+  margin-top: 20px;
+  background: var(--color-safe, #2ecc71);
   color: #fff;
   border: none;
-  border-radius: 2rem;
-  font-size: 1rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(46,204,113,0.3);
 }
 .btn-save-mylist:hover:not(:disabled) { background: var(--green-mid); }
 .btn-save-mylist:disabled { opacity: 0.6; cursor: not-allowed; }
