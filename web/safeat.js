@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.9';
+const APP_VERSION = '0.5.10';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2112,7 +2112,16 @@ document.addEventListener('click', (e) => {
               ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener">📦 Amazonで購入 →</a>` : ''}
             </div>`;
           }
-          statusEl.innerHTML = `<p>📋 この商品はすでにマイリストに保存済みです</p>${linksHtml}`;
+          statusEl.innerHTML = `
+            <p>📋 この商品はすでにマイリストに保存済みです</p>
+            ${linksHtml}
+            <a href="#" class="mylist-saved-goto">📋 マイリストはこちら</a>
+          `;
+          statusEl.querySelector('.mylist-saved-goto')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showById('mylist-page');
+            loadMyList();
+          });
           statusEl.style.display = '';
         }
       } else {
