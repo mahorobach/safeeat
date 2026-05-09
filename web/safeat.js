@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.11';
+const APP_VERSION = '0.5.12';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -50,9 +50,9 @@ if (window.SITE_CONFIG?.isEatEase) {
   document.body.classList.add('ee-page');
 }
 
-// Supabase Auth トークン（ログイン後に sessionStorage に格納）
+// Supabase Auth トークン（ログイン後に localStorage に格納）
 function getAuthToken() {
-  return sessionStorage.getItem("safeat_auth_token") || null;
+  return localStorage.getItem("safeat_auth_token") || null;
 }
 
 // --- DOM refs ---
@@ -1222,7 +1222,7 @@ updateUserDBBadge();
 async function refreshScanBadge() {
   const badge = document.getElementById("scan-badge");
   if (!badge) return;
-  const token = sessionStorage.getItem("safeat_auth_token");
+  const token = localStorage.getItem("safeat_auth_token");
   if (!token) return;
   try {
     const res = await fetch(`${SAFEAT_API_URL}/api/user/scan-count`, {
@@ -1354,9 +1354,9 @@ document.getElementById("auth-forgot-btn")?.addEventListener("click", async () =
 if (window.SafeEatAuth) {
   window.SafeEatAuth.onAuthStateChange((_event, session) => {
     if (session?.access_token) {
-      sessionStorage.setItem("safeat_auth_token", session.access_token);
+      localStorage.setItem("safeat_auth_token", session.access_token);
     } else {
-      sessionStorage.removeItem("safeat_auth_token");
+      localStorage.removeItem("safeat_auth_token");
     }
     updateAuthUI(session);
   });
@@ -1604,6 +1604,8 @@ function applyModeDisplay(mode) {
     if (!session) {
       _hasNavigated = false;
       showPage(landing);
+      const registerLink = document.getElementById('drawer-nav-register');
+      if (registerLink) registerLink.style.display = 'none';
       return;
     }
     // 一度スキャナーに到達済み かつ スキャナーページが表示中なら再ナビゲート不要
@@ -1615,6 +1617,8 @@ function applyModeDisplay(mode) {
       });
       const data = await res.json();
       const settings = data?.data || {};
+      const registerLink = document.getElementById('drawer-nav-register');
+      if (registerLink) registerLink.style.display = '';
       if (!settings.mode_selected) {
         showPage(modeSelect);
       } else {
@@ -1638,7 +1642,7 @@ function applyModeDisplay(mode) {
     card.addEventListener('click', async () => {
       const mode = card.dataset.mode;
       try {
-        const token = _session?.access_token || sessionStorage.getItem('safeat_auth_token');
+        const token = _session?.access_token || localStorage.getItem('safeat_auth_token');
         await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -1823,7 +1827,7 @@ document.addEventListener('click', (e) => {
     msg.className = 'settings-save-msg';
 
     try {
-      const token = sessionStorage.getItem('safeat_auth_token');
+      const token = localStorage.getItem('safeat_auth_token');
       const res = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -1856,7 +1860,7 @@ document.addEventListener('click', (e) => {
     if (userSettingsPage) userSettingsPage.style.display = 'block';
 
     try {
-      const token = sessionStorage.getItem('safeat_auth_token');
+      const token = localStorage.getItem('safeat_auth_token');
 
       const meRes  = await fetch(`${SAFEAT_API_URL}/api/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -2142,6 +2146,16 @@ document.addEventListener('click', (e) => {
     e.preventDefault();
     showById('mylist-page');
     await loadMyList();
+  });
+
+  document.getElementById('drawer-nav-register')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('btn-hamburger')?.classList.remove('is-open');
+    const dm = document.getElementById('drawer-menu');
+    dm?.classList.remove('is-open');
+    dm?.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    document.getElementById('btn-save-product-open')?.click();
   });
 
   document.getElementById('btn-mylist-back')?.addEventListener('click', () => {

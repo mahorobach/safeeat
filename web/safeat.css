@@ -67,6 +67,10 @@ header {
   transition: color 0.15s;
 }
 .header-nav-link:hover { color: #fff; text-decoration: underline; }
+@media (min-width: 601px) and (max-width: 768px) {
+  .btn-hamburger { display: flex; margin-left: auto; }
+  .header-nav { display: none !important; }
+}
 @media (max-width: 600px) {
   header {
     flex-wrap: wrap;
