@@ -967,29 +967,26 @@ function renderResult(result, isOffline, extractedText) {
 }
 
 function showSaveButtonIfSafe(result, ingredientText, currentMode) {
-  // 既存の inline バーコード保存セクションは常に非表示（新モーダルフローに統一）
-  const oldSaveSec = document.getElementById("save-product-section");
-  if (oldSaveSec) oldSaveSec.style.display = 'none';
-
   const saveArea = document.getElementById('save-to-mylist-area');
-  if (!saveArea || !getAuthToken()) {
-    if (saveArea) saveArea.style.display = 'none';
-    return;
-  }
+  if (!saveArea || !getAuthToken()) return;
 
-  const statusEl = document.getElementById('save-to-mylist-status');
-  if (statusEl) statusEl.style.display = 'none';
-  const btn = document.getElementById('btn-save-to-mylist');
-  if (btn) { btn.disabled = false; btn.textContent = '✅ この商品をマイリストに登録する'; }
+  const overall = result?.overall;
 
-  if (result.overall === 'ok') {
-    saveArea.style.display = '';
+  if (overall === 'ok') {
+    saveArea.style.display = 'block';
+    saveArea.dataset.ingredientText = ingredientText;
+    saveArea.dataset.dietMode = currentMode;
 
-  } else if (result.overall === 'gray') {
-    const confirmed = window.confirm(
-      '由来確認が必要な成分が含まれています。\nご自身でOKと判断した場合、マイリストに登録できます。\n\n登録しますか？'
-    );
-    saveArea.style.display = confirmed ? '' : 'none';
+  } else if (overall === 'gray') {
+    saveArea.style.display = 'block';
+    saveArea.dataset.ingredientText = ingredientText;
+    saveArea.dataset.dietMode = currentMode;
+
+    const note = saveArea.querySelector('.save-gray-note')
+      || document.createElement('p');
+    note.className = 'save-gray-note';
+    note.textContent = '由来確認が必要な成分が含まれています。ご自身でOKと判断した場合のみ登録してください。';
+    saveArea.insertBefore(note, saveArea.firstChild);
 
   } else {
     saveArea.style.display = 'none';
