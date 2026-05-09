@@ -1497,6 +1497,10 @@ function applyModeDisplay(mode) {
   const modeSelect = document.getElementById('mode-select-page');
   const scanner    = document.getElementById('scanner-page');
 
+  // 現在のセッションとナビゲーション済みフラグ
+  let _session = null;
+  let _hasNavigated = false;
+
   function showPage(page) {
     const allPages = [
       document.getElementById('landing-page'),
@@ -1510,17 +1514,18 @@ function applyModeDisplay(mode) {
   }
 
   async function handleSession(session) {
+    _session = session;
     if (!session) {
+      _hasNavigated = false;
       showPage(landing);
       return;
     }
-    // カメラ復帰などで onAuthStateChange が再発火しても、
-    // 既にスキャナーページ表示中なら再ナビゲートしない
-    if (scanner && scanner.style.display !== 'none') return;
+    // 一度スキャナーに到達済み かつ スキャナーページが表示中なら再ナビゲート不要
+    // （iOSカメラ復帰・タブ切替などで onAuthStateChange が再発火しても無視）
+    if (_hasNavigated && scanner && scanner.style.display !== 'none') return;
     try {
-      const token = sessionStorage.getItem('safeat_auth_token');
       const res = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
       const settings = data?.data || {};
@@ -1528,10 +1533,12 @@ function applyModeDisplay(mode) {
         showPage(modeSelect);
       } else {
         applyModeDisplay(settings.mode || 'oriental');
+        _hasNavigated = true;
         showPage(scanner);
       }
     } catch {
-      showPage(modeSelect);
+      // ネットワークエラーなど fetch 失敗時：初回未ナビゲートのみモード選択へ
+      if (!_hasNavigated) showPage(modeSelect);
     }
   }
 
@@ -1545,13 +1552,14 @@ function applyModeDisplay(mode) {
     card.addEventListener('click', async () => {
       const mode = card.dataset.mode;
       try {
-        const token = sessionStorage.getItem('safeat_auth_token');
+        const token = _session?.access_token || sessionStorage.getItem('safeat_auth_token');
         await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ mode, mode_selected: true }),
         });
       } catch {}
+      _hasNavigated = true;
       applyModeDisplay(mode);
       showPage(scanner);
     });
