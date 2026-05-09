@@ -913,6 +913,7 @@ const OVERALL_CONFIG = {
 };
 
 function renderResult(result, isOffline, extractedText) {
+  console.log('判定結果オブジェクト:', JSON.stringify(result));
   const extractActions = document.getElementById("extract-only-actions");
   if (extractActions) extractActions.setAttribute("hidden", "");
 
