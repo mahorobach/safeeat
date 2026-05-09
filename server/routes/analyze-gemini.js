@@ -1,6 +1,6 @@
 import { Router } from "express";
 import crypto from "crypto";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "../supabase/client.js";
 import { optionalAuth } from "../middleware/auth.js";
 
 const router = Router();
@@ -22,13 +22,10 @@ const GEMINI_API_URL =
 console.log(`[Gemini] モデル: ${GEMINI_MODEL}  APIバージョン: v1beta（固定）`);
 
 // =============================================
-// Supabase キャッシュ
+// Supabase キャッシュ（ws修正済みの共有クライアントを使用）
 // =============================================
 function getSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
+  return supabaseAdmin ?? null;
 }
 
 const FREE_PLAN_LIMIT = 10;
