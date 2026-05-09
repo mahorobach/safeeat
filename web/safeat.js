@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.8';
+const APP_VERSION = '0.5.9';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2050,7 +2050,6 @@ document.addEventListener('click', (e) => {
     } catch (e) {
       console.warn('楽天API失敗、商品名なしで保存', e);
     }
-    console.log('[onSaveBarcodeScanned] shop_url:', productData?.shop_url, 'amazon_url:', productData?.amazon_url);
     await doSaveToMylist({
       jan_code:     janCode,
       product_name: productData?.product_name ?? null,
@@ -2061,11 +2060,10 @@ document.addEventListener('click', (e) => {
     setTimeout(() => {
       document.getElementById('save-to-mylist-area')
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 150);
+    }, 30);
   }
 
   async function doSaveToMylist(productData = {}) {
-    console.log('[doSaveToMylist] productData:', JSON.stringify(productData));
     const saveArea = document.getElementById('save-to-mylist-area');
     const statusEl = document.getElementById('save-to-mylist-status');
     const btn      = document.getElementById('btn-save-to-mylist');
@@ -2102,8 +2100,25 @@ document.addEventListener('click', (e) => {
       }
       if (saveArea) saveArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {
-      if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = '📷 バーコードを読み取り、この商品をリストに登録'; }
-      if (statusEl) { statusEl.textContent = '保存に失敗しました: ' + (e.message || ''); statusEl.style.display = ''; }
+      if (e.message?.includes('保存済み')) {
+        if (btn) btn.style.display = 'none';
+        if (statusEl) {
+          const shopUrl   = productData?.shop_url   || null;
+          const amazonUrl = productData?.amazon_url || null;
+          let linksHtml = '';
+          if (shopUrl || amazonUrl) {
+            linksHtml = `<div class="mylist-saved-links">
+              ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener">🛒 楽天で購入 →</a>`   : ''}
+              ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener">📦 Amazonで購入 →</a>` : ''}
+            </div>`;
+          }
+          statusEl.innerHTML = `<p>📋 この商品はすでにマイリストに保存済みです</p>${linksHtml}`;
+          statusEl.style.display = '';
+        }
+      } else {
+        if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = '📷 バーコードを読み取り、この商品をリストに登録'; }
+        if (statusEl) { statusEl.textContent = '保存に失敗しました: ' + (e.message || ''); statusEl.style.display = ''; }
+      }
     }
   }
 
