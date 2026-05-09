@@ -1791,16 +1791,17 @@ document.addEventListener('click', (e) => {
     }
 
     const video = document.getElementById('barcode-video');
-    const constraints = {
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    };
+    video.setAttribute('playsinline', true);
+    video.setAttribute('autoplay', true);
+    video.muted = true;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       video.srcObject = stream;
       window.currentStream = stream;
       await video.play();
