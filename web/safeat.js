@@ -2060,7 +2060,7 @@ document.addEventListener('click', (e) => {
     setTimeout(() => {
       document.getElementById('save-to-mylist-area')
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 30);
+    }, 1);
   }
 
   async function doSaveToMylist(productData = {}) {
