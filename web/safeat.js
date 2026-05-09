@@ -1320,7 +1320,7 @@ async function openCameraOverlay() {
         return;
       }
       // getUserMedia 非対応端末は file input にフォールバック
-      imageInput.click();
+      await showGuideAndCapture();
       return;
     }
   }
@@ -1332,11 +1332,67 @@ async function openCameraOverlay() {
   await new Promise(r => setTimeout(r, 600));
   if (cameraVideo.videoWidth === 0) {
     closeCameraOverlay();
-    imageInput.click();
+    await showGuideAndCapture();
     return;
   }
 
   cameraOverlay.removeAttribute("hidden");
+}
+
+// ネイティブカメラ使用時：撮影前にガイド枠を見せてから開く
+function showGuideAndCapture() {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:9999',
+      'background:rgba(0,0,0,0.88)',
+      'display:flex', 'flex-direction:column',
+      'align-items:center', 'justify-content:center',
+      'gap:20px', 'padding:24px',
+    ].join(';');
+
+    const frame = document.createElement('div');
+    frame.style.cssText = [
+      'width:80%', 'aspect-ratio:3/2',
+      'border:3px dashed #fff', 'border-radius:8px',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'color:#fff', 'font-size:13px', 'text-align:center', 'padding:12px',
+    ].join(';');
+    frame.textContent = '原材料名・成分表示をこの枠に合わせて撮影してください';
+
+    const hint = document.createElement('p');
+    hint.style.cssText = 'color:#ccc;font-size:13px;text-align:center;margin:0;';
+    hint.textContent = '近づいて成分表だけが枠内に入るようにしてください';
+
+    const btnShoot = document.createElement('button');
+    btnShoot.textContent = '📷 カメラを開く';
+    btnShoot.style.cssText = [
+      'padding:12px 32px', 'font-size:16px', 'font-weight:bold',
+      'background:#1565c0', 'color:#fff',
+      'border:none', 'border-radius:8px', 'cursor:pointer',
+    ].join(';');
+
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = 'キャンセル';
+    btnCancel.style.cssText = [
+      'padding:8px 24px', 'font-size:14px',
+      'background:transparent', 'color:#aaa',
+      'border:1px solid #666', 'border-radius:8px', 'cursor:pointer',
+    ].join(';');
+
+    overlay.append(frame, hint, btnShoot, btnCancel);
+    document.body.appendChild(overlay);
+
+    btnShoot.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      imageInput.click();
+      resolve();
+    });
+    btnCancel.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      resolve();
+    });
+  });
 }
 
 function closeCameraOverlay() {
