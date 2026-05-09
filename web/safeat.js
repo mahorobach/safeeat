@@ -561,6 +561,8 @@ async function classifyExtractedText(ingredientsText, recoverManualStepOnFail = 
 async function handleTextAnalyze() {
   const saveArea = document.getElementById('save-to-mylist-area');
   if (saveArea) saveArea.style.display = 'none';
+  const feedbackArea = document.getElementById('feedback-area');
+  if (feedbackArea) feedbackArea.style.display = 'none';
   window._lastAnalysisResult = undefined;
 
   const ingredientsText = textarea.value.trim();
@@ -591,6 +593,8 @@ async function handleTextAnalyze() {
 async function handleImageAnalyze() {
   const saveArea = document.getElementById('save-to-mylist-area');
   if (saveArea) saveArea.style.display = 'none';
+  const feedbackArea = document.getElementById('feedback-area');
+  if (feedbackArea) feedbackArea.style.display = 'none';
   window._lastAnalysisResult = undefined;
 
   if (!_imageBase64) {
@@ -648,6 +652,8 @@ async function handleImageAnalyzeGemini() {
 async function handleImageAnalyzeGeminiDetailed() {
   const saveArea = document.getElementById('save-to-mylist-area');
   if (saveArea) saveArea.style.display = 'none';
+  const feedbackArea = document.getElementById('feedback-area');
+  if (feedbackArea) feedbackArea.style.display = 'none';
   window._lastAnalysisResult = undefined;
 
   try {
@@ -802,6 +808,7 @@ function renderDetailedResult(data, imageDataUrl, extractedText) {
   _lastExtractedText = extractedText || null;
   window._lastAnalysisResult = { overall };
   showSaveButtonIfSafe({ overall }, extractedText, currentSessionMode);
+  showFeedbackButton({ overall }, extractedText);
 }
 
 function hideDetailedResult() {
@@ -964,6 +971,7 @@ function renderResult(result, isOffline, extractedText) {
 
   window._lastAnalysisResult = result;
   showSaveButtonIfSafe(result, extractedText, currentSessionMode);
+  showFeedbackButton(result, extractedText);
 }
 
 function showSaveButtonIfSafe(result, ingredientText, currentMode) {
@@ -991,6 +999,31 @@ function showSaveButtonIfSafe(result, ingredientText, currentMode) {
   } else {
     saveArea.style.display = 'none';
   }
+}
+
+function showFeedbackButton(result, ingredientText) {
+  const area = document.getElementById('feedback-area');
+  if (!area) return;
+
+  const overall = result?.overall ?? '';
+  const overallLabel =
+    overall === 'ok'   ? '✅ 安全' :
+    overall === 'gray' ? '🟡 グレー（由来確認が必要）' :
+    overall === 'ng'   ? '❌ NG' : '不明';
+
+  const formUrl = new URL(
+    'https://docs.google.com/forms/d/e/1FAIpQLScVzJR3QHoFgF7-4gb6E0CFmmBlYUsaU9atqYLhU52lUA25Fg/viewform'
+  );
+  formUrl.searchParams.set('entry.89304498', overallLabel);
+  formUrl.searchParams.set('entry.1427059370',
+    (ingredientText ?? '').slice(0, 300));
+
+  const btn = document.getElementById('btn-feedback');
+  if (btn) {
+    btn.onclick = () => window.open(formUrl.toString(), '_blank');
+  }
+
+  area.style.display = 'block';
 }
 
 function renderExtractedAccordion(text, openNow) {

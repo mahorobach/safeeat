@@ -1877,6 +1877,19 @@ header { justify-content: space-between; }
   text-align: left;
 }
 
+/* ===== フィードバックボタン ===== */
+.btn-feedback {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 6px 16px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-feedback:hover { border-color: #999; color: #555; }
+
 /* ===== マイリスト登録用バーコードスキャンページ ===== */
 #save-barcode-page {
   display: flex;
