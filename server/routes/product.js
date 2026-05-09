@@ -24,14 +24,45 @@ router.get("/lookup", async (req, res, next) => {
     const data = await r.json();
 
     const item = data.Items?.[0];
-    if (!item) return res.json({ ok: false, error: "商品が見つかりませんでした" });
+    if (!item) {
+      // Open Food Facts にフォールバック
+      const offUrl = `https://world.openfoodfacts.org/api/v0/product/${jan}.json`;
+      const offRes = await fetch(offUrl);
+      const offData = await offRes.json();
+
+      if (offData.status === 1 && offData.product) {
+        const p = offData.product;
+        const productName =
+          p.product_name_ja ||
+          p.product_name_en ||
+          p.product_name    ||
+          null;
+
+        return res.json({
+          ok: true,
+          data: {
+            product_name: productName,
+            image_url:    p.image_url || '',
+            shop_url:     null,
+            jan_code:     jan,
+          },
+        });
+      }
+
+      return res.json({ ok: false, error: "商品が見つかりませんでした" });
+    }
+
+    const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
+    const shopUrl = affiliateId
+      ? `https://hb.afl.rakuten.co.jp/hgc/${affiliateId}/?pc=${encodeURIComponent(item.itemUrl)}&m=http%3A%2F%2Fm.rakuten.co.jp%2F`
+      : item.itemUrl;
 
     res.json({
       ok: true,
       data: {
         product_name: item.itemName,
         image_url: item.mediumImageUrls?.[0] || "",
-        shop_url: item.itemUrl,
+        shop_url: shopUrl,
         jan_code: jan,
       },
     });
