@@ -1087,8 +1087,16 @@ footer {
   max-width: 520px;
   aspect-ratio: 1 / 1;
   border-radius: 8px;
-  /* 外側: フレーム外を暗くする / 内側: 正方形の白枠（border はモバイルで消えるため inset で代替） */
-  box-shadow: 0 0 0 200vmax rgba(0,0,0,.62), inset 0 0 0 2px rgba(255,255,255,0.82);
+  box-shadow: 0 0 0 200vmax rgba(0,0,0,.62);
+}
+
+/* 正方形の枠線（border/inset-shadowはモバイルで消えるため独立した子要素で描画） */
+.camera-frame-line {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(255,255,255,0.85);
+  border-radius: 8px;
+  pointer-events: none;
 }
 
 /* コーナーマーカー（L字）*/
