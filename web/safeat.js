@@ -943,30 +943,29 @@ function renderResult(result, isOffline, extractedText) {
   _lastAnalysisResult = result;
   _lastExtractedText  = extractedText || null;
 
-  const saveSec = document.getElementById("save-product-section");
-  if (saveSec && getAuthToken()) {
+  // 既存の inline バーコード保存セクションは常に非表示（新モーダルフローに統一）
+  const oldSaveSec = document.getElementById("save-product-section");
+  if (oldSaveSec) oldSaveSec.style.display = 'none';
+
+  const saveArea = document.getElementById('save-to-mylist-area');
+  if (saveArea && getAuthToken()) {
+    const statusEl = document.getElementById('save-to-mylist-status');
+    if (statusEl) statusEl.style.display = 'none';
+
     if (result.overall === 'ok') {
-      saveSec.style.display = '';
-      saveSec.dataset.ingredientText = extractedText || '';
-      saveSec.dataset.dietMode       = currentSessionMode || 'oriental';
+      saveArea.style.display = '';
 
     } else if (result.overall === 'gray') {
       const confirmed = window.confirm(
         '由来確認が必要な成分が含まれています。\nご自身でOKと判断した場合、マイリストに登録できます。\n\n登録しますか？'
       );
-      if (confirmed) {
-        saveSec.style.display = '';
-        saveSec.dataset.ingredientText = extractedText || '';
-        saveSec.dataset.dietMode       = currentSessionMode || 'oriental';
-      } else {
-        saveSec.style.display = 'none';
-      }
+      saveArea.style.display = confirmed ? '' : 'none';
 
     } else {
-      saveSec.style.display = 'none';
+      saveArea.style.display = 'none';
     }
-  } else if (saveSec) {
-    saveSec.style.display = 'none';
+  } else if (saveArea) {
+    saveArea.style.display = 'none';
   }
 
   updateResultComparePhoto();
@@ -1957,6 +1956,80 @@ document.addEventListener('click', (e) => {
       btn.textContent = '保存する';
     }
   });
+
+  // ===== 判定OK後マイリスト登録モーダル =====
+  let _saveBarcodeScanner = null;
+
+  function openSaveBarcodeModal() {
+    const modal = document.getElementById('save-barcode-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    _saveBarcodeScanner = new Html5Qrcode('save-qr-reader');
+    _saveBarcodeScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 100 }, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] },
+      async (janCode) => {
+        await _saveBarcodeScanner.stop().catch(() => {});
+        _saveBarcodeScanner = null;
+        modal.style.display = 'none';
+        await onSaveBarcodeScanned(janCode);
+      },
+      () => {}
+    ).catch(() => {});
+  }
+
+  function closeSaveBarcodeModal() {
+    _saveBarcodeScanner?.stop().catch(() => {});
+    _saveBarcodeScanner = null;
+    const modal = document.getElementById('save-barcode-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function onSaveBarcodeScanned(janCode) {
+    let productData = null;
+    try {
+      productData = await lookupProduct(janCode);
+    } catch (e) {
+      console.warn('楽天API失敗、商品名なしで保存', e);
+    }
+    await doSaveToMylist({
+      jan_code:     janCode,
+      product_name: productData?.product_name ?? null,
+      image_url:    productData?.image_url    ?? null,
+      shop_url:     productData?.shop_url     ?? null,
+      amazon_url:   `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
+    });
+  }
+
+  async function doSaveToMylist(productData = {}) {
+    const saveArea = document.getElementById('save-to-mylist-area');
+    const statusEl = document.getElementById('save-to-mylist-status');
+    const btn      = document.getElementById('btn-save-to-mylist');
+    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+    try {
+      await saveProduct({
+        ingredient_text: _lastExtractedText  || null,
+        diet_mode:       currentSessionMode  || 'oriental',
+        is_safe:         true,
+        ...productData,
+      });
+      if (saveArea) saveArea.style.display = 'none';
+      if (statusEl) { statusEl.textContent = '✅ マイリストに保存しました'; statusEl.style.display = ''; }
+      setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3000);
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = '✅ この商品をマイリストに登録する'; }
+      if (statusEl) { statusEl.textContent = '保存に失敗しました: ' + (e.message || ''); statusEl.style.display = ''; }
+    }
+  }
+
+  document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodeModal);
+
+  document.getElementById('btn-save-barcode-skip')?.addEventListener('click', async () => {
+    closeSaveBarcodeModal();
+    await doSaveToMylist({});
+  });
+
+  document.getElementById('btn-save-barcode-cancel')?.addEventListener('click', closeSaveBarcodeModal);
 
   // ===== マイリストページ =====
   document.getElementById('drawer-nav-mylist')?.addEventListener('click', async (e) => {

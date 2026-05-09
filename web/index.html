@@ -422,6 +422,14 @@
         </div>
       </div>
 
+      <!-- 判定OK後のマイリスト登録エリア -->
+      <div id="save-to-mylist-area" style="display:none">
+        <button type="button" id="btn-save-to-mylist" class="btn-save-mylist">
+          ✅ この商品をマイリストに登録する
+        </button>
+        <p id="save-to-mylist-status" class="save-mylist-status" style="display:none"></p>
+      </div>
+
       <!-- User DB badge -->
       <p class="user-db-note">
         <span id="user-db-count" style="display:none"></span>
@@ -429,6 +437,20 @@
       </p>
 
     </section>
+
+  <!-- バーコードスキャン（商品名取得）モーダル -->
+  <div id="save-barcode-modal" class="save-barcode-modal" style="display:none">
+    <div class="save-barcode-modal-content">
+      <h3>バーコードをスキャン</h3>
+      <p>商品のバーコードを読み取ると、商品名が自動で登録されます。<br>
+         バーコードありの商品はみんなのカタログにも追加されます。</p>
+      <div id="save-qr-reader"></div>
+      <button type="button" id="btn-save-barcode-skip" class="btn-save-barcode-skip">
+        スキップして成分テキストのみ保存
+      </button>
+      <button type="button" id="btn-save-barcode-cancel" class="btn-save-barcode-cancel">キャンセル</button>
+    </div>
+  </div>
 
   </div><!-- /#scanner-page -->
 

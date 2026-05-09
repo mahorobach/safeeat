@@ -1840,3 +1840,70 @@ header { justify-content: space-between; }
   transition: background 0.1s, color 0.1s;
 }
 .mylist-card-delete:hover { background: var(--red-light); color: var(--red); }
+
+/* ===== 判定OK後マイリスト登録エリア ===== */
+.btn-save-mylist {
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-save-mylist:hover:not(:disabled) { background: var(--green-mid); }
+.btn-save-mylist:disabled { opacity: 0.6; cursor: not-allowed; }
+.save-mylist-status {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--green);
+  margin-top: 8px;
+}
+
+/* ===== バーコードスキャンモーダル（マイリスト登録用） ===== */
+.save-barcode-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.save-barcode-modal-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: min(90vw, 400px);
+  text-align: center;
+}
+.save-barcode-modal-content h3 { margin: 0 0 8px; }
+.save-barcode-modal-content p {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 16px;
+}
+#save-qr-reader { width: 100%; margin-bottom: 16px; }
+.btn-save-barcode-skip {
+  width: 100%;
+  padding: 10px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+.btn-save-barcode-skip:hover { background: #e0e0e0; }
+.btn-save-barcode-cancel {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
