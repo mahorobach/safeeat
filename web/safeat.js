@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.22';
+const APP_VERSION = '0.5.23';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -1164,6 +1164,8 @@ document.getElementById("btn-result-reset")?.addEventListener("click", () => {
   hideResult();
   textarea.value = "";
   clearError();
+  const savedMsg = document.getElementById('mylist-saved-message');
+  if (savedMsg) savedMsg.style.display = 'none';
   window.scrollTo({ top: 0, behavior: "smooth" });
   // 写真タブに切り替えてカメラを使いやすくする
   document.querySelectorAll(".input-tab").forEach((t) =>
@@ -1961,8 +1963,13 @@ document.addEventListener('click', (e) => {
         ingredient_text: _lastExtractedText || null,
         is_safe:         true,
       });
-      btn.textContent = '✅ 保存しました';
-      setTimeout(closeBarcodeArea, 1200);
+      _ALL_PAGES.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      document.getElementById('scanner-page').style.display = 'block';
+      const msg = document.getElementById('mylist-saved-message');
+      if (msg) msg.style.display = '';
     } catch (e) {
       const errEl = document.getElementById('barcode-scan-error');
       errEl.textContent = e.message || '保存に失敗しました';
@@ -2049,6 +2056,17 @@ document.addEventListener('click', (e) => {
       shop_url:     productData?.shop_url     ?? null,
       amazon_url:   `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
     });
+    _ALL_PAGES.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    document.getElementById('scanner-page').style.display = 'block';
+    const msg = document.getElementById('mylist-saved-message');
+    if (msg) msg.style.display = '';
+    const amazonBtn = document.getElementById('btn-amazon-after-save');
+    if (amazonBtn && janCode) {
+      amazonBtn.href = `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`;
+    }
   }
 
   async function doSaveToMylist(productData = {}) {
@@ -2259,6 +2277,12 @@ document.addEventListener('click', (e) => {
   });
 
   document.getElementById('btn-goto-mylist-from-settings')?.addEventListener('click', () => {
+    showById('mylist-page');
+    loadMyList();
+  });
+
+  document.getElementById('btn-goto-mylist-after-save')?.addEventListener('click', () => {
+    document.getElementById('mylist-saved-message').style.display = 'none';
     showById('mylist-page');
     loadMyList();
   });
