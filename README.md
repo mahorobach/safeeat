@@ -147,6 +147,7 @@ GET  /api/product/mylist               → マイリスト取得
 DELETE /api/product/mylist/:id         → マイリスト削除
 GET  /api/subscription/status          → サブスク状態確認
 POST /api/subscription/cancel          → サブスク解約
+POST /api/analyze/gemini/image/detailed → 成分詳細判定（product_name・成分BBox・vege_status返却）
 ```
 
 ---
@@ -236,6 +237,8 @@ POST /api/subscription/cancel          → サブスク解約
 | 27 | バーコードスキャンが遅い | showById()内で_stopBarcodeScanner()が呼ばれカメラ起動前に干渉 | バーコードページへの遷移はshowById()を使わず_ALL_PAGES.forEachで直接切替 |
 | 28 | ドロワーメニューを閉じずにページ遷移 | closeDrawer()がIIFE外から呼べなかった | window.closeDrawerとして公開 |
 | 29 | スマホでCSSのdisplay:noneが効かない | メディアクエリより後にdisplay:flexが定義されていた | 対象クラス定義の直後に!importantで上書き |
+| 30 | 商品名が取得できない | DETAILED_IMAGE_PROMPTにproduct_name指示がなかった | DETAILED_IMAGE_PROMPTのJSON出力形式にproduct_nameフィールドを追加し、res.jsonにも含める |
+| 31 | safeat-api.jsでproduct_nameが捨てられる | analyzeImageWithGeminiDetailedの返却値にproduct_nameが含まれていなかった | return文に product_name: data.product_name ?? null を追加 |
 
 ---
 

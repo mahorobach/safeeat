@@ -178,18 +178,47 @@ product_catalog (
 )
 ```
 
+### バーコードスキャンページ（2種類）
+
+- `save-barcode-page`：成分解析後の登録用
+- `mylist-add-page`：マイリストからの直接追加用
+- 両者は独立しており相互に影響しない
+
+### 商品名の取得優先順位
+
+1. バーコードスキャン → 楽天API → Open Food Facts
+2. 成分表画像 → GeminiがDETAILED_IMAGE_PROMPTで抽出（product_name）
+3. どちらも取れなかった → 空欄（手動入力）
+
 ### 登録フロー
 
 ```
 判定結果「✅ 安全」or「🟡 グレー」
   ↓
-「この商品をマイリストに登録する」ボタン表示
-  （グレーの場合は注記付き・window.confirm は使わない）
-  ↓ タップ
-バーコードスキャナー起動
-  ├─ スキャン成功（JANあり）→ saved_products + product_catalog に保存
-  └─ スキップ（JANなし）→ saved_products のみに保存
+「📷 バーコードを読み取り、保存」ボタン
+「📝 バーコードなしで保存」ボタン（インライン入力欄が展開）
+  ↓ バーコードスキャン成功時
+scanner-pageに戻り、商品名入力欄を表示
+  ┌─ 楽天/Open Food Factsで名前取得できた → 入力欄に初期値
+  └─ 取得できなかった → Geminiが抽出したproduct_nameをフォールバック
+  ↓ 「保存する」ボタンを押す
+保存完了（✅ マイリストに保存しました）
+
+「新しい食品を解析する」ボタンを押すと
+_lastScannedProduct・_lastExtractedProductName・入力欄をリセット
 ```
+
+### 保存完了後の遷移
+
+- `save-barcode-page`：scanner-pageに戻りmylist-saved-messageを表示
+- `mylist-add-page`：mylist-pageに戻りloadMyList()を実行
+
+mylist-saved-messageの表示順（scanner-page内）：
+1. ✅ マイリストに保存しました
+2. 📦 マイリストはこちら（茶色・btn-goto-mylist）
+3. 🛒 Amazonで購入（オレンジ・btn-amazon-after-save）
+4. 新しい食品を解析する
+5. 判定結果にフィードバックを送る
 
 ### モード別データ管理（A案）
 - 同じ商品でもモードが違えば別行
@@ -201,23 +230,7 @@ product_catalog (
 - 解析開始時に `save-to-mylist-area` を非表示・`window._lastAnalysisResult` をリセットすること
 - JSを修正したら `safeat.js?v=x.x.x` のバージョン番号を上げること（Cloudflareキャッシュ対策）
 
----
 
-【バーコードスキャンページは2種類】
-- save-barcode-page：成分解析後の登録用
-- mylist-add-page：マイリストからの直接追加用（新規）
-→ 両者は独立しており、相互に影響しない
-
-保存完了後の遷移：
-- save-barcode-page：scanner-pageに戻りmylist-saved-messageを表示
-- mylist-add-page：mylist-pageに戻りloadMyList()を実行
-
-mylist-saved-messageの表示順（scanner-page内）：
-1. ✅ マイリストに保存しました
-2. 📦 マイリストはこちら（茶色・btn-goto-mylist）
-3. 🛒 Amazonで購入（オレンジ・btn-amazon-after-save）
-4. 新しい食品を解析する
-5. 判定結果にフィードバックを送る
 
 ## 7. ユーザー認証（Phase 3 完了）
 
@@ -272,7 +285,7 @@ mylist-saved-messageの表示順（scanner-page内）：
 | 3.7 | インフラ整備（Cloudflare Pages・ドメイン取得・GitHub Private化） | **✅ 完了** |
 | 3.8 | バーコードスキャン → 楽天・Amazonリンク | **✅ 完了** |
 | 3.9 | 判定OK後マイリスト登録 + カタログデータ蓄積 | **✅ 完了** |
-| 4 | テストユーザーフィードバック収集（9名） | **← 現在** |
+| 4 | テストユーザーフィードバック収集（9名）・楽天Amazonアフィリエイト実装 | **← 現在** |
 | 5 | UIデザイン改善・集客 | 次 |
 | 6 | サブスク課金（Stripe）・プラン管理 | ユーザー数を見て判断 |
 | 7 | グレー確認フロー（有料プランの核心） | 有料プランの核心機能 |
@@ -307,6 +320,8 @@ mylist-saved-messageの表示順（scanner-page内）：
 | 27 | バーコードスキャンが遅い | showById()内で_stopBarcodeScanner()が呼ばれカメラ起動前に干渉 | バーコードページへの遷移はshowById()を使わず_ALL_PAGES.forEachで直接切替 |
 | 28 | ドロワーメニューを閉じずにページ遷移 | closeDrawer()がIIFE外から呼べなかった | window.closeDrawerとして公開 |
 | 29 | スマホでCSSのdisplay:noneが効かない | メディアクエリより後にdisplay:flexが定義されていた | 対象クラス定義の直後に!importantで上書き |
+| 30 | 商品名が取得できない | DETAILED_IMAGE_PROMPTにproduct_name指示がなかった | DETAILED_IMAGE_PROMPTのJSON出力形式にproduct_nameフィールドを追加し、res.jsonにも含める |
+| 31 | safeat-api.jsでproduct_nameが捨てられる | analyzeImageWithGeminiDetailedの返却値にproduct_nameが含まれていなかった | return文に product_name: data.product_name ?? null を追加 |
 
 ---
 
