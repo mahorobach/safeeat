@@ -1346,6 +1346,9 @@ header { justify-content: space-between; }
   cursor: pointer;
   flex-shrink: 0;
 }
+@media (max-width: 600px) {
+  .user-icon-wrap { display: none !important; }
+}
 .user-icon-inner {
   font-size: 14px;
   line-height: 1;

@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.15';
+const APP_VERSION = '0.5.16';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -1716,6 +1716,8 @@ function showById(id) {
     document.body.style.overflow = '';
   }
 
+  window.closeDrawer = closeDrawer;
+
   hamburger?.addEventListener('click', openDrawer);
   drawerClose?.addEventListener('click', closeDrawer);
   drawerOverlay?.addEventListener('click', closeDrawer);
@@ -2123,6 +2125,7 @@ document.addEventListener('click', (e) => {
   // ===== マイリストページ =====
   document.getElementById('drawer-nav-mylist')?.addEventListener('click', async (e) => {
     e.preventDefault();
+    window.closeDrawer?.();
     showById('mylist-page');
     await loadMyList();
   });
