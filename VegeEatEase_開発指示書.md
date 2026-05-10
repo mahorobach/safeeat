@@ -119,7 +119,7 @@ VegeEatEase/（リポジトリ名: safeeat）
 │   │   ├── ingredients.js        # 成分DB参照
 │   │   ├── user.js               # 認証・スキャン回数・設定管理
 │   │   ├── admin.js              # 管理者機能（ユーザー一覧・プラン変更）
-│   │   ├── product.js            # バーコード商品検索・マイリスト
+│   │   ├── product.js            # バーコード商品検索・マイリスト・カタログ
 │   │   └── subscription.js       # サブスクリプション管理（Stripe将来対応）
 │   ├── middleware/auth.js
 │   └── supabase/
@@ -154,21 +154,70 @@ UI層（web/safeat.js）
 | APIキーを `web/` に置かない | 環境変数はサーバー側のみ |
 | 認証ロジックは `web/auth.js` に分離 | safeat.js の肥大化防止 |
 | 判定ロジックは `shared/rules.js` に一元管理 | Web・モバイル全フェーズで共通利用 |
+| web/lib/rules.js・ingredients-db.jsは削除済み | 判定ロジックはすべてサーバーサイド（shared/rules.js）に集約。localFallback()も削除済み |
 
 ---
 
-## 6. 現在のフロー（Gemini 1ステップ）
+## 6. マイリスト・カタログ設計（Phase 3.9 完了）
 
-### 画像入力
-1. 「📷 写真で読み取り」で画像を置く
-2. 原材料の範囲を選択
-3. `POST /api/analyze/gemini/image/detailed` → 判定表示
+### テーブル設計
 
-### テキスト入力
-1. 成分テキストを入力
-2. 「今すぐチェックする」→ `POST /api/analyze/gemini/text` → 判定表示
+```sql
+-- 個人マイリスト
+saved_products (
+  id, user_id, product_name, jan_code, diet_mode,
+  ingredient_text, is_safe, image_url, shop_url, amazon_url, created_at
+)
+
+-- 共有カタログ（匿名・JANコードありのみ）
+product_catalog (
+  id, product_name, jan_code, diet_mode,
+  ingredient_text, is_safe, image_url, shop_url, amazon_url,
+  scan_count, first_scanned_at, last_scanned_at,
+  UNIQUE (jan_code, diet_mode)
+)
+```
+
+### 登録フロー
+
+```
+判定結果「✅ 安全」or「🟡 グレー」
+  ↓
+「この商品をマイリストに登録する」ボタン表示
+  （グレーの場合は注記付き・window.confirm は使わない）
+  ↓ タップ
+バーコードスキャナー起動
+  ├─ スキャン成功（JANあり）→ saved_products + product_catalog に保存
+  └─ スキップ（JANなし）→ saved_products のみに保存
+```
+
+### モード別データ管理（A案）
+- 同じ商品でもモードが違えば別行
+- `WHERE diet_mode='vegan' AND is_safe=true` で一発検索可能
+
+### 重要な実装上の注意
+- `renderDetailedResult()` は Gemini詳細モード専用の描画関数で `renderResult()` を経由しない
+- `showSaveButtonIfSafe()` は**両方の関数末尾**で呼ぶこと
+- 解析開始時に `save-to-mylist-area` を非表示・`window._lastAnalysisResult` をリセットすること
+- JSを修正したら `safeat.js?v=x.x.x` のバージョン番号を上げること（Cloudflareキャッシュ対策）
 
 ---
+
+【バーコードスキャンページは2種類】
+- save-barcode-page：成分解析後の登録用
+- mylist-add-page：マイリストからの直接追加用（新規）
+→ 両者は独立しており、相互に影響しない
+
+保存完了後の遷移：
+- save-barcode-page：scanner-pageに戻りmylist-saved-messageを表示
+- mylist-add-page：mylist-pageに戻りloadMyList()を実行
+
+mylist-saved-messageの表示順（scanner-page内）：
+1. ✅ マイリストに保存しました
+2. 📦 マイリストはこちら（茶色・btn-goto-mylist）
+3. 🛒 Amazonで購入（オレンジ・btn-amazon-after-save）
+4. 新しい食品を解析する
+5. 判定結果にフィードバックを送る
 
 ## 7. ユーザー認証（Phase 3 完了）
 
@@ -178,7 +227,7 @@ UI層（web/safeat.js）
 新規登録（メール＋パスワード）
   → Supabase Auth
   → on_auth_user_created トリガーで user_profiles を自動生成
-  → JWTトークンを sessionStorage に保存
+  → JWTトークンを localStorage に保存
   → API呼び出し時に Authorization: Bearer <token> を付与
   → server/middleware/auth.js で検証
 ```
@@ -188,70 +237,15 @@ UI層（web/safeat.js）
 - **全モード合算で月10回**（シンプルさ優先）
 - `scan_month`（YYYY-MM）と現在月を比較し、月替わりで自動リセット
 - `scan_logs` にモード別ログを保存（将来の分析・課金設計のため）
-- 将来ヴィーガン・ハラール等のモードを追加しても構造変更不要
-
-### Supabaseテーブル
-
-```sql
--- ユーザープロファイル
-CREATE TABLE user_profiles (
-  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  plan        TEXT NOT NULL DEFAULT 'free',
-  scan_count  INTEGER NOT NULL DEFAULT 0,
-  scan_month  TEXT NOT NULL DEFAULT '',       -- YYYY-MM形式
-  created_at  TIMESTAMPTZ DEFAULT now(),
-  updated_at  TIMESTAMPTZ DEFAULT now()
-);
-
--- スキャン履歴ログ（将来の分析用）
-CREATE TABLE scan_logs (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  diet_mode   TEXT NOT NULL DEFAULT 'oriental',
-  created_at  TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### APIエンドポイント（実装済み）
-
-```
-GET  /api/user/me                      → ユーザー情報・残り回数（認証必須）
-GET  /api/user/scan-count              → 残り回数（未ログインも可）
-POST /api/user/scan-count/increment    → 回数+1・月替わりで自動リセット
-GET  /api/user/profile                 → プロファイル取得
-GET  /api/user/settings                → 設定取得
-PUT  /api/user/settings                → 設定保存（mode・mode_selected）
-POST /api/user/analysis                → 分析ログ保存
-GET  /api/admin/check                  → 管理者チェック
-GET  /api/admin/stats                  → 統計情報
-GET  /api/admin/users                  → ユーザー一覧
-PUT  /api/admin/users/:userId/plan     → プラン変更
-GET  /api/product/lookup               → バーコード商品情報検索（楽天API利用）
-POST /api/product/save                 → マイリスト保存
-GET  /api/product/mylist               → マイリスト取得
-DELETE /api/product/mylist/:id         → マイリスト削除
-GET  /api/subscription/status          → サブスク状態確認
-POST /api/subscription/cancel          → サブスク解約
-```
 
 ---
 
-## 8. キャッシュ機能
-
-- `/api/analyze/gemini/text`: SHA-256ハッシュでキャッシュ検索（ヒット時はGemini不使用）
-- `/api/analyze/gemini/image/detailed`: OCR後テキストをキャッシュ保存（検索なし）
-- **`ingredient_cache` の主キーは `(ingredient_hash, diet_mode)` の複合キー**
-  - モードが違う成分は別エントリ。将来のモード追加に対応済み
-- ハッシュ正規化は実装済み・再検討不要（analyze-gemini.js の hashIngredientText() 参照）
-
----
-
-## 9. 環境変数一覧
+## 8. 環境変数一覧
 
 | 変数 | 必須 | 説明 |
 |------|------|------|
 | `GEMINI_API_KEY` | **はい** | Google AI Studio（ブラウザに出さない） |
-| `GEMINI_MODEL` | 推奨 | 例: `gemini-2.5-flash`（`models/`なし） |
+| `GEMINI_MODEL` | 推奨 | 例: `gemini-2.5-flash` |
 | `SUPABASE_URL` | **はい** | SupabaseプロジェクトURL |
 | `SUPABASE_ANON_KEY` | 認証用 | 公開キー（web/site-config.jsにも設定） |
 | `SUPABASE_SERVICE_ROLE_KEY` | **はい** | サービスロール（秘匿・サーバーのみ） |
@@ -260,14 +254,13 @@ POST /api/subscription/cancel          → サブスク解約
 | `STRIPE_WEBHOOK_SECRET` | Webhook時 | Stripe署名検証用 |
 | `ALLOWED_ORIGINS` | 本番推奨 | CORS許可オリジン（末尾スラッシュなし） |
 | `PORT` | 任意 | 未設定時は3000 |
+| `RAKUTEN_AFFILIATE_ID` | アフィリエイト時 | 楽天アフィリエイトID |
 
 現在の ALLOWED_ORIGINS: `https://app.eatease.net,https://mahorobach.github.io`
 
-`web/site-config.js` に設定するもの（公開可）：`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`API_BASE`
-
 ---
 
-## 10. 開発フェーズロードマップ
+## 9. 開発フェーズロードマップ
 
 | Phase | 内容 | 状態 |
 |---|---|---|
@@ -278,11 +271,12 @@ POST /api/subscription/cancel          → サブスク解約
 | 3.6 | メール設定（Resend・eatease.net認証） | **✅ 完了** |
 | 3.7 | インフラ整備（Cloudflare Pages・ドメイン取得・GitHub Private化） | **✅ 完了** |
 | 3.8 | バーコードスキャン → 楽天・Amazonリンク | **✅ 完了** |
-| 4 | テストユーザー招待・フィードバック収集（9名） | **← 現在** |
+| 3.9 | 判定OK後マイリスト登録 + カタログデータ蓄積 | **✅ 完了** |
+| 4 | テストユーザーフィードバック収集（9名） | **← 現在** |
 | 5 | UIデザイン改善・集客 | 次 |
 | 6 | サブスク課金（Stripe）・プラン管理 | ユーザー数を見て判断 |
 | 7 | グレー確認フロー（有料プランの核心） | 有料プランの核心機能 |
-| 8 | 判定履歴・お気に入り商品 | ユーザー体験向上 |
+| 8 | マイリスト画面・カタログ検索画面 | 次フェーズ候補 |
 | 9 | iOSアプリ化（SwiftUI）※バーコード実装時 | App Store申請の前提 |
 | 10 | App Store申請・リリース | 最終ゴール |
 | 11 | Android対応 | 将来 |
@@ -291,31 +285,32 @@ POST /api/subscription/cancel          → サブスク解約
 
 **まずユーザーを集めることを最優先。** 課金設計はユーザーが一定数集まってから判断する。
 
-### プラン設計（暫定）
-
-| 機能 | 無料（Free） | 有料（Pro） |
-|---|---|---|
-| スキャン回数 | 月10回（全モード合算） | 無制限 |
-| 判定モード | オリエンタルベジのみ | 全モード＋カスタム |
-| 履歴保存 | なし | あり |
-
 ---
 
-## 11. ハマりポイント・トラブルシュート
+## 10. ハマりポイント・トラブルシュート
 
 | # | 問題 | 原因 | 解決策 |
 |---|---|---|---|
-| 1〜14 | （Gemini・デプロイ系） | README.md参照 | README.md参照 |
-| 15 | Email not confirmed | 確認メールのリンク未クリック or リダイレクトURL設定ミス | Dashboard → Auth → URL Configuration確認 |
+| 1〜14 | Gemini・デプロイ系 | README.md参照 | README.md参照 |
+| 15 | Email not confirmed | 確認メールのリンク未クリック | Dashboard → Auth → URL Configuration確認 |
 | 16 | Email rate limit exceeded | Supabase無料プランは1時間4通制限 | 開発中はConfirm emailをOFF・本番は外部SMTP |
 | 17 | 残り回数が「？」・500エラー | `user_profiles` テーブルが未作成 | Supabase SQL EditorでCREATE TABLE実行 |
 | 18 | 既存ユーザーにプロファイルがない | トリガー設定前に登録したユーザー | `INSERT INTO user_profiles SELECT id FROM auth.users ON CONFLICT DO NOTHING` |
 | 19 | 管理リンクが複数表示 | onAuthStateChangeが複数回発火 | ユーザー設定ページ内に管理リンクを移動 |
 | 20 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
+| 21 | 登録ボタンが表示されない | `renderDetailedResult()` が `renderResult()` を経由せず独自描画 | `renderDetailedResult()` 末尾に `showSaveButtonIfSafe()` を追加 |
+| 22 | 解析前にconfirmダイアログが出る | 前回のgray判定結果が残った状態で新しい解析を開始 | 解析開始時に `save-to-mylist-area` を非表示・`_lastAnalysisResult` をリセット |
+| 23 | 古いJSが配信される | Cloudflare キャッシュ | `safeat.js?v=x.x.x` のバージョン番号を上げる |
+| 24 | SQL EditorにペーストできないSupabase問題 | ブラウザのフォーカス問題 | エディタを一度クリックしてからペースト or 右クリック→貼り付け |
+| 25 | 楽天APIで商品名が取得できない | 楽天に未登録の商品 | Open Food Facts APIにフォールバック |
+| 26 | 楽天リンクがアフィリエイトにならない | itemUrlをそのまま使用 | RAKUTEN_AFFILIATE_IDで変換 |
+| 27 | バーコードスキャンが遅い | showById()内で_stopBarcodeScanner()が呼ばれカメラ起動前に干渉 | バーコードページへの遷移はshowById()を使わず_ALL_PAGES.forEachで直接切替 |
+| 28 | ドロワーメニューを閉じずにページ遷移 | closeDrawer()がIIFE外から呼べなかった | window.closeDrawerとして公開 |
+| 29 | スマホでCSSのdisplay:noneが効かない | メディアクエリより後にdisplay:flexが定義されていた | 対象クラス定義の直後に!importantで上書き |
 
 ---
 
-## 12. 重要URL
+## 11. 重要URL
 
 | 項目 | URL |
 |---|---|
@@ -327,7 +322,7 @@ POST /api/subscription/cancel          → サブスク解約
 
 ---
 
-## 13. サービス別アカウントメモ
+## 12. サービス別アカウントメモ
 
 | サービス | 備考 |
 |---|---|
@@ -340,4 +335,4 @@ POST /api/subscription/cancel          → サブスク解約
 ---
 
 *作成日：2026年4月28日*
-*最終更新：2026年5月9日（ブランド名をVegeEatEaseに変更・Cloudflare Pages移行・メール設定完了・バーコード機能追加・tester9名付与・URL全面更新）*
+*最終更新：2026年5月10日（認証トークン保存先をlocalStorageに修正・SafeEat_開発指示書.mdと統合）*
