@@ -389,6 +389,16 @@
         <button type="button" id="btn-save-to-mylist" class="btn-save-mylist">
           📷 バーコードを読み取り、この商品をリストに登録
         </button>
+        <button type="button" id="btn-save-no-barcode" class="btn-save-no-barcode">
+          📝 バーコードなしで保存
+        </button>
+        <div id="save-no-barcode-form" style="display:none">
+          <input type="text" id="input-product-name" class="input-product-name"
+                 placeholder="商品名（省略可）" maxlength="100">
+          <button type="button" id="btn-save-no-barcode-confirm" class="btn-save-mylist">
+            保存する
+          </button>
+        </div>
         <p id="save-to-mylist-status" class="save-mylist-status" style="display:none"></p>
       </div>
 
@@ -593,17 +603,9 @@
   <!-- ===== マイリスト登録用バーコードスキャンページ ===== -->
   <div id="save-barcode-page" style="display:none">
     <div class="save-barcode-header">
-      <h3>バーコードをスキャン</h3>
-      <p>商品のバーコードを読み取ると、商品名が自動で登録されます。<br>
-         バーコードありの商品はみんなのカタログにも追加されます。</p>
+      <p>バーコードをかざしてください</p>
     </div>
     <div id="save-qr-reader"></div>
-    <div class="save-barcode-actions">
-      <button type="button" id="btn-save-barcode-skip" class="btn-save-barcode-skip">
-        スキップして成分テキストのみ保存
-      </button>
-      <button type="button" id="btn-save-barcode-cancel" class="btn-save-barcode-cancel">キャンセル</button>
-    </div>
     <div id="barcode-save-result" style="display:none">
       <p id="barcode-save-status"></p>
       <button id="barcode-goto-mylist" class="btn-primary">📋 マイリストはこちら</button>
@@ -685,6 +687,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js?v=0.5.1"></script>
 <script src="safeat-api.js?v=0.5.2"></script>
-<script src="safeat.js?v=0.5.27"></script>
+<script src="safeat.js?v=0.5.28"></script>
 </body>
 </html>

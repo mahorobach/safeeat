@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.27';
+const APP_VERSION = '0.5.28';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2140,13 +2140,22 @@ document.addEventListener('click', (e) => {
 
   document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodePage);
 
-  document.getElementById('btn-save-barcode-skip')?.addEventListener('click', async () => {
-    await stopSaveBarcodeScanner();
-    const productName = prompt('商品名を入力してください（省略可）') ?? '';
-    await doSaveToMylist({ product_name: productName || null });
+  // 「バーコードなしで保存」ボタン → 入力欄を展開
+  document.getElementById('btn-save-no-barcode')?.addEventListener('click', () => {
+    const form = document.getElementById('save-no-barcode-form');
+    if (form) {
+      form.style.display = form.style.display === 'none' ? '' : 'none';
+      if (form.style.display !== 'none') {
+        document.getElementById('input-product-name')?.focus();
+      }
+    }
   });
 
-  document.getElementById('btn-save-barcode-cancel')?.addEventListener('click', closeSaveBarcodePage);
+  // 「保存する」ボタン（バーコードなし）
+  document.getElementById('btn-save-no-barcode-confirm')?.addEventListener('click', async () => {
+    const productName = document.getElementById('input-product-name')?.value.trim() || null;
+    await doSaveToMylist({ product_name: productName });
+  });
 
   document.getElementById('barcode-goto-mylist')?.addEventListener('click', () => {
     showById('mylist-page');
