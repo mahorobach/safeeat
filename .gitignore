@@ -8,6 +8,9 @@
 web/site-config.local.js
 web/*.local.js
 
+# Claude Code ローカル設定
+.claude/
+
 # エディタ
 .DS_Store
 .vscode/settings.json
