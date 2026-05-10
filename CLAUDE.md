@@ -18,9 +18,14 @@
 #mode-select-page   初回ログイン時のモード選択
 #scanner-page       スキャン画面（ログイン後）
 #user-settings-page ユーザー設定ページ
+#mylist-page        マイリスト一覧ページ
+#save-barcode-page  マイリスト登録用バーコードスキャンページ
+#mylist-add-page    マイリストへの商品追加スキャンページ
 ```
 
-showPage(page) 関数で切り替える。この関数は全ページをdisplay:noneにしてから指定ページだけ表示する。
+- 認証フロー内では `showPage(page)` で切り替える（IIFE内専用）
+- 一般的な画面遷移は `showById(id)` を使う（`_ALL_PAGES` 全体を非表示にしてから指定ページだけ表示）
+- バーコードスキャナー起動前の遷移は `showById()` を使わず `_ALL_PAGES.forEach` で直接切替すること
 
 ## 認証フロー
 
@@ -61,14 +66,75 @@ showPage(page) 関数で切り替える。この関数は全ページをdisplay:
 - Resend + eatease.net ドメイン認証済み
 - Sender email: noreply@eatease.net
 - Supabase「Confirm email」: ON
-- ※ daisho-kikaku.com のDNS設定は不要になった（eatease.netに移行済み）
 
 ## インフラ
 
-- フロント: Cloudflare Pages（app.eatease.net）
+- フロント: Cloudflare Pages（app.eatease.net / veg.eatease.net）
 - リポジトリ: GitHub Private（mahorobach/safeeat）
 - API: Railway（safeeat-production-b7c5.up.railway.app）
 - ALLOWED_ORIGINS: `https://app.eatease.net,https://mahorobach.github.io`
+
+## マイリスト・カタログ設計（Phase 3.9 完了）
+
+### テーブル
+```
+saved_products     → 個人マイリスト（user_id あり・削除自由）
+product_catalog    → 共有カタログ（user_id なし・匿名・JANコードありのみ）
+```
+
+### 登録フロー
+```
+判定結果「✅ 安全」or「🟡 グレー」
+  ↓
+「この商品をマイリストに登録する」ボタン表示
+  ↓ タップ
+バーコードスキャナー起動
+  ├─ スキャン成功（JANあり）→ saved_products + product_catalog に保存
+  └─ スキップ（JANなし）→ saved_products のみに保存
+```
+
+### 判定結果別ボタン表示
+```
+overall='ok'   → 登録ボタン表示
+overall='gray' → 注記付きで登録ボタン表示（window.confirm は使わない）
+overall='ng'   → 登録ボタン非表示
+```
+
+### 重要：renderDetailedResult() に注意
+- Gemini詳細モードは `renderResult()` を経由せず `renderDetailedResult()` で独自描画
+- `showSaveButtonIfSafe()` は両方の関数末尾で呼ぶこと
+
+### JSバージョン管理
+- JSを修正したら `index.html` の `safeat.js?v=x.x.x` のバージョン番号を上げること
+- CSSを修正したら `index.html` の `safeat.css?v=x.x.x` のバージョン番号を上げること
+- Cloudflare Pages のキャッシュが古いJS/CSSを返す問題を防ぐため
+
+### 商品名が取得できない場合の表示
+- product_name が null の場合は `JAN: XXXXXXXXX` を表示
+- loadMyList() の displayName で制御
+
+### アフィリエイトリンク
+- 楽天: RAKUTEN_AFFILIATE_ID（Railway環境変数）でURL変換
+- Amazon: `https://www.amazon.co.jp/s?k=${jan_code}&i=grocery&tag=vegeatease-22`
+- バーコードスキャン成功後の画面に表示（スキャン画面内・画面遷移なし）
+
+### ログイン状態の維持
+- sessionStorage → localStorage に変更済み
+
+## ページ遷移の注意
+- カメラ起動・停止は必ず await で完了を待つこと
+
+## スコープの注意
+- closeDrawer() / loadMyList() / openSaveBarcodePage() は
+  IIFE内定義のため、外部から呼ぶ場合は window.xxx で公開すること
+
+## CSS注意
+- メディアクエリのdisplay:noneが効かない場合は !important を使うか
+  対象クラス定義の直後にメディアクエリを書くこと
+
+## 実装前の必須確認
+- 実装前に関連する既存コードの構造（親要素・スコープ・非同期）を
+  必ず確認してから実装すること
 
 ## 作業後チェックリスト
 
@@ -76,3 +142,4 @@ showPage(page) 関数で切り替える。この関数は全ページをdisplay:
 - [ ] 新ルート追加時は CORS・`server/index.js` のマウント確認
 - [ ] 本番URL変更時は `web/site-config.js` と `ALLOWED_ORIGINS` の両方
 - [ ] 認証ミドルウェアを通さないルートを作らない（`/api/health` 以外）
+- [ ] JSを修正したら `safeat.js?v=x.x.x` のバージョン番号を上げる（キャッシュ対策）
