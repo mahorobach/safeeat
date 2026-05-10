@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.20';
+const APP_VERSION = '0.5.21';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -1663,7 +1663,7 @@ function applyModeDisplay(mode) {
 })();
 
 // ===== 共通ページ切替ユーティリティ =====
-const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page', 'save-barcode-page'];
+const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page', 'save-barcode-page', 'mylist-add-page'];
 function showById(id) {
   if (window._stopBarcodeScanner) window._stopBarcodeScanner();
   _ALL_PAGES.forEach(p => {
@@ -2195,8 +2195,63 @@ document.addEventListener('click', (e) => {
   window.openSaveBarcodePage = openSaveBarcodePage;
   window.loadMyList = loadMyList;
 
+  // ===== マイリスト追加専用スキャンページ =====
+  let _mylistAddScanner = null;
+
+  function openMylistAddPage() {
+    showById('mylist-add-page');
+    const errEl = document.getElementById('mylist-add-error');
+    errEl.style.display = 'none';
+    _mylistAddScanner = new Html5Qrcode('mylist-add-qr-reader');
+    _mylistAddScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 280, height: 100 },
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] },
+      async (janCode) => {
+        await _mylistAddScanner.stop().catch(() => {});
+        _mylistAddScanner = null;
+        try {
+          const product = await lookupProduct(janCode);
+          await saveProduct({
+            jan_code:        product.jan_code,
+            product_name:    product.product_name,
+            image_url:       product.image_url,
+            shop_url:        product.shop_url,
+            amazon_url:      `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
+            diet_mode:       currentSessionMode || 'oriental',
+            ingredient_text: null,
+            is_safe:         true,
+          });
+        } catch (e) {
+          await saveProduct({
+            jan_code:        janCode,
+            product_name:    null,
+            diet_mode:       currentSessionMode || 'oriental',
+            ingredient_text: null,
+            is_safe:         true,
+          });
+        }
+        showById('mylist-page');
+        await loadMyList();
+      },
+      () => {}
+    ).catch(() => {
+      errEl.textContent = 'カメラを起動できませんでした';
+      errEl.style.display = '';
+    });
+  }
+
+  document.getElementById('btn-mylist-add-back')?.addEventListener('click', async () => {
+    if (_mylistAddScanner) {
+      await _mylistAddScanner.stop().catch(() => {});
+      _mylistAddScanner = null;
+    }
+    showById('mylist-page');
+    await loadMyList();
+  });
+
   document.getElementById('btn-add-to-mylist')?.addEventListener('click', () => {
-    openSaveBarcodePage();
+    openMylistAddPage();
   });
 
   document.getElementById('btn-goto-mylist-from-settings')?.addEventListener('click', () => {
