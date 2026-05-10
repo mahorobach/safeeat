@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.32';
+const APP_VERSION = '0.5.33';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -1173,6 +1173,21 @@ document.getElementById("btn-result-reset")?.addEventListener("click", () => {
   if (saveSection) saveSection.style.display = 'none';
   const saveToMylistArea = document.getElementById('save-to-mylist-area');
   if (saveToMylistArea) saveToMylistArea.style.display = 'none';
+
+  // バーコード・商品名データのクリア
+  _lastScannedProduct = null;
+  _lastExtractedProductName = null;
+
+  // 入力欄・ボタンの状態をリセット
+  const input = document.getElementById('input-product-name');
+  if (input) input.value = '';
+  const form = document.getElementById('save-no-barcode-form');
+  if (form) form.style.display = 'none';
+  const btnBarcode = document.getElementById('btn-save-to-mylist');
+  if (btnBarcode) btnBarcode.style.display = '';
+  const btnNoBarcode = document.getElementById('btn-save-no-barcode');
+  if (btnNoBarcode) btnNoBarcode.style.display = '';
+
   window.scrollTo({ top: 0, behavior: "smooth" });
   // 写真タブに切り替えてカメラを使いやすくする
   document.querySelectorAll(".input-tab").forEach((t) =>
