@@ -141,7 +141,8 @@ OK: 卵・乳製品全般・カゼイン・蜂蜜・ローヤルゼリー・大�
 const IMAGE_ANALYZE_PROMPT = `この食品パッケージ画像の【原材料名・成分表示ブロック】を読み取り、オリエンタルベジタリアン基準で判定してください。
 
 作業手順:
-1. 原材料名欄のテキストを一字一句に近づけて転記する（栄養成分表・キャッチコピーは無視）
+1. 画像内に「名称」または商品名が記載されていればそれを product_name に入れる
+   原材料名欄のテキストを一字一句に近づけて転記する（栄養成分表・キャッチコピーは無視）
 2. 転記した各成分を下記基準で分類する
 
 ${ORIENTAL_RULES}
@@ -150,6 +151,7 @@ ${ORIENTAL_RULES}
 
 必ず以下のJSON形式のみで返答（説明・Markdown不可）:
 {
+  "product_name": "商品名・名称欄に記載された名前（見つからない場合はnull）",
   "extractedText": "原材料名欄から写し取った全文（読点「、」区切り）",
   "ok":      [{"name": "成分名", "reason": "理由"}],
   "gray":    [{"name": "成分名", "reason": "理由", "detail": "詳細説明"}],
@@ -314,7 +316,8 @@ router.post("/image", async (req, res, next) => {
       });
     }
 
-    res.json({ ok: true, data: classification, extractedText });
+    const productName = parsed.product_name ?? null;
+    res.json({ ok: true, data: classification, extractedText, product_name: productName });
   } catch (e) {
     next(e);
   }

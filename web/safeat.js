@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.31';
+const APP_VERSION = '0.5.32';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -654,6 +654,7 @@ async function handleImageAnalyzeGeminiDetailed() {
   try {
     _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
     const { data, extractedText } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType);
+    _lastExtractedProductName = data?.product_name ?? null;
     const text = String(extractedText || "").trim();
     clearError();
     switchToTextInputTab();
@@ -907,9 +908,10 @@ function promoteFromUserDB(result) {
 }
 
 
-let _lastAnalysisResult  = null;
-let _lastExtractedText   = null;
-let _lastScannedProduct  = null;
+let _lastAnalysisResult       = null;
+let _lastExtractedText        = null;
+let _lastScannedProduct       = null;
+let _lastExtractedProductName = null;
 
 // --- Result rendering ---
 const OVERALL_CONFIG = {
@@ -2085,7 +2087,7 @@ document.addEventListener('click', (e) => {
     if (form) form.style.display = '';
     const input = document.getElementById('input-product-name');
     if (input) {
-      input.value       = productName || '';
+      input.value       = productName || _lastExtractedProductName || '';
       input.placeholder = '商品名を入力してください（省略可）';
       input.focus();
     }
@@ -2163,7 +2165,11 @@ document.addEventListener('click', (e) => {
     if (form) {
       form.style.display = form.style.display === 'none' ? '' : 'none';
       if (form.style.display !== 'none') {
-        document.getElementById('input-product-name')?.focus();
+        const input = document.getElementById('input-product-name');
+        if (input) {
+          if (!input.value) input.value = _lastExtractedProductName || '';
+          input.focus();
+        }
       }
     }
   });
