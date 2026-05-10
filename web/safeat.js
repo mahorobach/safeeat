@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.16';
+const APP_VERSION = '0.5.17';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2132,12 +2132,11 @@ document.addEventListener('click', (e) => {
 
   document.getElementById('drawer-nav-register')?.addEventListener('click', (e) => {
     e.preventDefault();
-    document.getElementById('btn-hamburger')?.classList.remove('is-open');
-    const dm = document.getElementById('drawer-menu');
-    dm?.classList.remove('is-open');
-    dm?.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    document.getElementById('btn-save-product-open')?.click();
+    window.closeDrawer?.();
+    showById('scanner-page');
+    setTimeout(() => {
+      document.getElementById('btn-save-product-open')?.click();
+    }, 100);
   });
 
   document.getElementById('btn-mylist-back')?.addEventListener('click', () => {
