@@ -174,8 +174,8 @@ async function extractTextFromImage(imageData, mediaType) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function getAuthHeaders() {
-  if (typeof sessionStorage === "undefined") return {};
-  const token = sessionStorage.getItem("safeat_auth_token");
+  if (typeof localStorage === "undefined") return {};
+  const token = localStorage.getItem("safeat_auth_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
