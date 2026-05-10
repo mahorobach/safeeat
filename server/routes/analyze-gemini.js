@@ -385,6 +385,7 @@ const DETAILED_IMAGE_PROMPT = `あなたはプロ仕様のOCRスキャナーで�
 - 画像に写っている文字のみを正確に転記する。推測・補完・知識による補足は絶対禁止
 - 「この食品なら○○があるはず」という先入観を排除し、ピクセル上の文字だけを見る
 - 読み取れない・不明な文字は [?] と記す
+- 「名称」「品名」欄に商品名が記載されていれば product_name に転記する（見つからない場合は null）
 - 栄養成分表・賞味期限・キャッチコピーなど原材料名欄以外は無視する
 
 === 画像品質 ===
@@ -420,6 +421,7 @@ true の場合、テキスト末尾に [?] を付加する
 === 出力形式（説明・Markdown・コードフェンス禁止。JSONのみ） ===
 
 {
+  "product_name": "商品名・名称欄に記載された名前（見つからない場合はnull）",
   "image_quality": "good",
   "ingredients": [
     {
@@ -558,7 +560,8 @@ router.post("/image/detailed", async (req, res, next) => {
     await incrementScanCount(req.user?.id);
     await insertScanLog(req.user?.id, dietMode);
 
-    res.json({ ok: true, data: parsed, extractedText });
+    const detailedProductName = parsed.product_name ?? null;
+    res.json({ ok: true, data: parsed, extractedText, product_name: detailedProductName });
   } catch (e) {
     next(e);
   }
