@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.28';
+const APP_VERSION = '0.5.29';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -907,8 +907,9 @@ function promoteFromUserDB(result) {
 }
 
 
-let _lastAnalysisResult = null;
-let _lastExtractedText  = null;
+let _lastAnalysisResult  = null;
+let _lastExtractedText   = null;
+let _lastScannedProduct  = null;
 
 // --- Result rendering ---
 const OVERALL_CONFIG = {
@@ -2049,31 +2050,44 @@ document.addEventListener('click', (e) => {
   }
 
   async function onSaveBarcodeScanned(janCode) {
-    let productData = null;
+    // スキャン情報を保持（保存ボタン押下時に使用）
+    _lastScannedProduct = {
+      jan_code:   janCode,
+      image_url:  null,
+      shop_url:   null,
+      amazon_url: `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
+    };
+
+    // 商品情報を取得（失敗しても続行）
+    let productName = null;
     try {
-      productData = await lookupProduct(janCode);
+      const productData = await lookupProduct(janCode);
+      productName                   = productData?.product_name ?? null;
+      _lastScannedProduct.image_url = productData?.image_url    ?? null;
+      _lastScannedProduct.shop_url  = productData?.shop_url     ?? null;
     } catch (e) {
-      console.warn('楽天API失敗、商品名なしで保存', e);
+      console.warn('商品情報取得失敗', e);
     }
-    await doSaveToMylist({
-      jan_code:     janCode,
-      product_name: productData?.product_name ?? null,
-      image_url:    productData?.image_url    ?? null,
-      shop_url:     productData?.shop_url     ?? null,
-      amazon_url:   `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`,
-    });
+
+    // save-barcode-page を閉じて scanner-page に戻る
     _ALL_PAGES.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
     document.getElementById('scanner-page').style.display = 'block';
-    const saveSection = document.getElementById('save-product-section');
-    if (saveSection) saveSection.style.display = 'none';
-    const msg = document.getElementById('mylist-saved-message');
-    if (msg) msg.style.display = '';
-    const amazonBtn = document.getElementById('btn-amazon-after-save');
-    if (amazonBtn && janCode) {
-      amazonBtn.href = `https://www.amazon.co.jp/s?k=${encodeURIComponent(janCode)}&i=grocery&tag=vegeatease-22`;
+
+    // save-to-mylist-area を確認入力モードに切り替え
+    const area = document.getElementById('save-to-mylist-area');
+    if (area) area.style.display = '';
+    document.getElementById('btn-save-to-mylist')?.style && (document.getElementById('btn-save-to-mylist').style.display = 'none');
+    document.getElementById('btn-save-no-barcode')?.style && (document.getElementById('btn-save-no-barcode').style.display = 'none');
+    const form = document.getElementById('save-no-barcode-form');
+    if (form) form.style.display = '';
+    const input = document.getElementById('input-product-name');
+    if (input) {
+      input.value       = productName || '';
+      input.placeholder = '商品名を入力してください（省略可）';
+      input.focus();
     }
   }
 
@@ -2151,10 +2165,13 @@ document.addEventListener('click', (e) => {
     }
   });
 
-  // 「保存する」ボタン（バーコードなし）
+  // 「保存する」ボタン（バーコードなし or バーコードスキャン後の確認）
   document.getElementById('btn-save-no-barcode-confirm')?.addEventListener('click', async () => {
     const productName = document.getElementById('input-product-name')?.value.trim() || null;
-    await doSaveToMylist({ product_name: productName });
+    await doSaveToMylist({
+      product_name: productName,
+      ...(_lastScannedProduct || {}),
+    });
   });
 
   document.getElementById('barcode-goto-mylist')?.addEventListener('click', () => {
