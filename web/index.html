@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.5.15">
+  <link rel="stylesheet" href="safeat.css?v=0.5.16">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -46,7 +46,6 @@
       <a href="#" class="drawer-nav-link" id="drawer-nav-top">Top</a>
       <a href="#" class="drawer-nav-link" id="drawer-nav-app">アプリ</a>
       <a href="#" class="drawer-nav-link" id="drawer-nav-mylist">📦 マイリスト</a>
-      <a href="#" class="drawer-nav-link" id="drawer-nav-register" style="display:none">📦 商品を直接登録する</a>
       <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="drawer-nav-link">お問い合わせ</a>
       <a href="privacy.html" class="drawer-nav-link">プライバシーポリシー</a>
       <a href="terms.html" class="drawer-nav-link">利用規約</a>
@@ -544,6 +543,13 @@
         </a>
       </div>
 
+      <!-- マイリスト -->
+      <div class="settings-card">
+        <button type="button" id="btn-goto-mylist-from-settings" class="btn-secondary">
+          📦 マイリストを見る
+        </button>
+      </div>
+
       <!-- ログアウト -->
       <div class="settings-card settings-card-danger">
         <div class="settings-card-title">アカウント操作</div>
@@ -561,6 +567,7 @@
       <div class="user-settings-header">
         <button type="button" class="btn-back" id="btn-mylist-back">← 戻る</button>
         <h2 class="user-settings-title">📦 マイリスト</h2>
+        <button type="button" id="btn-add-to-mylist" class="btn-secondary">＋ 商品を追加する</button>
       </div>
       <div id="mylist-container">
         <p class="mylist-empty" id="mylist-empty" style="display:none">まだ保存された商品はありません</p>
@@ -655,6 +662,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js?v=0.5.1"></script>
 <script src="safeat-api.js?v=0.5.2"></script>
-<script src="safeat.js?v=0.5.18"></script>
+<script src="safeat.js?v=0.5.19"></script>
 </body>
 </html>

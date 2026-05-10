@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.18';
+const APP_VERSION = '0.5.19';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2191,4 +2191,16 @@ document.addEventListener('click', (e) => {
       itemsEl.innerHTML = `<p style="text-align:center;color:#c00;padding:2rem;">${e.message || '取得に失敗しました'}</p>`;
     }
   }
+
+  window.openSaveBarcodePage = openSaveBarcodePage;
+  window.loadMyList = loadMyList;
+
+  document.getElementById('btn-add-to-mylist')?.addEventListener('click', () => {
+    openSaveBarcodePage();
+  });
+
+  document.getElementById('btn-goto-mylist-from-settings')?.addEventListener('click', () => {
+    showById('mylist-page');
+    loadMyList();
+  });
 })();
