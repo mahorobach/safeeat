@@ -1626,6 +1626,20 @@ header { justify-content: space-between; }
   transition: background 0.15s, color 0.15s;
 }
 .btn-settings-logout:hover { background: #c0392b; color: #fff; }
+.btn-goto-mylist {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: #8B6347;
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+.btn-goto-mylist:hover { background: #7a5540; }
 
 /* ===== バーコードスキャン・マイリスト ===== */
 .save-product-card {
