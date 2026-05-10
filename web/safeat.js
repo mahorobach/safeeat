@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.17';
+const APP_VERSION = '0.5.18';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2135,6 +2135,8 @@ document.addEventListener('click', (e) => {
     window.closeDrawer?.();
     showById('scanner-page');
     setTimeout(() => {
+      const section = document.getElementById('save-product-section');
+      if (section) section.style.display = '';
       document.getElementById('btn-save-product-open')?.click();
     }, 100);
   });
