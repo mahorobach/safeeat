@@ -1872,6 +1872,22 @@ header { justify-content: space-between; }
 }
 .btn-save-mylist:hover:not(:disabled) { background: var(--green-mid); }
 .btn-save-mylist:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-save-no-barcode {
+  width: 100%;
+  padding: 11px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  color: #4CAF50;
+  border: 2px solid #4CAF50;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+}
+.btn-save-no-barcode:hover { background: #f0faf0; }
 .save-mylist-status {
   text-align: center;
   font-size: 0.9rem;
