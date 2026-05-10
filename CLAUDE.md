@@ -84,14 +84,28 @@ product_catalog    → 共有カタログ（user_id なし・匿名・JANコー�
 
 ### 登録フロー
 ```
+
+【商品名の取得優先順位】
+1. バーコードスキャン → 楽天API → Open Food Facts
+2. 成分表画像 → GeminiがDETAILED_IMAGE_PROMPTで抽出（product_name）
+3. どちらも取れなかった → 空欄（手動入力）
+
+【登録フロー】
 判定結果「✅ 安全」or「🟡 グレー」
   ↓
-「この商品をマイリストに登録する」ボタン表示
-  ↓ タップ
-バーコードスキャナー起動
-  ├─ スキャン成功（JANあり）→ saved_products + product_catalog に保存
-  └─ スキップ（JANなし）→ saved_products のみに保存
+「📷 バーコードを読み取り、保存」ボタン
+「📝 バーコードなしで保存」ボタン（インライン入力欄が展開）
+  ↓ バーコードスキャン成功時
+scanner-pageに戻り、商品名入力欄を表示
+  ┌─ 楽天/Open Food Factsで名前取得できた → 入力欄に初期値
+  └─ 取得できなかった → Geminiが抽出したproduct_nameをフォールバック
+  ↓ 「保存する」ボタンを押す
+保存完了（✅ マイリストに保存しました）
+
+「新しい食品を解析する」ボタンを押すと
+_lastScannedProduct・_lastExtractedProductName・入力欄をリセット
 ```
+
 
 ### 判定結果別ボタン表示
 ```
@@ -135,6 +149,18 @@ overall='ng'   → 登録ボタン非表示
 ## 実装前の必須確認
 - 実装前に関連する既存コードの構造（親要素・スコープ・非同期）を
   必ず確認してから実装すること
+  
+  
+## Claude Chatとの連携
+
+- 設計相談・バグ調査はClaude Chatを活用する
+- Claude Chatは必ずファイルを確認してから判断する
+  → 問題が解決しない場合は、修正後の最新ファイルをアップロードして再確認を依頼する
+- 確認が必要な主なファイル：
+  - フロント修正時：index.html・safeat.js・safeat.css
+  - API修正時：analyze-gemini.js・safeat-api.js
+  - ロジック修正時：shared/rules.js・server/routes/該当ファイル
+- Claude Chatでの変更内容は、セッション終了時に.mdファイルへ反映する
 
 ## 作業後チェックリスト
 
