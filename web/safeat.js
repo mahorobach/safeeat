@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.24';
+const APP_VERSION = '0.5.25';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -1166,6 +1166,8 @@ document.getElementById("btn-result-reset")?.addEventListener("click", () => {
   clearError();
   const savedMsg = document.getElementById('mylist-saved-message');
   if (savedMsg) savedMsg.style.display = 'none';
+  const saveSection = document.getElementById('save-product-section');
+  if (saveSection) saveSection.style.display = 'none';
   window.scrollTo({ top: 0, behavior: "smooth" });
   // 写真タブに切り替えてカメラを使いやすくする
   document.querySelectorAll(".input-tab").forEach((t) =>
@@ -2104,24 +2106,26 @@ document.addEventListener('click', (e) => {
     // 成功 or 保存済み
     await stopSaveBarcodeScanner();
 
-    const resultArea = document.getElementById('barcode-save-result');
-    const statusEl   = document.getElementById('barcode-save-status');
-    const linksEl    = document.getElementById('barcode-shop-links');
+    // 登録ボタンエリアを非表示
+    const saveSection = document.getElementById('save-product-section');
+    if (saveSection) saveSection.style.display = 'none';
 
-    if (statusEl) statusEl.textContent = savedOk
-      ? '✅ マイリストに保存しました'
-      : '📋 この商品はすでにマイリストに保存済みです';
-
-    const shopUrl   = productData?.shop_url   || null;
-    const amazonUrl = productData?.amazon_url || null;
-    if (linksEl) {
-      linksEl.innerHTML = `
-        ${shopUrl   ? `<a href="${shopUrl}"   target="_blank" rel="noopener" class="btn-feedback">🛒 楽天で購入 →</a>`   : ''}
-        ${amazonUrl ? `<a href="${amazonUrl}" target="_blank" rel="noopener" class="btn-feedback">📦 Amazonで購入 →</a>` : ''}
-      `;
+    // 保存完了メッセージを表示
+    const savedMsg = document.getElementById('mylist-saved-message');
+    if (savedMsg) {
+      savedMsg.style.display = '';
+      const amazonBtn = document.getElementById('btn-amazon-after-save');
+      const amazonUrl = productData?.amazon_url || null;
+      if (amazonBtn && amazonUrl) amazonBtn.href = amazonUrl;
+      else if (amazonBtn) amazonBtn.style.display = 'none';
     }
 
-    if (resultArea) resultArea.style.display = '';
+    // scanner-page に戻る
+    _ALL_PAGES.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    document.getElementById('scanner-page').style.display = 'block';
   }
 
   document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodePage);

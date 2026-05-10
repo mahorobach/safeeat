@@ -1933,6 +1933,21 @@ header { justify-content: space-between; }
   font-size: 0.9rem;
 }
 
+/* ===== 保存完了後Amazonボタン ===== */
+.btn-amazon-after-save {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: #f90;
+  color: #fff;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-amazon-after-save:hover { background: #e08600; }
+
 /* ===== フィードバックボタン ===== */
 .btn-feedback {
   background: none;
