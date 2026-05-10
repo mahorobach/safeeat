@@ -34,8 +34,8 @@
 | AI解析（予備） | Claude API `claude-sonnet-4-6`系（テキスト判定・`/api/analyze`） |
 | キャッシュ | Supabase `ingredient_cache` テーブル（SHA-256ハッシュ・モード別複合キー） |
 | APIホスティング | **Railway**（本番） |
-| フロントホスティング | GitHub Pages |
-| ソース管理 | GitHub |
+| フロントホスティング | **Cloudflare Pages**（app.eatease.net） |
+| ソース管理 | GitHub（プライベート） |
 | 決済（将来） | Stripe |
 | 本番移行先（将来） | Xserver（PHP + MySQL） |
 
@@ -158,7 +158,7 @@ UI層（web/safeat.js）
 新規登録（メール＋パスワード）
   → Supabase Auth
   → on_auth_user_created トリガーで user_profiles を自動生成
-  → JWTトークンを sessionStorage に保存
+  → JWTトークンを localStorage に保存
   → API呼び出し時に Authorization: Bearer <token> を付与
   → server/middleware/auth.js で検証
 ```
@@ -206,7 +206,7 @@ GET  /api/admin/check                  → 管理者チェック
 GET  /api/admin/stats                  → 統計情報
 GET  /api/admin/users                  → ユーザー一覧
 PUT  /api/admin/users/:userId/plan     → プラン変更
-GET  /api/product/lookup               → バーコード商品情報検索（Open Food Facts利用）
+GET  /api/product/lookup               → バーコード商品情報検索（楽天API → Open Food Factsにフォールバック）
 POST /api/product/save                 → マイリスト保存
 GET  /api/product/mylist               → マイリスト取得
 DELETE /api/product/mylist/:id         → マイリスト削除
@@ -244,6 +244,7 @@ POST /api/subscription/cancel          → サブスク解約
 | `STRIPE_WEBHOOK_SECRET` | Webhook時 | Stripe署名検証用 |
 | `ALLOWED_ORIGINS` | 本番推奨 | CORS許可オリジン（末尾スラッシュなし） |
 | `PORT` | 任意 | 未設定時は3000 |
+| `RAKUTEN_AFFILIATE_ID` | アフィリエイト時 | 楽天アフィリエイトID（商品URLの変換に使用） |
 
 `web/site-config.js` に設定するもの（公開可）：`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`API_BASE`
 
@@ -257,13 +258,16 @@ POST /api/subscription/cancel          → サブスク解約
 | 2 | Gemini 1ステップ解析 + Supabaseキャッシュ | **完了** |
 | 3 | ユーザー認証（Supabase Auth）・月10回制限・管理者ページ | **完了** |
 | 3.5 | ランディングページ・モード選択・法的ページ | **完了** |
-| 3.6 | メール送信設定（Resend・daisho-kikaku.comドメイン認証） | **⚠️ 途中** |
-| 4 | テストユーザー招待・フィードバック収集 | **← 現在** |
+| 3.6 | メール設定（Resend・eatease.netドメイン認証） | **✅ 完了** |
+| 3.7 | インフラ整備（Cloudflare Pages・ドメイン取得・リポジトリPrivate化） | **✅ 完了** |
+| 3.8 | バーコードスキャン → 楽天・Amazonリンク | **✅ 完了** |
+| 3.9 | 判定OK後マイリスト登録 + カタログデータ蓄積 | **✅ 完了** |
+| 4 | テストユーザーフィードバック収集（9名）・楽天Amazonアフィリエイト実装 | **← 現在** |
 | 5 | UIデザイン改善・集客 | 次 |
 | 6 | サブスク課金（Stripe）・プラン管理 | ユーザー数を見て判断 |
-| 7 | グレー確認フロー（有料プランの核心） | 有料プランの核心機能 |
-| 8 | 判定履歴・お気に入り商品 | ユーザー体験向上 |
-| 9 | iOSアプリ化（SwiftUI）※バーコード実装時 | App Store申請の前提 |
+| 7 | グレー確認フロー | 有料プランの核心機能 |
+| 8 | マイリスト画面・カタログ検索画面 | 次フェーズ候補 |
+| 9 | iOSアプリ化（バーコードスキャン実装時） | App Store申請の前提 |
 | 10 | App Store申請・リリース | 最終ゴール |
 | 11 | Android対応 | 将来 |
 
@@ -300,7 +304,7 @@ POST /api/subscription/cancel          → サブスク解約
 
 | 項目 | URL |
 |---|---|
-| フロントエンド | https://mahorobach.github.io/safeeat/web/index.html |
+| フロントエンド | https://app.eatease.net |
 | APIサーバー | https://safeeat-production-b7c5.up.railway.app |
 | API死活確認 | https://safeeat-production-b7c5.up.railway.app/api/health |
 | GitHubリポジトリ | https://github.com/mahorobach/safeeat |
@@ -308,4 +312,4 @@ POST /api/subscription/cancel          → サブスク解約
 ---
 
 *作成日：2026年4月28日*
-*最終更新：2026年5月9日（Claudeモデル更新・フォルダ構成/APIエンドポイント追記・ロードマップをREADMEと整合）*
+*最終更新：2026年5月10日（フロントホスティング・重要URL・認証トークン保存先・Phase 3.6〜3.9・環境変数をREADMEと整合）*

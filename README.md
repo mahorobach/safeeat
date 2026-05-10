@@ -106,10 +106,25 @@ daisho-kikaku.com（菜食健美 成分チェッカー）
 ### Supabaseテーブル（実装済み）
 
 ```sql
-user_profiles  (id, plan, scan_count, scan_month, created_at, updated_at)
-scan_logs      (id, user_id, diet_mode, created_at)
-user_settings  (user_id, mode, mode_selected, custom_ng, custom_ok, updated_at)
+user_profiles    (id, plan, scan_count, scan_month, created_at, updated_at)
+scan_logs        (id, user_id, diet_mode, created_at)
+user_settings    (user_id, mode, mode_selected, custom_ng, custom_ok, updated_at)
 ingredient_cache (ingredient_hash, diet_mode, ingredient_text, analysis_result, hit_count, created_at)
+saved_products   (id, user_id, product_name, jan_code, diet_mode, ingredient_text, is_safe, image_url, shop_url, amazon_url, created_at)
+product_catalog  (id, product_name, jan_code, diet_mode, ingredient_text, is_safe, image_url, shop_url, amazon_url, scan_count, first_scanned_at, last_scanned_at)
+```
+
+### マイリスト・カタログ設計
+
+```
+saved_products（個人マイリスト）
+  → user_id あり・削除自由
+
+product_catalog（共有カタログ）
+  → user_id なし・匿名
+  → JANコードありのデータのみ登録
+  → jan_code + diet_mode でユニーク・scan_count をインクリメント
+  → ユーザーが削除してもカタログからは消えない
 ```
 
 ### APIエンドポイント（実装済み）
@@ -126,8 +141,8 @@ GET  /api/admin/check                  → 管理者チェック
 GET  /api/admin/stats                  → 統計情報
 GET  /api/admin/users                  → ユーザー一覧
 PUT  /api/admin/users/:userId/plan     → プラン変更
-GET  /api/product/lookup               → バーコード商品情報検索
-POST /api/product/save                 → マイリスト保存
+GET  /api/product/lookup               → バーコード商品情報検索（楽天API → Open Food Factsにフォールバック）
+POST /api/product/save                 → マイリスト保存（+ product_catalog upsert）
 GET  /api/product/mylist               → マイリスト取得
 DELETE /api/product/mylist/:id         → マイリスト削除
 GET  /api/subscription/status          → サブスク状態確認
@@ -175,6 +190,7 @@ POST /api/subscription/cancel          → サブスク解約
 | `STRIPE_WEBHOOK_SECRET` | Webhook時 | Stripe署名検証用 |
 | `ALLOWED_ORIGINS` | 本番推奨 | CORS許可オリジン |
 | `PORT` | 任意 | 未設定時は3000 |
+| `RAKUTEN_AFFILIATE_ID` | アフィリエイト時 | 楽天アフィリエイトID |
 
 ---
 
@@ -189,11 +205,12 @@ POST /api/subscription/cancel          → サブスク解約
 | 3.6 | メール設定（Resend・eatease.net認証） | **✅ 完了** |
 | 3.7 | インフラ整備（Cloudflare Pages・ドメイン取得・リポジトリPrivate化） | **✅ 完了** |
 | 3.8 | バーコードスキャン → 楽天・Amazonリンク | **✅ 完了** |
-| 4 | テストユーザー招待・フィードバック収集（9名） | **← 現在** |
+| 3.9 | 判定OK後マイリスト登録 + カタログデータ蓄積 | **✅ 完了** |
+| 4 | テストユーザーフィードバック収集（9名）・楽天Amazonアフィリエイト実装 | **← 現在** |
 | 5 | UIデザイン改善・集客 | 次 |
 | 6 | サブスク課金（Stripe）・プラン管理 | ユーザー数を見て判断 |
 | 7 | グレー確認フロー | 有料プランの核心機能 |
-| 8 | 判定履歴・お気に入り商品 | ユーザー体験向上 |
+| 8 | マイリスト画面・カタログ検索画面 | 次フェーズ候補 |
 | 9 | iOSアプリ化（バーコードスキャン実装時） | 将来 |
 | 10 | App Store申請・リリース | 最終ゴール |
 
@@ -210,7 +227,16 @@ POST /api/subscription/cancel          → サブスク解約
 | 18 | 既存ユーザーにプロファイルがない | トリガー設定前に登録 | `INSERT INTO user_profiles SELECT id FROM auth.users ON CONFLICT DO NOTHING` |
 | 19 | 管理リンクが複数表示 | onAuthStateChangeが複数回発火 | ユーザー設定ページ内に管理リンクを移動 |
 | 20 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
+| 21 | 登録ボタンが表示されない | `renderDetailedResult()` が `renderResult()` を経由せず独自描画 | `renderDetailedResult()` 末尾に `showSaveButtonIfSafe()` を追加 |
+| 22 | 解析前にconfirmダイアログが出る | 前回のgray判定結果が残った状態で新しい解析を開始 | 解析開始時に `save-to-mylist-area` を非表示・`_lastAnalysisResult` をリセット |
+| 23 | 古いJSが配信される | Cloudflare キャッシュ | `safeat.js?v=x.x.x` のバージョン番号を上げる |
+| 24 | SQL EditorにペーストできないSupabase問題 | ブラウザのフォーカス問題 | エディタを一度クリックしてからペースト or 右クリック→貼り付け |
+| 25 | 楽天APIで商品名が取得できない | 楽天に未登録の商品 | Open Food Facts APIにフォールバック |
+| 26 | 楽天リンクがアフィリエイトにならない | itemUrlをそのまま使用 | RAKUTEN_AFFILIATE_IDで変換 |
+| 27 | バーコードスキャンが遅い | showById()内で_stopBarcodeScanner()が呼ばれカメラ起動前に干渉 | バーコードページへの遷移はshowById()を使わず_ALL_PAGES.forEachで直接切替 |
+| 28 | ドロワーメニューを閉じずにページ遷移 | closeDrawer()がIIFE外から呼べなかった | window.closeDrawerとして公開 |
+| 29 | スマホでCSSのdisplay:noneが効かない | メディアクエリより後にdisplay:flexが定義されていた | 対象クラス定義の直後に!importantで上書き |
 
 ---
 
-*最終更新: 2026-05-09（ブランド名をVegeEatEaseに変更・Cloudflare Pages移行・メール設定完了・バーコード機能追加・tester9名付与を反映）*
+*最終更新: 2026-05-10（/api/product/lookup の説明を楽天API→Open Food Factsフォールバック順に修正）*
