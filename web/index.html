@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.5.22">
+  <link rel="stylesheet" href="safeat.css?v=0.5.23">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -24,7 +24,7 @@
   </div>
   <nav class="header-nav" id="header-nav">
     <a href="#" class="header-nav-link" id="nav-top">Top</a>
-    <a href="#" class="header-nav-link" id="nav-app">アプリ</a>
+    <a href="#" class="header-nav-link" id="nav-app">成分チェック</a>
     <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="header-nav-link">お問い合わせ</a>
   </nav>
   <div class="header-right">
@@ -44,7 +44,7 @@
     <button type="button" class="drawer-close" id="drawer-close">✕</button>
     <nav class="drawer-nav">
       <a href="#" class="drawer-nav-link" id="drawer-nav-top">Top</a>
-      <a href="#" class="drawer-nav-link" id="drawer-nav-app">アプリ</a>
+      <a href="#" class="drawer-nav-link" id="drawer-nav-app">成分チェック</a>
       <a href="#" class="drawer-nav-link" id="drawer-nav-mylist">📦 マイリスト</a>
       <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="drawer-nav-link">お問い合わせ</a>
       <a href="privacy.html" class="drawer-nav-link">プライバシーポリシー</a>
@@ -232,12 +232,12 @@
 
       <!-- Tab nav -->
       <div class="input-tabs">
-        <button class="input-tab active" data-tab="text">📝 テキスト入力</button>
-        <button class="input-tab" data-tab="image">📷 写真で読み取り <span class="tab-badge">おすすめ</span></button>
+        <button class="input-tab active" data-tab="image">📷 写真で読み取り <span class="tab-badge">おすすめ</span></button>
+        <button class="input-tab" data-tab="text">📝 テキスト入力</button>
       </div>
 
       <!-- Text tab -->
-      <div id="tab-text">
+      <div id="tab-text" style="display:none">
         <textarea
           id="ingredients-textarea"
           placeholder="ここに成分表のテキストを貼り付けてください（例：砂糖、小麦粉、植物油脂、食塩、グリセリン、天然香料 …）"
@@ -246,7 +246,7 @@
       </div>
 
       <!-- Image tab -->
-      <div id="tab-image" style="display:none">
+      <div id="tab-image">
         <div class="drop-zone" id="drop-zone">
           <input type="file" id="image-input" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
           <div id="drop-placeholder">
@@ -591,7 +591,7 @@
       <div class="user-settings-header">
         <button type="button" class="btn-back" id="btn-mylist-back">← 戻る</button>
         <h2 class="user-settings-title">📦 マイリスト</h2>
-        <button type="button" id="btn-add-to-mylist" class="btn-back">＋ 商品追加</button>
+        <button type="button" id="btn-add-to-mylist" class="btn-back">＋ 追加</button>
       </div>
       <div id="mylist-container">
         <p class="mylist-empty" id="mylist-empty" style="display:none">まだ保存された商品はありません</p>
