@@ -85,6 +85,7 @@ header {
   border: none;
   cursor: pointer;
   padding: 0.4rem;
+  margin-right: 8px;
 }
 .btn-hamburger span {
   display: block;
