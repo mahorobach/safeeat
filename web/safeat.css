@@ -1888,6 +1888,16 @@ header { justify-content: space-between; }
   text-align: center;
 }
 .btn-save-no-barcode:hover { background: #f0faf0; }
+#input-product-name {
+  width: 100%;
+  padding: 11px;
+  font-size: 0.95rem;
+  border: 2px solid #4CAF50;
+  border-radius: 50px;
+  box-sizing: border-box;
+  height: auto;
+  outline: none;
+}
 .save-mylist-status {
   text-align: center;
   font-size: 0.9rem;
