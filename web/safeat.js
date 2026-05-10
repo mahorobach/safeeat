@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.21';
+const APP_VERSION = '0.5.22';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2199,7 +2199,11 @@ document.addEventListener('click', (e) => {
   let _mylistAddScanner = null;
 
   function openMylistAddPage() {
-    showById('mylist-add-page');
+    _ALL_PAGES.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    document.getElementById('mylist-add-page').style.display = 'block';
     const errEl = document.getElementById('mylist-add-error');
     errEl.style.display = 'none';
     _mylistAddScanner = new Html5Qrcode('mylist-add-qr-reader');
