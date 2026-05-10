@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.25';
+const APP_VERSION = '0.5.26';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -1168,6 +1168,8 @@ document.getElementById("btn-result-reset")?.addEventListener("click", () => {
   if (savedMsg) savedMsg.style.display = 'none';
   const saveSection = document.getElementById('save-product-section');
   if (saveSection) saveSection.style.display = 'none';
+  const saveToMylistArea = document.getElementById('save-to-mylist-area');
+  if (saveToMylistArea) saveToMylistArea.style.display = 'none';
   window.scrollTo({ top: 0, behavior: "smooth" });
   // 写真タブに切り替えてカメラを使いやすくする
   document.querySelectorAll(".input-tab").forEach((t) =>
@@ -2109,6 +2111,8 @@ document.addEventListener('click', (e) => {
     // 登録ボタンエリアを非表示
     const saveSection = document.getElementById('save-product-section');
     if (saveSection) saveSection.style.display = 'none';
+    const saveToMylistArea = document.getElementById('save-to-mylist-area');
+    if (saveToMylistArea) saveToMylistArea.style.display = 'none';
 
     // 保存完了メッセージを表示
     const savedMsg = document.getElementById('mylist-saved-message');
