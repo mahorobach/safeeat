@@ -228,7 +228,11 @@ async function analyzeImageWithGeminiDetailed(imageData, mediaType, dietMode = "
       throw new Error(data.error || `サーバーエラー (${res.status})`);
     }
 
-    return { data: data.data, extractedText: data.extractedText || "" };
+    return {
+      data: data.data,
+      extractedText: data.extractedText || "",
+      product_name: data.product_name ?? null,
+    };
   } finally {
     clearTimeout(tid);
   }
