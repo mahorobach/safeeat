@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.12';
+const APP_VERSION = '0.5.13';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -553,14 +553,8 @@ async function classifyExtractedText(ingredientsText, recoverManualStepOnFail = 
     const promoted = promoteFromUserDB(result);
     renderResult(promoted, false, ingredientsText);
   } catch (err) {
-    try {
-      const result = localFallback(ingredientsText);
-      const promoted = promoteFromUserDB(result);
-      renderResult(promoted, true, ingredientsText);
-    } catch {
-      showError(`解析エラー：${err.message}`);
-      if (recoverManualStepOnFail) restoreExtractOnlyManualStep(ingredientsText);
-    }
+    showError(`解析エラー：${err.message}`);
+    if (recoverManualStepOnFail) restoreExtractOnlyManualStep(ingredientsText);
   }
 }
 
@@ -587,12 +581,7 @@ async function handleTextAnalyze() {
       showError("今月の無料枠（10回）を使い切りました。来月リセットされます。");
       return;
     }
-    try {
-      const result = localFallback(ingredientsText);
-      renderResult(promoteFromUserDB(result), true, ingredientsText);
-    } catch {
-      showError(`解析エラー：${err.message}`);
-    }
+    showError(`解析エラー：${err.message}`);
   }
 }
 
@@ -917,19 +906,6 @@ function promoteFromUserDB(result) {
   return promoted;
 }
 
-// --- ローカルフォールバック ---
-function localFallback(text) {
-  const db = window.SafeEatDB;
-  const rules = window.SafeEatRules;
-  if (!db || !rules) throw new Error("判定モジュールが読み込まれていません。ページを再読み込みしてください。");
-
-  const ingredients = text
-    .split(/[,、，\/\n・]+/)
-    .map((s) => s.replace(/\s+/g, "").trim())
-    .filter(Boolean);
-
-  return rules.judgeIngredients(ingredients, db);
-}
 
 let _lastAnalysisResult = null;
 let _lastExtractedText  = null;
