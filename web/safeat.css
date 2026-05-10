@@ -46,10 +46,12 @@ header {
   padding: 16px 24px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
   gap: 12px;
   box-shadow: var(--shadow);
 }
-.header-left { display: flex; align-items: center; }
+.header-left { display: flex; align-items: center; flex: 1; min-width: 0; }
 .logo-link { display: flex; flex-direction: row; align-items: center; gap: 10px; text-decoration: none; color: inherit; cursor: pointer; }
 .logo-link:hover { opacity: 0.85; }
 .logo-icon { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
@@ -59,7 +61,6 @@ header {
 .tagline-short { display: none; }
 .header-nav {
   display: flex; align-items: center; gap: 1.2rem;
-  margin-left: auto; margin-right: 1rem;
 }
 .header-nav-link {
   color: rgba(255,255,255,0.9); text-decoration: none;
@@ -67,6 +68,12 @@ header {
   transition: color 0.15s;
 }
 .header-nav-link:hover { color: #fff; text-decoration: underline; }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 /* ハンバーガーボタン */
 .btn-hamburger {
@@ -78,7 +85,6 @@ header {
   border: none;
   cursor: pointer;
   padding: 0.4rem;
-  margin-left: 0.5rem;
 }
 .btn-hamburger span {
   display: block;
@@ -92,35 +98,20 @@ header {
 .btn-hamburger.is-open span:nth-child(2) { opacity: 0; }
 .btn-hamburger.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 @media (min-width: 601px) and (max-width: 768px) {
-  .btn-hamburger { display: flex; margin-left: auto; }
+  .btn-hamburger { display: flex; }
   .header-nav { display: none !important; }
 }
 @media (max-width: 600px) {
   header {
-    flex-wrap: wrap;
-    align-items: center;
     padding: 0.5rem 0.8rem;
-    gap: 0;
+    gap: 8px;
   }
   .tagline-full { display: none; }
   .tagline-short { display: block; font-size: 0.6rem; }
-  .header-left { flex: 1; min-width: 0; }
   .logo { font-size: 1.1rem; }
-  .btn-hamburger { display: flex; margin-left: auto; }
+  .btn-hamburger { display: flex; }
   .header-nav { display: none !important; }
-  .auth-area {
-    order: 10;
-    width: 100%;
-    display: flex !important;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 0.4rem;
-    padding-top: 0.4rem;
-    margin-top: 0.3rem;
-    flex-wrap: nowrap;
-    overflow: hidden;
-  }
+  .user-icon-wrap { display: none; }
   .scan-badge,
   .scan-badge-unlimited {
     font-size: 0.75rem;
@@ -1167,7 +1158,6 @@ footer {
 @media (max-width: 480px) {
   main { padding: 0 10px 48px; gap: 14px; }
   .card { padding: 16px; }
-  header { padding: 14px 16px; }
   .logo { font-size: 1.3rem; }
   .camera-guide-box { width: 94%; aspect-ratio: 1 / 1; }
   .hero { padding: 26px 16px 22px; }

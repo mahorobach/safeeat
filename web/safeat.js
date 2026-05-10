@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.13';
+const APP_VERSION = '0.5.15';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2025,9 +2025,11 @@ document.addEventListener('click', (e) => {
     }
   }
 
-  function closeSaveBarcodePage() {
-    _saveBarcodeScanner?.stop().catch(() => {});
-    _saveBarcodeScanner = null;
+  async function closeSaveBarcodePage() {
+    if (_saveBarcodeScanner) {
+      await _saveBarcodeScanner.stop().catch(() => {});
+      _saveBarcodeScanner = null;
+    }
     showById('scanner-page');
   }
 
@@ -2102,7 +2104,8 @@ document.addEventListener('click', (e) => {
 
   document.getElementById('btn-save-barcode-skip')?.addEventListener('click', async () => {
     await stopSaveBarcodeScanner();
-    await doSaveToMylist({});
+    const productName = prompt('商品名を入力してください（省略可）') ?? '';
+    await doSaveToMylist({ product_name: productName || null });
   });
 
   document.getElementById('btn-save-barcode-cancel')?.addEventListener('click', closeSaveBarcodePage);
@@ -2157,7 +2160,7 @@ document.addEventListener('click', (e) => {
         card.innerHTML = `
           ${item.image_url ? `<img class="mylist-card-image" src="${esc(item.image_url)}" alt="">` : '<div class="mylist-card-no-image">📦</div>'}
           <div class="mylist-card-body">
-            <div class="mylist-card-name">${esc(item.product_name)}</div>
+            <div class="mylist-card-name">${esc(item.product_name || '（商品名未登録）')}</div>
             <div class="mylist-card-mode">${esc(item.diet_mode)}</div>
             <div class="mylist-card-links">
               ${item.shop_url ? `<a class="mylist-card-link" href="${esc(item.shop_url)}" target="_blank" rel="noopener">楽天 →</a>` : ''}
