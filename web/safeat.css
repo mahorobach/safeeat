@@ -1889,6 +1889,19 @@ header { justify-content: space-between; }
   text-align: left;
 }
 
+/* ===== マイリスト保存完了メッセージ ===== */
+#mylist-saved-message {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+#mylist-saved-message p {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2a5229;
+}
+
 /* ===== マイリスト保存完了後リンク ===== */
 .mylist-saved-links {
   display: flex;
