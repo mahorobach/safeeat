@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.26';
+const APP_VERSION = '0.5.27';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -2130,6 +2130,12 @@ document.addEventListener('click', (e) => {
       if (el) el.style.display = 'none';
     });
     document.getElementById('scanner-page').style.display = 'block';
+
+    // mylist-saved-message の位置にスクロール
+    setTimeout(() => {
+      const msg = document.getElementById('mylist-saved-message');
+      if (msg) msg.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }, 50);
   }
 
   document.getElementById('btn-save-to-mylist')?.addEventListener('click', openSaveBarcodePage);

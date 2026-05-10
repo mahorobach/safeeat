@@ -384,12 +384,26 @@
         </div>
       </div>
 
-      <!-- 判定OK後のマイリスト登録ボタン（result-reset-wrap の直前） -->
+      <!-- 判定OK後のマイリスト登録ボタン -->
       <div id="save-to-mylist-area" style="display:none">
         <button type="button" id="btn-save-to-mylist" class="btn-save-mylist">
           📷 バーコードを読み取り、この商品をリストに登録
         </button>
         <p id="save-to-mylist-status" class="save-mylist-status" style="display:none"></p>
+      </div>
+
+      <!-- マイリスト保存完了メッセージ -->
+      <div id="mylist-saved-message" style="display:none">
+        <p style="font-size:1rem; font-weight:bold; color:#2a5229;">
+          ✅ マイリストに保存しました。
+        </p>
+        <button type="button" id="btn-goto-mylist-after-save" class="btn-goto-mylist">
+          📦 マイリストはこちら
+        </button>
+        <a id="btn-amazon-after-save" href="#" target="_blank" rel="noopener"
+           class="btn-amazon-after-save">
+          🛒 Amazonで購入
+        </a>
       </div>
 
       <!-- 新しい食品を解析するボタン -->
@@ -437,19 +451,6 @@
             <button type="button" class="btn-barcode-close" id="btn-barcode-close">✕ 閉じる</button>
           </div>
         </div>
-      </div>
-
-      <div id="mylist-saved-message" style="display:none">
-        <p style="font-size:1rem; font-weight:bold; color:#2a5229;">
-          ✅ マイリストに保存しました。
-        </p>
-        <button type="button" id="btn-goto-mylist-after-save" class="btn-goto-mylist">
-          📦 マイリストはこちら
-        </button>
-        <a id="btn-amazon-after-save" href="#" target="_blank" rel="noopener"
-           class="btn-amazon-after-save">
-          🛒 Amazonで購入
-        </a>
       </div>
 
       <!-- User DB badge -->
@@ -684,6 +685,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js?v=0.5.1"></script>
 <script src="safeat-api.js?v=0.5.2"></script>
-<script src="safeat.js?v=0.5.26"></script>
+<script src="safeat.js?v=0.5.27"></script>
 </body>
 </html>
