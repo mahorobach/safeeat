@@ -12,15 +12,20 @@ router.get("/lookup", async (req, res, next) => {
     if (!jan) return res.status(400).json({ ok: false, error: "janパラメータが必要です" });
 
     const appId = process.env.RAKUTEN_APP_ID;
+    const accessKey = process.env.RAKUTEN_ACCESS_KEY;
     if (!appId) return res.status(500).json({ ok: false, error: "RAKUTEN_APP_ID が未設定です" });
+    if (!accessKey) return res.status(500).json({ ok: false, error: "RAKUTEN_ACCESS_KEY が未設定です" });
 
-    const url = new URL("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601");
+    const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601");
     url.searchParams.set("applicationId", appId);
+    url.searchParams.set("accessKey", accessKey);
     url.searchParams.set("keyword", jan);
     url.searchParams.set("hits", "1");
     url.searchParams.set("formatVersion", "2");
 
-    const r = await fetch(url.toString());
+    const r = await fetch(url.toString(), {
+      headers: { Origin: "https://veg.eatease.net" },
+    });
     const data = await r.json();
 
     const item = data.Items?.[0];
