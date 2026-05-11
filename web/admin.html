@@ -89,7 +89,7 @@
     if (!window.SafeEatAuth) return false;
     const session = await window.SafeEatAuth.getSession();
     if (!session?.user) return false;
-    const token = sessionStorage.getItem('safeat_auth_token');
+    const token = localStorage.getItem('safeat_auth_token');
     try {
       const res = await fetch(`${API_BASE}/api/admin/check`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -109,7 +109,7 @@
   document.getElementById('admin-content').style.display = 'block';
 
   async function loadStats() {
-    const token = sessionStorage.getItem('safeat_auth_token');
+    const token = localStorage.getItem('safeat_auth_token');
     try {
       const res  = await fetch(`${API_BASE}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -131,7 +131,7 @@
   loadStats();
 
   async function searchUsers(email = '') {
-    const token = sessionStorage.getItem('safeat_auth_token');
+    const token = localStorage.getItem('safeat_auth_token');
     const wrap  = document.getElementById('admin-table-wrap');
     wrap.innerHTML = '<p class="admin-msg">検索中...</p>';
     try {
@@ -175,7 +175,7 @@
   }
 
   window.changePlan = async function (userId, newPlan) {
-    const token = sessionStorage.getItem('safeat_auth_token');
+    const token = localStorage.getItem('safeat_auth_token');
     try {
       const res  = await fetch(`${API_BASE}/api/admin/users/${userId}/plan`, {
         method: 'PUT',
