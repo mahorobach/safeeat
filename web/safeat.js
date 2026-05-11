@@ -1184,9 +1184,16 @@ document.getElementById("btn-result-reset")?.addEventListener("click", () => {
   const form = document.getElementById('save-no-barcode-form');
   if (form) form.style.display = 'none';
   const btnBarcode = document.getElementById('btn-save-to-mylist');
-  if (btnBarcode) btnBarcode.style.display = '';
+  if (btnBarcode) {
+    btnBarcode.style.display = '';
+    btnBarcode.disabled = false;
+    btnBarcode.textContent = '📷 バーコードを読み取り、この商品をリストに登録';
+  }
   const btnNoBarcode = document.getElementById('btn-save-no-barcode');
-  if (btnNoBarcode) btnNoBarcode.style.display = '';
+  if (btnNoBarcode) {
+    btnNoBarcode.style.display = '';
+    btnNoBarcode.disabled = false;
+  }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
   // 写真タブに切り替えてカメラを使いやすくする
