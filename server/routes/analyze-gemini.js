@@ -29,11 +29,11 @@ function getSupabase() {
 }
 
 const FREE_PLAN_LIMIT = 10;
-const VALID_DIET_MODES = ["oriental", "vegan", "lacto_ovo", "custom"];
+const ANALYSIS_DIET_MODES = ["oriental", "vegan", "lacto_ovo"];
 
 function getDietMode(reqBody) {
   const mode = reqBody?.diet_mode;
-  return VALID_DIET_MODES.includes(mode) ? mode : "oriental";
+  return ANALYSIS_DIET_MODES.includes(mode) ? mode : "oriental";
 }
 
 async function checkScanLimit(req, res) {
@@ -128,7 +128,11 @@ async function setCache(hash, text, result, dietMode = "oriental") {
 const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const IMAGE_SIZE_LIMIT = 5 * 1024 * 1024;
 
-const ORIENTAL_RULES = `
+const DIET_RULESETS = {
+  oriental: {
+    label: "オリエンタルベジタリアン",
+    expert: "オリエンタル・ベジタリアン（五葷抜き・乳卵OK）",
+    rules: `
 オリエンタルベジタリアン判定基準:
 NG: 肉類全般・魚介類全般・五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ、エキス・パウダー・加工品含む）・コチニール色素(E120)・コラーゲン・ゼラチン・シェラック・動物性油脂
 OK: 卵・乳製品全般・カゼイン・蜂蜜・ローヤルゼリー・大豆レシチン・乳酸・植物性油脂全般・ビタミンD（羊毛由来）・アサフェティダ・大豆・大豆製品全般（醤油・味噌・豆腐・豆乳・大豆たんぱく・納豆・きな粉等）・穀物全般・野菜全般（セロリを含む）・果物全般
@@ -136,16 +140,61 @@ OK: 卵・乳製品全般・カゼイン・蜂蜜・ローヤルゼリー・大�
 - セロリ: セリ科の野菜でありネギ属ではない。OK。
 - セージ: シソ科アキギリ属（サルビア属）のハーブでありネギ属ではない。OK。
 グレー: グリセリン（由来不明）・天然香料（動物性の可能性あり）・酵素（動物性はNG）・ビタミンD（由来不明）
-`;
+`,
+    detailedStatus: `
+"Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・玉ねぎ・あさつき。エキス・パウダー・加工品含む）または動物性（肉・魚・ゼラチン等）
+"Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check=true
+"Green" : 明確に安全な植物性成分、卵、乳製品、カゼイン、蜂蜜、ローヤルゼリー、砂糖、塩、大豆製品、穀物、野菜、果物等
+`,
+  },
+  vegan: {
+    label: "ヴィーガン",
+    expert: "ヴィーガン（完全菜食・動物由来成分NG）",
+    rules: `
+ヴィーガン判定基準:
+NG: 肉類全般・魚介類全般・卵・乳製品・カゼイン・乳糖・蜂蜜・ローヤルゼリー・ゼラチン・コラーゲン・シェラック・コチニール色素(E120)・ラード・牛脂・魚油・動物性油脂・その他すべての動物由来成分
+OK: 植物性成分全般・穀物・豆類・野菜・果物・海藻・きのこ・植物油脂・大豆レシチン・植物由来と明記された乳酸やグリセリン
+グレー: グリセリン・乳酸・酵素・天然香料・香料・ビタミンD・乳化剤など、由来が植物性/合成/動物性のどれか明記されていない成分
+注意: 五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）は、ヴィーガン基準では植物性なので原則OK。ただし別の宗教・思想上の制限とは分けて判定する。
+`,
+    detailedStatus: `
+"Red"   : 肉・魚介・卵・乳製品・蜂蜜・ローヤルゼリー・ゼラチン・コラーゲン・シェラック・コチニール・動物性油脂など動物由来成分
+"Yellow": 由来不明・要確認（グリセリン・乳酸・酵素・天然香料・香料・ビタミンD・乳化剤等）または requires_user_check=true
+"Green" : 明確に植物性または合成由来と判断できる成分、穀物、豆類、野菜、果物、海藻、きのこ、植物油脂等
+`,
+  },
+  lacto_ovo: {
+    label: "ラクト・オボベジタリアン",
+    expert: "ラクト・オボベジタリアン（肉魚NG・乳卵OK）",
+    rules: `
+ラクト・オボベジタリアン判定基準:
+NG: 肉類全般・魚介類全般・ゼラチン・コラーゲン・ラード・牛脂・魚油・肉エキス・魚介エキス・コチニール色素(E120)・シェラック・その他、屠殺や魚介由来の成分
+OK: 卵・乳製品・カゼイン・乳糖・蜂蜜・ローヤルゼリー・植物性成分全般・穀物・豆類・野菜・果物・植物油脂
+グレー: グリセリン・天然香料・香料・酵素・乳化剤・ビタミンDなど、動物由来か植物/合成由来か明記されていない成分
+注意: 五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）はラクト・オボ基準では植物性なので原則OK。
+`,
+    detailedStatus: `
+"Red"   : 肉・魚介・ゼラチン・コラーゲン・ラード・牛脂・魚油・肉エキス・魚介エキス・コチニール・シェラックなど肉魚や屠殺由来の成分
+"Yellow": 由来不明・要確認（グリセリン・天然香料・香料・酵素・乳化剤・ビタミンD等）または requires_user_check=true
+"Green" : 植物性成分、卵、乳製品、カゼイン、乳糖、蜂蜜、ローヤルゼリー等
+`,
+  },
+};
 
-const IMAGE_ANALYZE_PROMPT = `この食品パッケージ画像の【原材料名・成分表示ブロック】を読み取り、オリエンタルベジタリアン基準で判定してください。
+function getDietRules(dietMode) {
+  return DIET_RULESETS[dietMode] || DIET_RULESETS.oriental;
+}
+
+const IMAGE_ANALYZE_PROMPT = (dietMode) => {
+  const ruleSet = getDietRules(dietMode);
+  return `この食品パッケージ画像の【原材料名・成分表示ブロック】を読み取り、${ruleSet.label}基準で判定してください。
 
 作業手順:
 1. 画像内に「名称」または商品名が記載されていればそれを product_name に入れる
    原材料名欄のテキストを一字一句に近づけて転記する（栄養成分表・キャッチコピーは無視）
 2. 転記した各成分を下記基準で分類する
 
-${ORIENTAL_RULES}
+${ruleSet.rules}
 
 未知成分は語尾・E番号・化学名から推測し、confidence（low/medium/high）と reason を付記。
 
@@ -160,10 +209,13 @@ ${ORIENTAL_RULES}
   "overall": "ok|gray|ng",
   "summary": "総合コメント（日本語・2〜3文）"
 }`;
+};
 
-const TEXT_ANALYZE_PROMPT = (ingredients) => `あなたは「オリエンタル・ベジタリアン（五葷抜き・乳卵OK）」の専門家です。以下の食品成分リストを判定してください。
+const TEXT_ANALYZE_PROMPT = (ingredients, dietMode) => {
+  const ruleSet = getDietRules(dietMode);
+  return `あなたは「${ruleSet.expert}」の専門家です。以下の食品成分リストを判定してください。
 
-${ORIENTAL_RULES}
+${ruleSet.rules}
 
 未知成分は語尾・E番号・化学名から推測し、confidence と reason を付記。
 
@@ -179,6 +231,7 @@ ${ingredients}
   "overall": "ok|gray|ng",
   "summary": "総合コメント（日本語・2〜3文）"
 }`;
+};
 
 function getGeminiKey(res) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -284,7 +337,7 @@ router.post("/image", async (req, res, next) => {
         contents: [{
           parts: [
             { inlineData: { mimeType: image.mediaType, data: image.data } },
-            { text: IMAGE_ANALYZE_PROMPT },
+            { text: IMAGE_ANALYZE_PROMPT(dietMode) },
           ],
         }],
         generationConfig: { temperature: 0 },
@@ -349,7 +402,7 @@ router.post("/text", async (req, res, next) => {
     }
 
     const geminiRes = await geminiCall(apiKey, {
-      contents: [{ parts: [{ text: TEXT_ANALYZE_PROMPT(ingredientsStr) }] }],
+      contents: [{ parts: [{ text: TEXT_ANALYZE_PROMPT(ingredientsStr, dietMode) }] }],
       generationConfig: { temperature: 0, responseMimeType: "application/json" },
     });
 
@@ -378,7 +431,9 @@ router.post("/text", async (req, res, next) => {
 // 1ステップ: 成分ごとにOCR確信度・BBox・ベジ判定を返す
 // =============================================
 
-const DETAILED_IMAGE_PROMPT = `あなたはプロ仕様のOCRスキャナーです。食品パッケージ画像から「原材料名欄」のテキストを抽出し、以下のJSON形式で出力してください。
+const DETAILED_IMAGE_PROMPT = (dietMode) => {
+  const ruleSet = getDietRules(dietMode);
+  return `あなたはプロ仕様のOCRスキャナーです。食品パッケージ画像から「原材料名欄」のテキストを抽出し、${ruleSet.label}基準で判定して、以下のJSON形式で出力してください。
 
 === 読み取りルール（厳守） ===
 
@@ -406,11 +461,9 @@ true の場合、テキスト末尾に [?] を付加する
 
 [ymin, xmin, ymax, xmax] 形式（0〜1000 スケール）。不明は [0,0,0,0]。
 
-=== オリエンタルベジタリアン判定（vege_status） ===
+=== ${ruleSet.label}判定（vege_status） ===
 
-"Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・あさつき のみ。セロリ・セージ・その他ハーブ類はネギ属ではないためGreen）または動物性（肉・魚・ゼラチン等）
-"Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check=true
-"Green" : 明確に安全な植物性成分（植物油脂・卵・乳製品・カゼイン・蜂蜜・ローヤルゼリー・砂糖・塩・大豆製品全般（醤油・味噌・豆腐・豆乳・大豆たんぱく等）・穀物・野菜・果物等）
+${ruleSet.detailedStatus}
 
 === final_decision ===
 
@@ -436,6 +489,7 @@ true の場合、テキスト末尾に [?] を付加する
   ],
   "final_decision": "OK"
 }`;
+};
 
 const GEMINI_TIMEOUT_MS = 45_000;
 
@@ -491,7 +545,7 @@ router.post("/image/detailed", async (req, res, next) => {
       contents: [{
         parts: [
           { inlineData: { mimeType: image.mediaType, data: image.data } },
-          { text: DETAILED_IMAGE_PROMPT },
+          { text: DETAILED_IMAGE_PROMPT(dietMode) },
         ],
       }],
       generationConfig: { temperature: 0 },

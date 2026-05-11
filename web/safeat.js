@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.34';
+const APP_VERSION = '0.5.36';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -572,7 +572,7 @@ async function handleTextAnalyze() {
   }
 
   try {
-    const result = await analyzeTextWithGemini(ingredientsText);
+    const result = await analyzeTextWithGemini(ingredientsText, currentSessionMode);
     const promoted = promoteFromUserDB(result);
     renderResult(promoted, false, ingredientsText);
     refreshScanBadge();
@@ -628,7 +628,7 @@ async function handleImageAnalyze() {
 async function handleImageAnalyzeGemini() {
   try {
     _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
-    const { data, extractedText } = await analyzeImageWithGemini(_imageBase64, _imageMediaType);
+    const { data, extractedText } = await analyzeImageWithGemini(_imageBase64, _imageMediaType, currentSessionMode);
     const text = String(extractedText || "").trim();
     clearError();
     switchToTextInputTab();
@@ -653,7 +653,7 @@ async function handleImageAnalyzeGeminiDetailed() {
 
   try {
     _comparePhotoDataUrl = `data:${_imageMediaType};base64,${_imageBase64}`;
-    const { data, extractedText, product_name } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType);
+    const { data, extractedText, product_name } = await analyzeImageWithGeminiDetailed(_imageBase64, _imageMediaType, currentSessionMode);
     _lastExtractedProductName = product_name ?? null;
     const text = String(extractedText || "").trim();
     clearError();
@@ -1566,8 +1566,9 @@ async function setProcessedBlob(blob) {
 }
 
 function applyModeDisplay(mode) {
-  const def = MODE_DEFINITIONS[mode] || MODE_DEFINITIONS.oriental;
-  currentSessionMode = mode;
+  const safeMode = MODE_DEFINITIONS[mode] ? mode : 'oriental';
+  const def = MODE_DEFINITIONS[safeMode];
+  currentSessionMode = safeMode;
 
   const title = document.getElementById('mode-info-title');
   if (title) title.textContent = def.label;
