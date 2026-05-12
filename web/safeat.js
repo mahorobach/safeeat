@@ -4,43 +4,11 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.42';
+const APP_VERSION = '0.5.44';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
 });
-
-const MODE_DEFINITIONS = {
-  oriental: {
-    label: '🌿 オリエンタルベジタリアン',
-    modebarLabel: 'オリエンタルベジ',
-    rules: [
-      { type: 'ng', text: 'ニンニク・ネギ・ニラ・らっきょう・玉ねぎ（五葷）' },
-      { type: 'ng', text: '肉類・魚介類すべて' },
-      { type: 'ok', text: '卵・乳製品・蜂蜜・ローヤルゼリー OK' },
-    ],
-  },
-  vegan: {
-    label: '🌱 ヴィーガン',
-    modebarLabel: 'ヴィーガン',
-    rules: [
-      { type: 'ng', text: '肉類・魚介類すべて' },
-      { type: 'ng', text: '卵・乳製品・蜂蜜・ゼラチン等すべての動物由来成分' },
-      { type: 'ok', text: '植物性成分すべて OK' },
-    ],
-  },
-  lacto_ovo: {
-    label: '🥚 ラクト・オボベジタリアン',
-    modebarLabel: 'ラクト・オボ',
-    rules: [
-      { type: 'ng', text: '肉類・魚介類すべて' },
-      { type: 'ok', text: '卵・乳製品・蜂蜜 OK' },
-      { type: 'ok', text: '植物性成分すべて OK' },
-    ],
-  },
-};
-
-let currentSessionMode = 'oriental';
 
 // デザインシステム切替（app.eatease.net / localhost → EatEase UI）
 if (window.SITE_CONFIG?.isEatEase) {
@@ -1406,25 +1374,6 @@ async function setProcessedBlob(blob) {
   }
 }
 
-function applyModeDisplay(mode) {
-  const safeMode = MODE_DEFINITIONS[mode] ? mode : 'oriental';
-  const def = MODE_DEFINITIONS[safeMode];
-  currentSessionMode = safeMode;
-
-  const title = document.getElementById('mode-info-title');
-  if (title) title.textContent = def.label;
-
-  const rulesEl = document.getElementById('mode-info-rules');
-  if (rulesEl) {
-    rulesEl.innerHTML = def.rules
-      .map(r => `<div class="mode-rule-row ${r.type}">${r.type === 'ng' ? '❌' : '✅'} ${r.text}</div>`)
-      .join('');
-  }
-
-  const modebarLabel = document.getElementById('modebar-label');
-  if (modebarLabel) modebarLabel.textContent = def.modebarLabel;
-}
-
 // ===== ページ切り替え（ランディング / モード選択 / スキャン） =====
 (function () {
   const landing    = document.getElementById('landing-page');
@@ -1531,101 +1480,6 @@ function applyModeDisplay(mode) {
     history.replaceState(null, '', window.location.pathname);
   }
 })();
-
-// ===== ヘッダーナビ =====
-(function () {
-  document.getElementById('nav-top')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showById('landing-page');
-    window.scrollTo(0, 0);
-  });
-
-  document.getElementById('nav-app')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (!window.SafeEatAuth) return;
-    window.SafeEatAuth.getSession().then((session) => {
-      if (session?.user) {
-        showById('scanner-page');
-      } else {
-        openAuthModal('login');
-      }
-    });
-  });
-})();
-
-// ===== ハンバーガーメニュー =====
-(function () {
-  const hamburger     = document.getElementById('btn-hamburger');
-  const drawerMenu    = document.getElementById('drawer-menu');
-  const drawerClose   = document.getElementById('drawer-close');
-  const drawerOverlay = document.getElementById('drawer-overlay');
-
-  function openDrawer() {
-    hamburger?.classList.add('is-open');
-    drawerMenu?.classList.add('is-open');
-    drawerMenu?.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeDrawer() {
-    hamburger?.classList.remove('is-open');
-    drawerMenu?.classList.remove('is-open');
-    drawerMenu?.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-  }
-
-  window.closeDrawer = closeDrawer;
-
-  hamburger?.addEventListener('click', openDrawer);
-  drawerClose?.addEventListener('click', closeDrawer);
-  drawerOverlay?.addEventListener('click', closeDrawer);
-
-  document.getElementById('drawer-nav-top')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    closeDrawer();
-    showById('landing-page');
-    window.scrollTo(0, 0);
-  });
-
-  document.getElementById('drawer-nav-app')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    closeDrawer();
-    if (!window.SafeEatAuth) return;
-    window.SafeEatAuth.getSession().then((session) => {
-      if (session?.user) {
-        showById('scanner-page');
-      } else {
-        openAuthModal('login');
-      }
-    });
-  });
-})();
-
-// ===== ロゴクリックでトップへ =====
-document.getElementById('btn-logo-home')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  if (!window.SafeEatAuth) return;
-  window.SafeEatAuth.getSession().then((session) => {
-    ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-    const target = session?.user ? 'scanner-page' : 'landing-page';
-    const page = document.getElementById(target);
-    if (page) page.style.display = 'block';
-  });
-});
-
-// ===== ユーザーアイコン タップでツールチップ表示（スマホ対応）=====
-document.addEventListener('click', (e) => {
-  const wrap = document.getElementById('user-icon-wrap');
-  if (!wrap) return;
-  if (wrap.contains(e.target)) {
-    wrap.classList.toggle('tooltip-visible');
-  } else {
-    wrap.classList.remove('tooltip-visible');
-  }
-});
 
 // ===== バーコードスキャン・マイリスト保存 =====
 (function () {
