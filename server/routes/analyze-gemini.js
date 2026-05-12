@@ -30,6 +30,7 @@ function getSupabase() {
 
 const FREE_PLAN_LIMIT = 10;
 const ANALYSIS_DIET_MODES = ["oriental", "vegan", "lacto_ovo"];
+const ANALYSIS_RULESET_VERSION = "2026-05-12-celery-ok";
 
 function getDietMode(reqBody) {
   const mode = reqBody?.diet_mode;
@@ -81,7 +82,7 @@ function hashIngredientText(text) {
     .replace(/[、・，,／/]/g, ",")
     .replace(/\s+/g, "")
     .toLowerCase();
-  return crypto.createHash("sha256").update(normalized).digest("hex");
+  return crypto.createHash("sha256").update(`${ANALYSIS_RULESET_VERSION}:${normalized}`).digest("hex");
 }
 
 async function getCached(hash, dietMode = "oriental") {
@@ -144,7 +145,7 @@ OK: 卵・乳製品全般・カゼイン・蜂蜜・ローヤルゼリー・大�
     detailedStatus: `
 "Red"   : 五葷（にんにく・ねぎ・にら・らっきょう・玉ねぎ・あさつき。エキス・パウダー・加工品含む）または動物性（肉・魚・ゼラチン等）
 "Yellow": 由来不明・要確認（グリセリン・天然香料・酵素等）または requires_user_check=true
-"Green" : 明確に安全な植物性成分、卵、乳製品、カゼイン、蜂蜜、ローヤルゼリー、砂糖、塩、大豆製品、穀物、野菜、果物等
+"Green" : 明確に安全な植物性成分、卵、乳製品、カゼイン、蜂蜜、ローヤルゼリー、砂糖、塩、大豆製品、穀物、野菜、果物等。セロリはセリ科の野菜であり五葷ではないため必ずGreen。
 `,
   },
   vegan: {
@@ -464,6 +465,11 @@ true の場合、テキスト末尾に [?] を付加する
 === ${ruleSet.label}判定（vege_status） ===
 
 ${ruleSet.detailedStatus}
+
+=== 誤判定防止（厳守） ===
+
+- オリエンタルベジタリアン判定では、セロリは五葷ではない。セリ科の野菜なので必ず Green とする。
+- セロリを「ネギ類」「玉ねぎ類」「五葷」と混同して Red にしてはいけない。
 
 === final_decision ===
 

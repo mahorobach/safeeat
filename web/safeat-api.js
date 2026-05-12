@@ -64,6 +64,20 @@ function isLikelyNetworkError(err) {
   );
 }
 
+function normalizeApiErrorMessage(error, fallback) {
+  const message = String(error || fallback || "");
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("experiencing high demand") ||
+    lower.includes("high demand") ||
+    lower.includes("overloaded") ||
+    lower.includes("try again later")
+  ) {
+    return "Geminiが一時的に混み合っています。少し時間をおいてから再試行してください。";
+  }
+  return message || "サーバーエラーが発生しました";
+}
+
 /**
  * @param {string} ingredientsText - 成分表テキスト
  * @returns {Promise<{ok, gray, ng, unknown, overall, summary}>}
@@ -163,7 +177,7 @@ async function extractTextFromImage(imageData, mediaType) {
     }
 
     if (!res.ok || !data.ok) {
-      throw new Error(data.error || `サーバーエラー (${res.status})`);
+      throw new Error(normalizeApiErrorMessage(data.error, `サーバーエラー (${res.status})`));
     }
 
     return { extractedText: data.extractedText || "" };
@@ -245,7 +259,7 @@ async function analyzeImageWithGeminiDetailed(imageData, mediaType, dietMode = "
     }
 
     if (!res.ok || !data.ok) {
-      throw new Error(data.error || `サーバーエラー (${res.status})`);
+      throw new Error(normalizeApiErrorMessage(data.error, `サーバーエラー (${res.status})`));
     }
 
     return {
@@ -310,7 +324,7 @@ async function analyzeTextWithGemini(ingredientsText, dietMode = "oriental") {
 
   const data = await res.json();
   if (!res.ok || !data.ok) {
-    throw new Error(data.error || `サーバーエラー (${res.status})`);
+    throw new Error(normalizeApiErrorMessage(data.error, `サーバーエラー (${res.status})`));
   }
 
   return data.data;
