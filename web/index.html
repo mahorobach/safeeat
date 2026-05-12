@@ -1,712 +1,1102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.5.27">
-  <link rel="stylesheet" href="auth-modal.css?v=0.5.1">
-  <link rel="stylesheet" href="landing.css?v=0.5.1">
-  <link rel="stylesheet" href="user-mylist.css?v=0.5.1">
-  <!-- EatEase Design System（app.eatease.net 専用） -->
-  <link rel="stylesheet" href="eatease-design.css">
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）
+    </title>
+    <link rel="stylesheet" href="safeat.css?v=0.5.27" />
+    <link rel="stylesheet" href="auth-modal.css?v=0.5.1" />
+    <link rel="stylesheet" href="landing.css?v=0.5.1" />
+    <link rel="stylesheet" href="user-mylist.css?v=0.5.1" />
+    <!-- EatEase Design System（app.eatease.net 専用） -->
+    <link rel="stylesheet" href="eatease-design.css" />
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
 
-<header>
-  <div class="header-left">
-    <a href="#" class="logo-link" id="btn-logo-home">
-      <span class="logo-icon">🥬</span>
-      <div class="logo-text">
-        <div class="logo">VegEatEase</div>
-        <div class="tagline tagline-full">成分表を写真で撮るだけ。あなたの食事スタイルに合わせた成分チェッカー</div>
-        <div class="tagline tagline-short">成分チェッカー</div>
-      </div>
-    </a>
-  </div>
-  <nav class="header-nav" id="header-nav">
-    <a href="#" class="header-nav-link" id="nav-top">Top</a>
-    <a href="#" class="header-nav-link" id="nav-app">成分チェック</a>
-    <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="header-nav-link">お問い合わせ</a>
-  </nav>
-  <div class="header-right">
-    <div class="auth-area" id="auth-area"></div>
-    <button type="button" class="btn-hamburger" id="btn-hamburger" aria-label="メニュー">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
-  </div>
-</header>
-
-<!-- スマホ用ドロワーメニュー -->
-<div class="drawer-menu" id="drawer-menu" aria-hidden="true">
-  <div class="drawer-overlay" id="drawer-overlay"></div>
-  <div class="drawer-content">
-    <button type="button" class="drawer-close" id="drawer-close">✕</button>
-    <nav class="drawer-nav">
-      <a href="#" class="drawer-nav-link" id="drawer-nav-top">Top</a>
-      <a href="#" class="drawer-nav-link" id="drawer-nav-app">成分チェック</a>
-      <a href="#" class="drawer-nav-link" id="drawer-nav-mylist">📦 マイリスト</a>
-      <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="drawer-nav-link">お問い合わせ</a>
-      <a href="privacy.html" class="drawer-nav-link">プライバシーポリシー</a>
-      <a href="terms.html" class="drawer-nav-link">利用規約</a>
-    </nav>
-  </div>
-</div>
-
-<main>
-
-  <!-- ===== ランディングページ（未ログイン時） ===== -->
-  <div id="landing-page">
-
-    <!-- Hero -->
-    <section class="hero">
-      <div class="hero-emoji">🥕 🥦 🌿 🧅 🍄</div>
-      <h1 class="hero-copy">これ、食べても大丈夫？</h1>
-      <p class="hero-sub">成分表を写真で撮るだけ。<br>あなたの食事スタイルに合わせて安全性を判定します。</p>
-      <button type="button" class="btn-hero-cta" id="btn-hero-signup">成分をチェックする</button>
-      <p class="hero-note">無料登録でどのモードも月10回まで使えます</p>
-    </section>
-
-    <!-- 食事スタイルセクション -->
-    <section class="lp-section" id="lp-modes">
-      <h2 class="lp-section-title">あなたの食事スタイルに対応</h2>
-      <div class="mode-cards-grid">
-        <div class="mode-lp-card">
-          <div class="mode-lp-icon">🌿</div>
-          <div class="mode-lp-name">オリエンタルベジタリアン</div>
-          <div class="mode-lp-desc">五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚NG。卵・乳製品・蜂蜜はOK。仏教系菜食の方に。</div>
-        </div>
-        <div class="mode-lp-card">
-          <div class="mode-lp-icon">🌱</div>
-          <div class="mode-lp-name">ヴィーガン</div>
-          <div class="mode-lp-desc">肉・魚・卵・乳製品・蜂蜜など、すべての動物由来成分NG。</div>
-        </div>
-        <div class="mode-lp-card">
-          <div class="mode-lp-icon">🥚</div>
-          <div class="mode-lp-name">ラクト・オボベジタリアン</div>
-          <div class="mode-lp-desc">肉・魚のみNG。卵・乳製品はOK。一般的なベジタリアン。</div>
-        </div>
-        <div class="mode-lp-card">
-          <div class="mode-lp-icon">⚙️</div>
-          <div class="mode-lp-name">カスタムモード</div>
-          <div class="mode-lp-desc">自分だけのNG成分リストを設定。アレルギー対応にも。（有料プラン・近日公開）</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 使い方セクション -->
-    <section class="lp-section" id="lp-howto">
-      <h2 class="lp-section-title">使い方はかんたん3ステップ</h2>
-      <div class="howto-steps">
-        <div class="howto-step">
-          <div class="howto-num">①</div>
-          <div class="howto-title">登録・ログイン</div>
-          <div class="howto-desc">無料で30秒</div>
-        </div>
-        <div class="howto-arrow">→</div>
-        <div class="howto-step">
-          <div class="howto-num">②</div>
-          <div class="howto-title">食事スタイルを選ぶ</div>
-          <div class="howto-desc">初回だけ設定</div>
-        </div>
-        <div class="howto-arrow">→</div>
-        <div class="howto-step">
-          <div class="howto-num">③</div>
-          <div class="howto-title">成分表を読み取る</div>
-          <div class="howto-desc">写真 or テキストで</div>
-        </div>
-      </div>
-      <div class="video-placeholder">
-        <p>🎬 使い方動画（近日公開）</p>
-      </div>
-    </section>
-
-    <!-- 料金セクション -->
-    <section class="lp-section" id="lp-pricing">
-      <h2 class="lp-section-title">シンプルな料金プラン</h2>
-      <div class="pricing-grid">
-        <div class="pricing-card">
-          <div class="pricing-plan">無料プラン</div>
-          <div class="pricing-price">0円</div>
-          <ul class="pricing-features">
-            <li>✅ 月10回まで（全モード合算）</li>
-            <li>✅ すべての食事スタイル対応</li>
-            <li>✅ 写真・テキスト両対応</li>
-          </ul>
-          <button type="button" class="btn-hero-cta" id="btn-pricing-signup">成分をチェックする</button>
-        </div>
-        <div class="pricing-card pricing-card-coming">
-          <div class="pricing-badge">Coming Soon</div>
-          <div class="pricing-plan">有料プラン</div>
-          <div class="pricing-price">準備中</div>
-          <ul class="pricing-features">
-            <li>✅ スキャン無制限</li>
-            <li>✅ カスタムモード</li>
-            <li>✅ 履歴保存</li>
-          </ul>
-          <button type="button" class="btn-coming-soon" disabled>近日公開</button>
-        </div>
-      </div>
-    </section>
-
-  </div><!-- /#landing-page -->
-
-  <!-- ===== モード選択ページ（初回ログイン時） ===== -->
-  <div id="mode-select-page" style="display:none">
-    <section class="mode-select-wrap">
-      <div class="mode-select-header">
-        <div class="mode-select-emoji">🌿</div>
-        <h2 class="mode-select-title">食事スタイルを選んでください</h2>
-        <p class="mode-select-sub">あなたの食事スタイルに合わせて成分を判定します。<br>あとからユーザー設定で変更できます。</p>
-      </div>
-      <div class="mode-select-grid">
-
-        <button class="mode-select-card" data-mode="oriental">
-          <div class="msc-icon">🌿</div>
-          <div class="msc-name">オリエンタルベジタリアン</div>
-          <div class="msc-desc">五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚NG。卵・乳製品・蜂蜜はOK。仏教系菜食の方に。</div>
-          <div class="msc-rules">
-            <span class="msc-rule ng">❌ 五葷・肉・魚</span>
-            <span class="msc-rule ok">✅ 卵・乳製品・蜂蜜</span>
-          </div>
-        </button>
-
-        <button class="mode-select-card" data-mode="vegan">
-          <div class="msc-icon">🌱</div>
-          <div class="msc-name">ヴィーガン</div>
-          <div class="msc-desc">肉・魚・卵・乳製品・蜂蜜などすべての動物由来成分NG。最も厳格な菜食スタイル。</div>
-          <div class="msc-rules">
-            <span class="msc-rule ng">❌ 肉・魚・卵・乳製品・蜂蜜</span>
-            <span class="msc-rule ok">✅ 植物性成分すべて</span>
-          </div>
-        </button>
-
-        <button class="mode-select-card" data-mode="lacto_ovo">
-          <div class="msc-icon">🥚</div>
-          <div class="msc-name">ラクト・オボベジタリアン</div>
-          <div class="msc-desc">肉・魚のみNG。卵・乳製品はOK。一般的なベジタリアン。</div>
-          <div class="msc-rules">
-            <span class="msc-rule ng">❌ 肉・魚</span>
-            <span class="msc-rule ok">✅ 卵・乳製品・蜂蜜</span>
-          </div>
-        </button>
-
-        <button class="mode-select-card mode-select-card-disabled" data-mode="custom" disabled>
-          <div class="msc-badge">近日公開</div>
-          <div class="msc-icon">⚙️</div>
-          <div class="msc-name">カスタムモード</div>
-          <div class="msc-desc">自分だけのNG成分リストを設定。アレルギー対応にも。（有料プラン）</div>
-        </button>
-
-      </div>
-    </section>
-  </div><!-- /#mode-select-page -->
-
-  <!-- ===== スキャンページ（ログイン後） ===== -->
-  <div id="scanner-page" style="display:none">
-
-    <!-- モードバー -->
-    <div class="scanner-modebar">
-      <button type="button" class="btn-modebar" id="btn-mode-switch">
-        🌿 <span id="modebar-label">オリエンタルベジ</span> ▼
-      </button>
-      <div class="modebar-dropdown" id="modebar-dropdown" style="display:none">
-        <button class="modebar-option" data-mode="oriental">🌿 オリエンタルベジタリアン</button>
-        <button class="modebar-option" data-mode="vegan">🌱 ヴィーガン</button>
-        <button class="modebar-option" data-mode="lacto_ovo">🥚 ラクト・オボ</button>
-      </div>
-      <a href="#" class="btn-user-page" id="btn-user-page">👤 ユーザー設定</a>
-    </div>
-
-    <!-- Mode -->
-    <div class="card mode-card" id="mode-info-card">
-      <div class="mode-title" id="mode-info-title">🌿 オリエンタルベジタリアン</div>
-      <div class="mode-rules" id="mode-info-rules">
-        <!-- JSで動的に生成 -->
-      </div>
-    </div>
-
-    <!-- Ingredient Input -->
-    <div class="card">
-      <div class="card-title">📋 成分表をチェックする</div>
-
-      <!-- Tab nav -->
-      <div class="input-tabs">
-        <button class="input-tab active" data-tab="image">📷 写真で読み取り <span class="tab-badge">おすすめ</span></button>
-        <button class="input-tab" data-tab="text">📝 テキスト入力</button>
-      </div>
-
-      <!-- Text tab -->
-      <div id="tab-text" style="display:none">
-        <textarea
-          id="ingredients-textarea"
-          placeholder="ここに成分表のテキストを貼り付けてください（例：砂糖、小麦粉、植物油脂、食塩、グリセリン、天然香料 …）"
-        ></textarea>
-        <p class="input-hint">成分をカンマ・読点・改行などで区切って貼り付けてください</p>
-      </div>
-
-      <!-- Image tab -->
-      <div id="tab-image">
-        <div class="drop-zone" id="drop-zone">
-          <input type="file" id="image-input" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
-          <div id="drop-placeholder">
-            <div class="drop-icon">📷</div>
-            <p class="drop-main">写真をドラッグ＆ドロップ</p>
-            <p class="drop-hint-text">または クリックしてファイルを選択</p>
-            <p class="drop-hint-text">JPEG / PNG / WEBP（5MB以内）｜アップロード時に自動で縮小します｜スマホカメラ対応</p>
-            <button type="button" id="btn-open-camera" class="btn-open-camera" style="display:none">📷 カメラで直接撮影（枠合わせ）</button>
-          </div>
-          <img id="image-preview" alt="選択した画像" style="display:none; max-width:100%; border-radius:8px;">
-        </div>
-        <div id="image-toolbar" class="image-toolbar" style="display:none">
-          <p class="image-toolbar-hint">パッケージ全体が写っている・余白が多い場合は、<strong>✂ 原材料の範囲を選択</strong>で成分表示だけを囲んでください（通信エラー・読み取り失敗の回避に効きます）。</p>
-          <div class="image-toolbar-btns">
-            <button type="button" class="btn-crop" id="btn-start-crop">✂ 原材料の範囲を選択</button>
-            <button type="button" class="btn-toolbar-clear" id="btn-toolbar-clear">✕ クリア</button>
-          </div>
-        </div>
-        <div id="crop-panel" class="crop-panel" style="display:none">
-          <p class="crop-instruction">ドラッグで原材料・成分表の四角い範囲を囲んでください。</p>
-          <div class="crop-canvas-wrap">
-            <canvas id="crop-canvas"></canvas>
-          </div>
-          <div class="crop-panel-actions">
-            <button type="button" class="btn-crop" id="btn-apply-crop" disabled>この範囲で確定</button>
-            <button type="button" class="btn-crop-secondary" id="btn-cancel-crop">キャンセル</button>
-          </div>
-        </div>
-        <button class="btn-clear-image" id="clear-image-btn" style="display:none">✕ 画像を変更する</button>
-        <p class="image-flow-note">
-          <strong>決められた流れ:</strong> 写真を置く →（推奨）原材料だけを切り取る → <strong>成分テキストの読み取りのみ</strong>が実行される → 内容を直したあと <strong>成分判定</strong>は「この内容で成分判定する」またはテキストタブの「成分を解析する」。
-        </p>
-      </div>
-    </div>
-
-    <!-- Analyze Button -->
-    <button class="btn-analyze" id="analyze-btn">
-      <span class="spinner"></span>
-      <span class="btn-label">🔍 今すぐチェックする</span>
-    </button>
-
-    <!-- Error -->
-    <div class="error-box" id="error-box"></div>
-
-    <!-- Results -->
-    <section id="result-section">
-
-      <!-- 写真読み取りフロー時: 判別・テキストと照合できるよう掲示 -->
-      <div id="result-compare-photo-wrap" class="result-compare-photo-wrap" hidden>
-        <div class="result-compare-photo-title">📷 読み取りに使った写真</div>
-        <div class="result-compare-photo-inner">
-          <img id="result-compare-photo" class="result-compare-photo" alt="読み取りに使った写真">
-        </div>
-        <p class="result-compare-photo-hint">読み取ったテキストとパッケージの表示を照合してください。</p>
-      </div>
-
-      <!-- Extracted text accordion (image mode only) -->
-      <details class="extracted-accordion" id="extracted-accordion" style="display:none">
-        <summary>📄 読み取った成分テキスト</summary>
-        <div class="extracted-text" id="extracted-text"></div>
-      </details>
-
-      <!-- Overall -->
-      <div class="ee-overall-banner" id="overall-banner">
-        <div class="ee-overall-mark" id="overall-icon"></div>
-        <div class="ee-overall-text">
-          <div class="ee-overall-verdict" id="overall-verdict"></div>
-          <div class="ee-overall-summary" id="overall-summary"></div>
-        </div>
-      </div>
-
-      <div id="extract-only-actions" class="extract-only-actions" hidden>
-        <p class="extract-only-actions-hint">
-          原材料の切り取りは写真タブで既に行えます。余計な行は「📝 テキスト入力」で削除してから判定すると精度が上がります。
-        </p>
-        <button type="button" class="btn-extract-classify" id="btn-extract-then-classify">
-          この内容で成分判定する
-        </button>
-      </div>
-
-      <!-- NG -->
-      <div class="ee-result-card">
-        <div class="ee-result-header ee-result-header--ng" id="ng-header">
-          <span>NG な成分</span>
-          <span class="ee-result-count" id="ng-count"></span>
-        </div>
-        <ul class="ee-result-list" id="ng-list"></ul>
-      </div>
-
-      <!-- Gray -->
-      <div class="ee-result-card">
-        <div class="ee-result-header ee-result-header--warn" id="gray-header">
-          <span>要確認（由来不明）</span>
-          <span class="ee-result-count" id="gray-count"></span>
-        </div>
-        <ul class="ee-result-list" id="gray-list"></ul>
-      </div>
-
-      <!-- Zoom area (要確認ボックスの直下) -->
-      <div id="ingredient-zoom-area" class="ingredient-zoom-area" style="display:none">
-        <div class="zoom-header">
-          <span class="zoom-title">🔍 要確認箇所のズーム</span>
-          <button type="button" class="zoom-close-btn" id="zoom-close-btn">✕</button>
-        </div>
-        <canvas id="zoom-canvas" class="zoom-canvas"></canvas>
-        <p id="zoom-caption" class="zoom-caption"></p>
-      </div>
-
-      <!-- OK -->
-      <div class="ee-result-card">
-        <div class="ee-result-header ee-result-header--ok" id="ok-header">
-          <span>OK な成分</span>
-          <span class="ee-result-count" id="ok-count"></span>
-        </div>
-        <ul class="ee-result-list" id="ok-list"></ul>
-      </div>
-
-      <!-- Unknown (🔍推測) — hidden if empty -->
-      <div class="ee-result-card" id="unknown-card" style="display:none">
-        <div class="ee-result-header ee-result-header--unknown" id="unknown-header">
-          <span>推測判定（未登録）</span>
-          <span class="ee-result-count"></span>
-        </div>
-        <ul class="ee-result-list" id="unknown-list"></ul>
-      </div>
-
-      <!-- Detailed result (Gemini 詳細モード) -->
-      <div id="detailed-result-wrap" style="display:none">
-        <div class="result-list-card">
-          <div class="result-list-header detailed-header">
-            🔬 成分詳細（確信度・位置情報）
-            <span class="count" id="detailed-count"></span>
-          </div>
-          <ul class="result-list detailed-list" id="detailed-list"></ul>
-        </div>
-      </div>
-
-      <!-- 判定OK後のマイリスト登録ボタン -->
-      <div id="save-to-mylist-area" style="display:none">
-        <button type="button" id="btn-save-to-mylist" class="btn-save-mylist">
-          📷 バーコードを読み取り、保存
-        </button>
-        <button type="button" id="btn-save-no-barcode" class="btn-save-no-barcode">
-          📝 バーコードなしで保存
-        </button>
-        <div id="save-no-barcode-form" style="display:none">
-          <input type="text" id="input-product-name" class="input-product-name"
-                 placeholder="商品名（省略可）" maxlength="100">
-          <button type="button" id="btn-save-no-barcode-confirm" class="btn-save-mylist">
-            保存する
-          </button>
-        </div>
-        <p id="save-to-mylist-status" class="save-mylist-status" style="display:none"></p>
-      </div>
-
-      <!-- マイリスト保存完了メッセージ -->
-      <div id="mylist-saved-message" style="display:none">
-        <p style="font-size:1rem; font-weight:bold; color:#2a5229;">
-          ✅ マイリストに保存しました。
-        </p>
-        <button type="button" id="btn-goto-mylist-after-save" class="btn-goto-mylist">
-          📦 マイリストはこちら
-        </button>
-        <div class="mylist-saved-links">
-          <a id="btn-rakuten-after-save" href="#" target="_blank" rel="noopener"
-             class="btn-rakuten-after-save">
-            楽天で購入
-          </a>
-          <a id="btn-amazon-after-save" href="#" target="_blank" rel="noopener"
-             class="btn-amazon-after-save">
-            Amazonで購入
-          </a>
-        </div>
-      </div>
-
-      <!-- 新しい商品を解析するボタン -->
-      <div class="ee-result-reset-wrap" id="result-reset-wrap" style="display:none">
-        <button type="button" class="ee-btn-secondary" id="btn-result-reset">
-          新しい商品を解析する
-        </button>
-      </div>
-
-      <!-- フィードバックボタン -->
-      <div id="feedback-area" style="display:none;text-align:center;margin:8px 0 16px">
-        <button type="button" id="btn-feedback" class="btn-feedback">
-          📝 判定結果について報告する
-        </button>
-      </div>
-
-      <!-- マイリスト保存セクション -->
-      <div id="save-product-section" style="display:none">
-        <div class="save-product-card">
-          <button type="button" class="btn-save-product-open" id="btn-save-product-open">
-            ✅ この商品をマイリストに登録する
-          </button>
-          <!-- バーコードスキャンエリア -->
-          <div id="barcode-scan-area" style="display:none">
-            <p class="barcode-hint">商品のバーコードにカメラを向けてください</p>
-            <div id="qr-reader" class="barcode-video"></div>
-            <button type="button" class="btn-barcode-skip" id="btn-barcode-skip">バーコードなしで保存する</button>
-            <div id="barcode-result-preview" style="display:none">
-              <div class="barcode-product-preview">
-                <img id="barcode-product-image" class="barcode-product-image" src="" alt="">
-                <div class="barcode-product-info">
-                  <div class="barcode-product-name" id="barcode-product-name"></div>
-                  <div class="barcode-product-links">
-                    <a class="barcode-product-link" id="barcode-product-link" target="_blank" rel="noopener">楽天で見る →</a>
-                    <a class="barcode-product-link barcode-product-link--amazon" id="barcode-amazon-link" target="_blank" rel="noopener">Amazonで見る →</a>
-                  </div>
-                </div>
-              </div>
-              <div class="barcode-actions">
-                <button type="button" class="btn-barcode-save" id="btn-barcode-save">保存する</button>
-                <button type="button" class="btn-barcode-cancel" id="btn-barcode-cancel">キャンセル</button>
-              </div>
+    <!-- OGP -->
+    <meta property="og:title" content="EatEase - Check by photo" />
+    <meta
+      property="og:description"
+      content="食品成分を撮るだけで判定。ググるより明確。"
+    />
+    <meta property="og:image" content="https://app.eatease.net/ogp.png" />
+    <meta property="og:url" content="https://app.eatease.net" />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <header>
+      <div class="header-left">
+        <a href="#" class="logo-link" id="btn-logo-home">
+          <span class="logo-icon">🥬</span>
+          <div class="logo-text">
+            <div class="logo">VegEatEase</div>
+            <div class="tagline tagline-full">
+              成分表を写真で撮るだけ。あなたの食事スタイルに合わせた成分チェッカー
             </div>
-            <div id="barcode-scan-error" class="barcode-scan-error" style="display:none"></div>
-            <button type="button" class="btn-barcode-close" id="btn-barcode-close">✕ 閉じる</button>
+            <div class="tagline tagline-short">成分チェッカー</div>
           </div>
-        </div>
-      </div>
-
-      <!-- User DB badge -->
-      <p class="user-db-note">
-        <span id="user-db-count" style="display:none"></span>
-        <span class="user-db-hint">🔍推測成分の正解を入力すると、次回から自動分類されます（このブラウザに保存）</span>
-      </p>
-
-    </section>
-
-  </div><!-- /#scanner-page -->
-
-  <!-- ===== ユーザー設定ページ ===== -->
-  <div id="user-settings-page" style="display:none">
-    <div class="user-settings-wrap">
-
-      <!-- ヘッダー -->
-      <div class="user-settings-header">
-        <button type="button" class="btn-back" id="btn-settings-back">← 戻る</button>
-        <h2 class="user-settings-title">👤 ユーザー設定</h2>
-      </div>
-
-      <!-- アカウント情報 -->
-      <div class="settings-card">
-        <div class="settings-card-title">アカウント情報</div>
-        <div class="settings-row">
-          <span class="settings-label">メールアドレス</span>
-          <span class="settings-value" id="settings-email">—</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-label">プラン</span>
-          <span class="settings-value" id="settings-plan">無料プラン</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-label">今月の残り回数</span>
-          <span class="settings-value" id="settings-remaining">— 回</span>
-        </div>
-      </div>
-
-      <!-- デフォルトモード設定 -->
-      <div class="settings-card">
-        <div class="settings-card-title">デフォルトの食事スタイル</div>
-        <p class="settings-card-desc">ログイン時に最初に表示されるモードです。スキャン中に一時切替もできます。</p>
-        <div class="settings-mode-list">
-
-          <label class="settings-mode-item">
-            <input type="radio" name="settings-mode" value="oriental">
-            <div class="settings-mode-content">
-              <span class="settings-mode-icon">🌿</span>
-              <div>
-                <div class="settings-mode-name">オリエンタルベジタリアン</div>
-                <div class="settings-mode-desc">五葷・肉・魚NG。卵・乳製品・蜂蜜OK。</div>
-              </div>
-            </div>
-          </label>
-
-          <label class="settings-mode-item">
-            <input type="radio" name="settings-mode" value="vegan">
-            <div class="settings-mode-content">
-              <span class="settings-mode-icon">🌱</span>
-              <div>
-                <div class="settings-mode-name">ヴィーガン</div>
-                <div class="settings-mode-desc">すべての動物由来成分NG。</div>
-              </div>
-            </div>
-          </label>
-
-          <label class="settings-mode-item">
-            <input type="radio" name="settings-mode" value="lacto_ovo">
-            <div class="settings-mode-content">
-              <span class="settings-mode-icon">🥚</span>
-              <div>
-                <div class="settings-mode-name">ラクト・オボベジタリアン</div>
-                <div class="settings-mode-desc">肉・魚のみNG。卵・乳製品OK。</div>
-              </div>
-            </div>
-          </label>
-
-          <label class="settings-mode-item settings-mode-item-disabled">
-            <input type="radio" name="settings-mode" value="custom" disabled>
-            <div class="settings-mode-content">
-              <span class="settings-mode-icon">⚙️</span>
-              <div>
-                <div class="settings-mode-name">カスタムモード <span class="settings-coming-badge">近日公開</span></div>
-                <div class="settings-mode-desc">自分だけのNG成分リスト（有料プラン）。</div>
-              </div>
-            </div>
-          </label>
-
-        </div>
-
-        <button type="button" class="btn-settings-save" id="btn-settings-save">
-          <span class="spinner" id="settings-spinner" style="display:none"></span>
-          <span id="settings-save-label">この設定を保存する</span>
-        </button>
-        <div class="settings-save-msg" id="settings-save-msg"></div>
-      </div>
-
-      <!-- 管理者メニュー（管理者のみ表示） -->
-      <div class="settings-card" id="settings-admin-link" style="display:none">
-        <div class="settings-card-title">管理者メニュー</div>
-        <a href="admin.html" class="btn-settings-admin">
-          🛠️ 管理者ページへ
         </a>
       </div>
-
-      <!-- マイリスト -->
-      <div class="settings-card">
-        <button type="button" id="btn-goto-mylist-from-settings" class="btn-goto-mylist">
-          マイリストを見る
+      <nav class="header-nav" id="header-nav">
+        <a href="#" class="header-nav-link" id="nav-top">Top</a>
+        <a href="#" class="header-nav-link" id="nav-app">成分チェック</a>
+        <a
+          href="https://forms.gle/hayofiLsYMhuUckN7"
+          target="_blank"
+          class="header-nav-link"
+          >お問い合わせ</a
+        >
+      </nav>
+      <div class="header-right">
+        <div class="auth-area" id="auth-area"></div>
+        <button
+          type="button"
+          class="btn-hamburger"
+          id="btn-hamburger"
+          aria-label="メニュー"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
         </button>
       </div>
+    </header>
 
-      <!-- ログアウト -->
-      <div class="settings-card settings-card-danger">
-        <div class="settings-card-title">アカウント操作</div>
-        <button type="button" class="btn-settings-logout" id="btn-settings-logout">
-          ログアウト
+    <!-- スマホ用ドロワーメニュー -->
+    <div class="drawer-menu" id="drawer-menu" aria-hidden="true">
+      <div class="drawer-overlay" id="drawer-overlay"></div>
+      <div class="drawer-content">
+        <button type="button" class="drawer-close" id="drawer-close">✕</button>
+        <nav class="drawer-nav">
+          <a href="#" class="drawer-nav-link" id="drawer-nav-top">Top</a>
+          <a href="#" class="drawer-nav-link" id="drawer-nav-app"
+            >成分チェック</a
+          >
+          <a href="#" class="drawer-nav-link" id="drawer-nav-mylist"
+            >📦 マイリスト</a
+          >
+          <a
+            href="https://forms.gle/hayofiLsYMhuUckN7"
+            target="_blank"
+            class="drawer-nav-link"
+            >お問い合わせ</a
+          >
+          <a href="privacy.html" class="drawer-nav-link"
+            >プライバシーポリシー</a
+          >
+          <a href="terms.html" class="drawer-nav-link">利用規約</a>
+        </nav>
+      </div>
+    </div>
+
+    <main>
+      <!-- ===== ランディングページ（未ログイン時） ===== -->
+      <div id="landing-page">
+        <!-- Hero -->
+        <section class="hero">
+          <div class="hero-emoji">🥕 🥦 🌿 🧅 🍄</div>
+          <h1 class="hero-copy">これ、食べても大丈夫？</h1>
+          <p class="hero-sub">
+            成分表を写真で撮るだけ。<br />あなたの食事スタイルに合わせて安全性を判定します。
+          </p>
+          <button type="button" class="btn-hero-cta" id="btn-hero-signup">
+            成分をチェックする
+          </button>
+          <p class="hero-note">無料登録でどのモードも月10回まで使えます</p>
+        </section>
+
+        <!-- 食事スタイルセクション -->
+        <section class="lp-section" id="lp-modes">
+          <h2 class="lp-section-title">あなたの食事スタイルに対応</h2>
+          <div class="mode-cards-grid">
+            <div class="mode-lp-card">
+              <div class="mode-lp-icon">🌿</div>
+              <div class="mode-lp-name">オリエンタルベジタリアン</div>
+              <div class="mode-lp-desc">
+                五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚NG。卵・乳製品・蜂蜜はOK。仏教系菜食の方に。
+              </div>
+            </div>
+            <div class="mode-lp-card">
+              <div class="mode-lp-icon">🌱</div>
+              <div class="mode-lp-name">ヴィーガン</div>
+              <div class="mode-lp-desc">
+                肉・魚・卵・乳製品・蜂蜜など、すべての動物由来成分NG。
+              </div>
+            </div>
+            <div class="mode-lp-card">
+              <div class="mode-lp-icon">🥚</div>
+              <div class="mode-lp-name">ラクト・オボベジタリアン</div>
+              <div class="mode-lp-desc">
+                肉・魚のみNG。卵・乳製品はOK。一般的なベジタリアン。
+              </div>
+            </div>
+            <div class="mode-lp-card">
+              <div class="mode-lp-icon">⚙️</div>
+              <div class="mode-lp-name">カスタムモード</div>
+              <div class="mode-lp-desc">
+                自分だけのNG成分リストを設定。アレルギー対応にも。（有料プラン・近日公開）
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 使い方セクション -->
+        <section class="lp-section" id="lp-howto">
+          <h2 class="lp-section-title">使い方はかんたん3ステップ</h2>
+          <div class="howto-steps">
+            <div class="howto-step">
+              <div class="howto-num">①</div>
+              <div class="howto-title">登録・ログイン</div>
+              <div class="howto-desc">無料で30秒</div>
+            </div>
+            <div class="howto-arrow">→</div>
+            <div class="howto-step">
+              <div class="howto-num">②</div>
+              <div class="howto-title">食事スタイルを選ぶ</div>
+              <div class="howto-desc">初回だけ設定</div>
+            </div>
+            <div class="howto-arrow">→</div>
+            <div class="howto-step">
+              <div class="howto-num">③</div>
+              <div class="howto-title">成分表を読み取る</div>
+              <div class="howto-desc">写真 or テキストで</div>
+            </div>
+          </div>
+          <div class="video-placeholder">
+            <p>🎬 使い方動画（近日公開）</p>
+          </div>
+        </section>
+
+        <!-- 料金セクション -->
+        <section class="lp-section" id="lp-pricing">
+          <h2 class="lp-section-title">シンプルな料金プラン</h2>
+          <div class="pricing-grid">
+            <div class="pricing-card">
+              <div class="pricing-plan">無料プラン</div>
+              <div class="pricing-price">0円</div>
+              <ul class="pricing-features">
+                <li>✅ 月10回まで（全モード合算）</li>
+                <li>✅ すべての食事スタイル対応</li>
+                <li>✅ 写真・テキスト両対応</li>
+              </ul>
+              <button
+                type="button"
+                class="btn-hero-cta"
+                id="btn-pricing-signup"
+              >
+                成分をチェックする
+              </button>
+            </div>
+            <div class="pricing-card pricing-card-coming">
+              <div class="pricing-badge">Coming Soon</div>
+              <div class="pricing-plan">有料プラン</div>
+              <div class="pricing-price">準備中</div>
+              <ul class="pricing-features">
+                <li>✅ スキャン無制限</li>
+                <li>✅ カスタムモード</li>
+                <li>✅ 履歴保存</li>
+              </ul>
+              <button type="button" class="btn-coming-soon" disabled>
+                近日公開
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+      <!-- /#landing-page -->
+
+      <!-- ===== モード選択ページ（初回ログイン時） ===== -->
+      <div id="mode-select-page" style="display: none">
+        <section class="mode-select-wrap">
+          <div class="mode-select-header">
+            <div class="mode-select-emoji">🌿</div>
+            <h2 class="mode-select-title">食事スタイルを選んでください</h2>
+            <p class="mode-select-sub">
+              あなたの食事スタイルに合わせて成分を判定します。<br />あとからユーザー設定で変更できます。
+            </p>
+          </div>
+          <div class="mode-select-grid">
+            <button class="mode-select-card" data-mode="oriental">
+              <div class="msc-icon">🌿</div>
+              <div class="msc-name">オリエンタルベジタリアン</div>
+              <div class="msc-desc">
+                五葷（ニンニク・ネギ・ニラ・らっきょう・玉ねぎ）＋肉・魚NG。卵・乳製品・蜂蜜はOK。仏教系菜食の方に。
+              </div>
+              <div class="msc-rules">
+                <span class="msc-rule ng">❌ 五葷・肉・魚</span>
+                <span class="msc-rule ok">✅ 卵・乳製品・蜂蜜</span>
+              </div>
+            </button>
+
+            <button class="mode-select-card" data-mode="vegan">
+              <div class="msc-icon">🌱</div>
+              <div class="msc-name">ヴィーガン</div>
+              <div class="msc-desc">
+                肉・魚・卵・乳製品・蜂蜜などすべての動物由来成分NG。最も厳格な菜食スタイル。
+              </div>
+              <div class="msc-rules">
+                <span class="msc-rule ng">❌ 肉・魚・卵・乳製品・蜂蜜</span>
+                <span class="msc-rule ok">✅ 植物性成分すべて</span>
+              </div>
+            </button>
+
+            <button class="mode-select-card" data-mode="lacto_ovo">
+              <div class="msc-icon">🥚</div>
+              <div class="msc-name">ラクト・オボベジタリアン</div>
+              <div class="msc-desc">
+                肉・魚のみNG。卵・乳製品はOK。一般的なベジタリアン。
+              </div>
+              <div class="msc-rules">
+                <span class="msc-rule ng">❌ 肉・魚</span>
+                <span class="msc-rule ok">✅ 卵・乳製品・蜂蜜</span>
+              </div>
+            </button>
+
+            <button
+              class="mode-select-card mode-select-card-disabled"
+              data-mode="custom"
+              disabled
+            >
+              <div class="msc-badge">近日公開</div>
+              <div class="msc-icon">⚙️</div>
+              <div class="msc-name">カスタムモード</div>
+              <div class="msc-desc">
+                自分だけのNG成分リストを設定。アレルギー対応にも。（有料プラン）
+              </div>
+            </button>
+          </div>
+        </section>
+      </div>
+      <!-- /#mode-select-page -->
+
+      <!-- ===== スキャンページ（ログイン後） ===== -->
+      <div id="scanner-page" style="display: none">
+        <!-- モードバー -->
+        <div class="scanner-modebar">
+          <button type="button" class="btn-modebar" id="btn-mode-switch">
+            🌿 <span id="modebar-label">オリエンタルベジ</span> ▼
+          </button>
+          <div
+            class="modebar-dropdown"
+            id="modebar-dropdown"
+            style="display: none"
+          >
+            <button class="modebar-option" data-mode="oriental">
+              🌿 オリエンタルベジタリアン
+            </button>
+            <button class="modebar-option" data-mode="vegan">
+              🌱 ヴィーガン
+            </button>
+            <button class="modebar-option" data-mode="lacto_ovo">
+              🥚 ラクト・オボ
+            </button>
+          </div>
+          <a href="#" class="btn-user-page" id="btn-user-page"
+            >👤 ユーザー設定</a
+          >
+        </div>
+
+        <!-- Mode -->
+        <div class="card mode-card" id="mode-info-card">
+          <div class="mode-title" id="mode-info-title">
+            🌿 オリエンタルベジタリアン
+          </div>
+          <div class="mode-rules" id="mode-info-rules">
+            <!-- JSで動的に生成 -->
+          </div>
+        </div>
+
+        <!-- Ingredient Input -->
+        <div class="card">
+          <div class="card-title">📋 成分表をチェックする</div>
+
+          <!-- Tab nav -->
+          <div class="input-tabs">
+            <button class="input-tab active" data-tab="image">
+              📷 写真で読み取り <span class="tab-badge">おすすめ</span>
+            </button>
+            <button class="input-tab" data-tab="text">📝 テキスト入力</button>
+          </div>
+
+          <!-- Text tab -->
+          <div id="tab-text" style="display: none">
+            <textarea
+              id="ingredients-textarea"
+              placeholder="ここに成分表のテキストを貼り付けてください（例：砂糖、小麦粉、植物油脂、食塩、グリセリン、天然香料 …）"
+            ></textarea>
+            <p class="input-hint">
+              成分をカンマ・読点・改行などで区切って貼り付けてください
+            </p>
+          </div>
+
+          <!-- Image tab -->
+          <div id="tab-image">
+            <div class="drop-zone" id="drop-zone">
+              <input
+                type="file"
+                id="image-input"
+                accept="image/*"
+                capture="environment"
+                style="
+                  position: absolute;
+                  opacity: 0;
+                  width: 1px;
+                  height: 1px;
+                  pointer-events: none;
+                "
+              />
+              <div id="drop-placeholder">
+                <div class="drop-icon">📷</div>
+                <p class="drop-main">写真をドラッグ＆ドロップ</p>
+                <p class="drop-hint-text">または クリックしてファイルを選択</p>
+                <p class="drop-hint-text">
+                  JPEG / PNG /
+                  WEBP（5MB以内）｜アップロード時に自動で縮小します｜スマホカメラ対応
+                </p>
+                <button
+                  type="button"
+                  id="btn-open-camera"
+                  class="btn-open-camera"
+                  style="display: none"
+                >
+                  📷 カメラで直接撮影（枠合わせ）
+                </button>
+              </div>
+              <img
+                id="image-preview"
+                alt="選択した画像"
+                style="display: none; max-width: 100%; border-radius: 8px"
+              />
+            </div>
+            <div id="image-toolbar" class="image-toolbar" style="display: none">
+              <p class="image-toolbar-hint">
+                パッケージ全体が写っている・余白が多い場合は、<strong
+                  >✂ 原材料の範囲を選択</strong
+                >で成分表示だけを囲んでください（通信エラー・読み取り失敗の回避に効きます）。
+              </p>
+              <div class="image-toolbar-btns">
+                <button type="button" class="btn-crop" id="btn-start-crop">
+                  ✂ 原材料の範囲を選択
+                </button>
+                <button
+                  type="button"
+                  class="btn-toolbar-clear"
+                  id="btn-toolbar-clear"
+                >
+                  ✕ クリア
+                </button>
+              </div>
+            </div>
+            <div id="crop-panel" class="crop-panel" style="display: none">
+              <p class="crop-instruction">
+                ドラッグで原材料・成分表の四角い範囲を囲んでください。
+              </p>
+              <div class="crop-canvas-wrap">
+                <canvas id="crop-canvas"></canvas>
+              </div>
+              <div class="crop-panel-actions">
+                <button
+                  type="button"
+                  class="btn-crop"
+                  id="btn-apply-crop"
+                  disabled
+                >
+                  この範囲で確定
+                </button>
+                <button
+                  type="button"
+                  class="btn-crop-secondary"
+                  id="btn-cancel-crop"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+            <button
+              class="btn-clear-image"
+              id="clear-image-btn"
+              style="display: none"
+            >
+              ✕ 画像を変更する
+            </button>
+            <p class="image-flow-note">
+              <strong>決められた流れ:</strong> 写真を置く
+              →（推奨）原材料だけを切り取る →
+              <strong>成分テキストの読み取りのみ</strong>が実行される →
+              内容を直したあと
+              <strong>成分判定</strong
+              >は「この内容で成分判定する」またはテキストタブの「成分を解析する」。
+            </p>
+          </div>
+        </div>
+
+        <!-- Analyze Button -->
+        <button class="btn-analyze" id="analyze-btn">
+          <span class="spinner"></span>
+          <span class="btn-label">🔍 今すぐチェックする</span>
         </button>
+
+        <!-- Error -->
+        <div class="error-box" id="error-box"></div>
+
+        <!-- Results -->
+        <section id="result-section">
+          <!-- 写真読み取りフロー時: 判別・テキストと照合できるよう掲示 -->
+          <div
+            id="result-compare-photo-wrap"
+            class="result-compare-photo-wrap"
+            hidden
+          >
+            <div class="result-compare-photo-title">
+              📷 読み取りに使った写真
+            </div>
+            <div class="result-compare-photo-inner">
+              <img
+                id="result-compare-photo"
+                class="result-compare-photo"
+                alt="読み取りに使った写真"
+              />
+            </div>
+            <p class="result-compare-photo-hint">
+              読み取ったテキストとパッケージの表示を照合してください。
+            </p>
+          </div>
+
+          <!-- Extracted text accordion (image mode only) -->
+          <details
+            class="extracted-accordion"
+            id="extracted-accordion"
+            style="display: none"
+          >
+            <summary>📄 読み取った成分テキスト</summary>
+            <div class="extracted-text" id="extracted-text"></div>
+          </details>
+
+          <!-- Overall -->
+          <div class="ee-overall-banner" id="overall-banner">
+            <div class="ee-overall-mark" id="overall-icon"></div>
+            <div class="ee-overall-text">
+              <div class="ee-overall-verdict" id="overall-verdict"></div>
+              <div class="ee-overall-summary" id="overall-summary"></div>
+            </div>
+          </div>
+
+          <div id="extract-only-actions" class="extract-only-actions" hidden>
+            <p class="extract-only-actions-hint">
+              原材料の切り取りは写真タブで既に行えます。余計な行は「📝
+              テキスト入力」で削除してから判定すると精度が上がります。
+            </p>
+            <button
+              type="button"
+              class="btn-extract-classify"
+              id="btn-extract-then-classify"
+            >
+              この内容で成分判定する
+            </button>
+          </div>
+
+          <!-- NG -->
+          <div class="ee-result-card">
+            <div class="ee-result-header ee-result-header--ng" id="ng-header">
+              <span>NG な成分</span>
+              <span class="ee-result-count" id="ng-count"></span>
+            </div>
+            <ul class="ee-result-list" id="ng-list"></ul>
+          </div>
+
+          <!-- Gray -->
+          <div class="ee-result-card">
+            <div
+              class="ee-result-header ee-result-header--warn"
+              id="gray-header"
+            >
+              <span>要確認（由来不明）</span>
+              <span class="ee-result-count" id="gray-count"></span>
+            </div>
+            <ul class="ee-result-list" id="gray-list"></ul>
+          </div>
+
+          <!-- Zoom area (要確認ボックスの直下) -->
+          <div
+            id="ingredient-zoom-area"
+            class="ingredient-zoom-area"
+            style="display: none"
+          >
+            <div class="zoom-header">
+              <span class="zoom-title">🔍 要確認箇所のズーム</span>
+              <button type="button" class="zoom-close-btn" id="zoom-close-btn">
+                ✕
+              </button>
+            </div>
+            <canvas id="zoom-canvas" class="zoom-canvas"></canvas>
+            <p id="zoom-caption" class="zoom-caption"></p>
+          </div>
+
+          <!-- OK -->
+          <div class="ee-result-card">
+            <div class="ee-result-header ee-result-header--ok" id="ok-header">
+              <span>OK な成分</span>
+              <span class="ee-result-count" id="ok-count"></span>
+            </div>
+            <ul class="ee-result-list" id="ok-list"></ul>
+          </div>
+
+          <!-- Unknown (🔍推測) — hidden if empty -->
+          <div class="ee-result-card" id="unknown-card" style="display: none">
+            <div
+              class="ee-result-header ee-result-header--unknown"
+              id="unknown-header"
+            >
+              <span>推測判定（未登録）</span>
+              <span class="ee-result-count"></span>
+            </div>
+            <ul class="ee-result-list" id="unknown-list"></ul>
+          </div>
+
+          <!-- Detailed result (Gemini 詳細モード) -->
+          <div id="detailed-result-wrap" style="display: none">
+            <div class="result-list-card">
+              <div class="result-list-header detailed-header">
+                🔬 成分詳細（確信度・位置情報）
+                <span class="count" id="detailed-count"></span>
+              </div>
+              <ul class="result-list detailed-list" id="detailed-list"></ul>
+            </div>
+          </div>
+
+          <!-- 判定OK後のマイリスト登録ボタン -->
+          <div id="save-to-mylist-area" style="display: none">
+            <button
+              type="button"
+              id="btn-save-to-mylist"
+              class="btn-save-mylist"
+            >
+              📷 バーコードを読み取り、保存
+            </button>
+            <button
+              type="button"
+              id="btn-save-no-barcode"
+              class="btn-save-no-barcode"
+            >
+              📝 バーコードなしで保存
+            </button>
+            <div id="save-no-barcode-form" style="display: none">
+              <input
+                type="text"
+                id="input-product-name"
+                class="input-product-name"
+                placeholder="商品名（省略可）"
+                maxlength="100"
+              />
+              <button
+                type="button"
+                id="btn-save-no-barcode-confirm"
+                class="btn-save-mylist"
+              >
+                保存する
+              </button>
+            </div>
+            <p
+              id="save-to-mylist-status"
+              class="save-mylist-status"
+              style="display: none"
+            ></p>
+          </div>
+
+          <!-- マイリスト保存完了メッセージ -->
+          <div id="mylist-saved-message" style="display: none">
+            <p style="font-size: 1rem; font-weight: bold; color: #2a5229">
+              ✅ マイリストに保存しました。
+            </p>
+            <button
+              type="button"
+              id="btn-goto-mylist-after-save"
+              class="btn-goto-mylist"
+            >
+              📦 マイリストはこちら
+            </button>
+            <div class="mylist-saved-links">
+              <a
+                id="btn-rakuten-after-save"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                class="btn-rakuten-after-save"
+              >
+                楽天で購入
+              </a>
+              <a
+                id="btn-amazon-after-save"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                class="btn-amazon-after-save"
+              >
+                Amazonで購入
+              </a>
+            </div>
+          </div>
+
+          <!-- 新しい商品を解析するボタン -->
+          <div
+            class="ee-result-reset-wrap"
+            id="result-reset-wrap"
+            style="display: none"
+          >
+            <button
+              type="button"
+              class="ee-btn-secondary"
+              id="btn-result-reset"
+            >
+              新しい商品を解析する
+            </button>
+          </div>
+
+          <!-- フィードバックボタン -->
+          <div
+            id="feedback-area"
+            style="display: none; text-align: center; margin: 8px 0 16px"
+          >
+            <button type="button" id="btn-feedback" class="btn-feedback">
+              📝 判定結果について報告する
+            </button>
+          </div>
+
+          <!-- マイリスト保存セクション -->
+          <div id="save-product-section" style="display: none">
+            <div class="save-product-card">
+              <button
+                type="button"
+                class="btn-save-product-open"
+                id="btn-save-product-open"
+              >
+                ✅ この商品をマイリストに登録する
+              </button>
+              <!-- バーコードスキャンエリア -->
+              <div id="barcode-scan-area" style="display: none">
+                <p class="barcode-hint">
+                  商品のバーコードにカメラを向けてください
+                </p>
+                <div id="qr-reader" class="barcode-video"></div>
+                <button
+                  type="button"
+                  class="btn-barcode-skip"
+                  id="btn-barcode-skip"
+                >
+                  バーコードなしで保存する
+                </button>
+                <div id="barcode-result-preview" style="display: none">
+                  <div class="barcode-product-preview">
+                    <img
+                      id="barcode-product-image"
+                      class="barcode-product-image"
+                      src=""
+                      alt=""
+                    />
+                    <div class="barcode-product-info">
+                      <div
+                        class="barcode-product-name"
+                        id="barcode-product-name"
+                      ></div>
+                      <div class="barcode-product-links">
+                        <a
+                          class="barcode-product-link"
+                          id="barcode-product-link"
+                          target="_blank"
+                          rel="noopener"
+                          >楽天で見る →</a
+                        >
+                        <a
+                          class="barcode-product-link barcode-product-link--amazon"
+                          id="barcode-amazon-link"
+                          target="_blank"
+                          rel="noopener"
+                          >Amazonで見る →</a
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div class="barcode-actions">
+                    <button
+                      type="button"
+                      class="btn-barcode-save"
+                      id="btn-barcode-save"
+                    >
+                      保存する
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-barcode-cancel"
+                      id="btn-barcode-cancel"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+                <div
+                  id="barcode-scan-error"
+                  class="barcode-scan-error"
+                  style="display: none"
+                ></div>
+                <button
+                  type="button"
+                  class="btn-barcode-close"
+                  id="btn-barcode-close"
+                >
+                  ✕ 閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- User DB badge -->
+          <p class="user-db-note">
+            <span id="user-db-count" style="display: none"></span>
+            <span class="user-db-hint"
+              >🔍推測成分の正解を入力すると、次回から自動分類されます（このブラウザに保存）</span
+            >
+          </p>
+        </section>
       </div>
+      <!-- /#scanner-page -->
 
-    </div>
-  </div><!-- /#user-settings-page -->
+      <!-- ===== ユーザー設定ページ ===== -->
+      <div id="user-settings-page" style="display: none">
+        <div class="user-settings-wrap">
+          <!-- ヘッダー -->
+          <div class="user-settings-header">
+            <button type="button" class="btn-back" id="btn-settings-back">
+              ← 戻る
+            </button>
+            <h2 class="user-settings-title">👤 ユーザー設定</h2>
+          </div>
 
-  <!-- ===== マイリストページ ===== -->
-  <div id="mylist-page" style="display:none">
-    <div class="user-settings-wrap">
-      <div class="user-settings-header">
-        <button type="button" class="btn-back" id="btn-mylist-back">← 戻る</button>
-        <h2 class="user-settings-title">📦 マイリスト</h2>
-        <button type="button" id="btn-add-to-mylist" class="btn-back">＋ 追加</button>
+          <!-- アカウント情報 -->
+          <div class="settings-card">
+            <div class="settings-card-title">アカウント情報</div>
+            <div class="settings-row">
+              <span class="settings-label">メールアドレス</span>
+              <span class="settings-value" id="settings-email">—</span>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">プラン</span>
+              <span class="settings-value" id="settings-plan">無料プラン</span>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">今月の残り回数</span>
+              <span class="settings-value" id="settings-remaining">— 回</span>
+            </div>
+          </div>
+
+          <!-- デフォルトモード設定 -->
+          <div class="settings-card">
+            <div class="settings-card-title">デフォルトの食事スタイル</div>
+            <p class="settings-card-desc">
+              ログイン時に最初に表示されるモードです。スキャン中に一時切替もできます。
+            </p>
+            <div class="settings-mode-list">
+              <label class="settings-mode-item">
+                <input type="radio" name="settings-mode" value="oriental" />
+                <div class="settings-mode-content">
+                  <span class="settings-mode-icon">🌿</span>
+                  <div>
+                    <div class="settings-mode-name">
+                      オリエンタルベジタリアン
+                    </div>
+                    <div class="settings-mode-desc">
+                      五葷・肉・魚NG。卵・乳製品・蜂蜜OK。
+                    </div>
+                  </div>
+                </div>
+              </label>
+
+              <label class="settings-mode-item">
+                <input type="radio" name="settings-mode" value="vegan" />
+                <div class="settings-mode-content">
+                  <span class="settings-mode-icon">🌱</span>
+                  <div>
+                    <div class="settings-mode-name">ヴィーガン</div>
+                    <div class="settings-mode-desc">
+                      すべての動物由来成分NG。
+                    </div>
+                  </div>
+                </div>
+              </label>
+
+              <label class="settings-mode-item">
+                <input type="radio" name="settings-mode" value="lacto_ovo" />
+                <div class="settings-mode-content">
+                  <span class="settings-mode-icon">🥚</span>
+                  <div>
+                    <div class="settings-mode-name">
+                      ラクト・オボベジタリアン
+                    </div>
+                    <div class="settings-mode-desc">
+                      肉・魚のみNG。卵・乳製品OK。
+                    </div>
+                  </div>
+                </div>
+              </label>
+
+              <label class="settings-mode-item settings-mode-item-disabled">
+                <input
+                  type="radio"
+                  name="settings-mode"
+                  value="custom"
+                  disabled
+                />
+                <div class="settings-mode-content">
+                  <span class="settings-mode-icon">⚙️</span>
+                  <div>
+                    <div class="settings-mode-name">
+                      カスタムモード
+                      <span class="settings-coming-badge">近日公開</span>
+                    </div>
+                    <div class="settings-mode-desc">
+                      自分だけのNG成分リスト（有料プラン）。
+                    </div>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <button
+              type="button"
+              class="btn-settings-save"
+              id="btn-settings-save"
+            >
+              <span
+                class="spinner"
+                id="settings-spinner"
+                style="display: none"
+              ></span>
+              <span id="settings-save-label">この設定を保存する</span>
+            </button>
+            <div class="settings-save-msg" id="settings-save-msg"></div>
+          </div>
+
+          <!-- 管理者メニュー（管理者のみ表示） -->
+          <div
+            class="settings-card"
+            id="settings-admin-link"
+            style="display: none"
+          >
+            <div class="settings-card-title">管理者メニュー</div>
+            <a href="admin.html" class="btn-settings-admin">
+              🛠️ 管理者ページへ
+            </a>
+          </div>
+
+          <!-- マイリスト -->
+          <div class="settings-card">
+            <button
+              type="button"
+              id="btn-goto-mylist-from-settings"
+              class="btn-goto-mylist"
+            >
+              マイリストを見る
+            </button>
+          </div>
+
+          <!-- ログアウト -->
+          <div class="settings-card settings-card-danger">
+            <div class="settings-card-title">アカウント操作</div>
+            <button
+              type="button"
+              class="btn-settings-logout"
+              id="btn-settings-logout"
+            >
+              ログアウト
+            </button>
+          </div>
+        </div>
       </div>
-      <div id="mylist-container">
-        <p class="mylist-empty" id="mylist-empty" style="display:none">まだ保存された商品はありません</p>
-        <div id="mylist-items"></div>
+      <!-- /#user-settings-page -->
+
+      <!-- ===== マイリストページ ===== -->
+      <div id="mylist-page" style="display: none">
+        <div class="user-settings-wrap">
+          <div class="user-settings-header">
+            <button type="button" class="btn-back" id="btn-mylist-back">
+              ← 戻る
+            </button>
+            <h2 class="user-settings-title">📦 マイリスト</h2>
+            <button type="button" id="btn-add-to-mylist" class="btn-back">
+              ＋ 追加
+            </button>
+          </div>
+          <div id="mylist-container">
+            <p class="mylist-empty" id="mylist-empty" style="display: none">
+              まだ保存された商品はありません
+            </p>
+            <div id="mylist-items"></div>
+          </div>
+        </div>
+      </div>
+      <!-- /#mylist-page -->
+
+      <!-- ===== マイリスト登録用バーコードスキャンページ ===== -->
+      <div id="save-barcode-page" style="display: none">
+        <div class="save-barcode-header">
+          <p>バーコードをかざしてください</p>
+        </div>
+        <div id="save-qr-reader"></div>
+        <div id="barcode-save-result" style="display: none">
+          <p id="barcode-save-status"></p>
+          <button id="barcode-goto-mylist" class="btn-primary">
+            📋 マイリストはこちら
+          </button>
+          <div id="barcode-shop-links"></div>
+          <button id="barcode-new-scan" class="btn-reset">
+            新しい商品を解析する
+          </button>
+        </div>
+      </div>
+      <!-- /#save-barcode-page -->
+
+      <!-- ===== マイリスト追加専用スキャンページ ===== -->
+      <div id="mylist-add-page" style="display: none">
+        <div style="padding: 1rem">
+          <button type="button" id="btn-mylist-add-back">← 戻る</button>
+        </div>
+        <div id="mylist-add-qr-reader"></div>
+        <div
+          id="mylist-add-error"
+          style="display: none; color: red; padding: 1rem"
+        ></div>
+      </div>
+      <!-- /#mylist-add-page -->
+    </main>
+
+    <footer>
+      <div class="footer-links">
+        <a href="privacy.html" class="footer-link">プライバシーポリシー</a>
+        <a href="terms.html" class="footer-link">利用規約</a>
+        <a
+          href="https://forms.gle/hayofiLsYMhuUckN7"
+          target="_blank"
+          class="footer-link"
+          >お問い合わせ</a
+        >
+      </div>
+      <div class="footer-copy">
+        © 2026 VegEatEase
+        <span
+          id="app-version"
+          style="font-size: 0.75rem; opacity: 0.7; margin-left: 8px"
+        ></span>
+      </div>
+    </footer>
+
+    <!-- Camera overlay -->
+    <div id="camera-overlay" class="camera-overlay" hidden>
+      <video
+        id="camera-video"
+        class="camera-video"
+        autoplay
+        playsinline
+        muted
+      ></video>
+      <div class="camera-ui">
+        <p class="camera-hint-text">原材料名をこの枠に合わせてください</p>
+        <div class="camera-guide-box" id="camera-guide-box">
+          <div class="camera-frame-line"></div>
+          <div class="cgc tl"></div>
+          <div class="cgc tr"></div>
+          <div class="cgc bl"></div>
+          <div class="cgc br"></div>
+        </div>
+        <p class="camera-sub-hint">
+          枠内に成分表だけが入るよう近づけてください
+        </p>
+        <div class="camera-buttons">
+          <button
+            type="button"
+            id="btn-camera-capture"
+            class="btn-camera-capture"
+            aria-label="撮影"
+          >
+            <span class="camera-capture-ring"></span>
+          </button>
+          <button
+            type="button"
+            id="btn-camera-cancel"
+            class="btn-camera-cancel"
+          >
+            キャンセル
+          </button>
+        </div>
       </div>
     </div>
-  </div><!-- /#mylist-page -->
 
-  <!-- ===== マイリスト登録用バーコードスキャンページ ===== -->
-  <div id="save-barcode-page" style="display:none">
-    <div class="save-barcode-header">
-      <p>バーコードをかざしてください</p>
-    </div>
-    <div id="save-qr-reader"></div>
-    <div id="barcode-save-result" style="display:none">
-      <p id="barcode-save-status"></p>
-      <button id="barcode-goto-mylist" class="btn-primary">📋 マイリストはこちら</button>
-      <div id="barcode-shop-links"></div>
-      <button id="barcode-new-scan" class="btn-reset">新しい商品を解析する</button>
-    </div>
-  </div><!-- /#save-barcode-page -->
-
-  <!-- ===== マイリスト追加専用スキャンページ ===== -->
-  <div id="mylist-add-page" style="display:none">
-    <div style="padding: 1rem;">
-      <button type="button" id="btn-mylist-add-back">← 戻る</button>
-    </div>
-    <div id="mylist-add-qr-reader"></div>
-    <div id="mylist-add-error" style="display:none;color:red;padding:1rem;"></div>
-  </div><!-- /#mylist-add-page -->
-
-</main>
-
-<footer>
-  <div class="footer-links">
-    <a href="privacy.html" class="footer-link">プライバシーポリシー</a>
-    <a href="terms.html" class="footer-link">利用規約</a>
-    <a href="https://forms.gle/hayofiLsYMhuUckN7" target="_blank" class="footer-link">お問い合わせ</a>
-  </div>
-  <div class="footer-copy">© 2026 VegEatEase <span id="app-version" style="font-size:0.75rem;opacity:0.7;margin-left:8px;"></span></div>
-</footer>
-
-<!-- Camera overlay -->
-<div id="camera-overlay" class="camera-overlay" hidden>
-  <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
-  <div class="camera-ui">
-    <p class="camera-hint-text">原材料名をこの枠に合わせてください</p>
-    <div class="camera-guide-box" id="camera-guide-box">
-      <div class="camera-frame-line"></div>
-      <div class="cgc tl"></div>
-      <div class="cgc tr"></div>
-      <div class="cgc bl"></div>
-      <div class="cgc br"></div>
-    </div>
-    <p class="camera-sub-hint">枠内に成分表だけが入るよう近づけてください</p>
-    <div class="camera-buttons">
-      <button type="button" id="btn-camera-capture" class="btn-camera-capture" aria-label="撮影">
-        <span class="camera-capture-ring"></span>
-      </button>
-      <button type="button" id="btn-camera-cancel" class="btn-camera-cancel">キャンセル</button>
-    </div>
-  </div>
-</div>
-
-<!-- Auth Modal -->
-<div id="auth-modal" class="auth-modal" hidden>
-  <div class="auth-modal-card">
-    <button class="auth-modal-close" id="auth-modal-close" type="button">✕</button>
-    <h2 class="auth-modal-title" id="auth-form-title">ログイン</h2>
-    <form id="auth-form" data-mode="login" novalidate>
-      <div class="auth-field">
-        <label for="auth-email">メールアドレス</label>
-        <input type="email" id="auth-email" autocomplete="email" required placeholder="you@example.com">
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="auth-modal" hidden>
+      <div class="auth-modal-card">
+        <button class="auth-modal-close" id="auth-modal-close" type="button">
+          ✕
+        </button>
+        <h2 class="auth-modal-title" id="auth-form-title">ログイン</h2>
+        <form id="auth-form" data-mode="login" novalidate>
+          <div class="auth-field">
+            <label for="auth-email">メールアドレス</label>
+            <input
+              type="email"
+              id="auth-email"
+              autocomplete="email"
+              required
+              placeholder="you@example.com"
+            />
+          </div>
+          <div class="auth-field">
+            <label for="auth-password">パスワード（6文字以上）</label>
+            <input
+              type="password"
+              id="auth-password"
+              autocomplete="current-password"
+              required
+              minlength="6"
+            />
+          </div>
+          <div class="auth-error" id="auth-error"></div>
+          <button type="submit" class="btn-auth-submit" id="auth-submit-btn">
+            <span
+              class="spinner"
+              id="auth-spinner"
+              style="display: none"
+            ></span>
+            <span id="auth-submit-label">ログイン</span>
+          </button>
+        </form>
+        <div class="auth-modal-footer">
+          <button class="btn-auth-link" id="auth-toggle-btn" type="button">
+            新規登録はこちら
+          </button>
+          <button class="btn-auth-link" id="auth-forgot-btn" type="button">
+            パスワードを忘れた場合
+          </button>
+        </div>
       </div>
-      <div class="auth-field">
-        <label for="auth-password">パスワード（6文字以上）</label>
-        <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
-      </div>
-      <div class="auth-error" id="auth-error"></div>
-      <button type="submit" class="btn-auth-submit" id="auth-submit-btn">
-        <span class="spinner" id="auth-spinner" style="display:none"></span>
-        <span id="auth-submit-label">ログイン</span>
-      </button>
-    </form>
-    <div class="auth-modal-footer">
-      <button class="btn-auth-link" id="auth-toggle-btn" type="button">新規登録はこちら</button>
-      <button class="btn-auth-link" id="auth-forgot-btn" type="button">パスワードを忘れた場合</button>
     </div>
-  </div>
-</div>
 
-<script src="site-config.js?v=0.5.1"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth.js?v=0.5.1"></script>
-<script src="safeat-api.js?v=0.5.6"></script>
-<script src="page-utils.js?v=0.5.1"></script>
-<script src="auth-ui.js?v=0.5.2"></script>
-<script src="mode-ui.js?v=0.5.1"></script>
-<script src="settings-ui.js?v=0.5.1"></script>
-<script src="navigation-ui.js?v=0.5.1"></script>
-<script src="image-ui.js?v=0.5.1"></script>
-<script src="safeat.js?v=0.5.50"></script>
-<script src="user-db.js?v=0.5.1"></script>
-<script src="result-ui.js?v=0.5.1"></script>
-<script src="analysis-controller.js?v=0.5.1"></script>
-<script src="session-ui.js?v=0.5.1"></script>
-<script src="mylist-ui.js?v=0.5.1"></script>
-</body>
+    <script src="site-config.js?v=0.5.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="auth.js?v=0.5.1"></script>
+    <script src="safeat-api.js?v=0.5.6"></script>
+    <script src="page-utils.js?v=0.5.1"></script>
+    <script src="auth-ui.js?v=0.5.2"></script>
+    <script src="mode-ui.js?v=0.5.1"></script>
+    <script src="settings-ui.js?v=0.5.1"></script>
+    <script src="navigation-ui.js?v=0.5.1"></script>
+    <script src="image-ui.js?v=0.5.1"></script>
+    <script src="safeat.js?v=0.5.50"></script>
+    <script src="user-db.js?v=0.5.1"></script>
+    <script src="result-ui.js?v=0.5.1"></script>
+    <script src="analysis-controller.js?v=0.5.1"></script>
+    <script src="session-ui.js?v=0.5.1"></script>
+    <script src="mylist-ui.js?v=0.5.1"></script>
+  </body>
 </html>
