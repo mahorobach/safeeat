@@ -1,0 +1,549 @@
+/* ===== ユーザー設定ページ ===== */
+.user-settings-wrap {
+  max-width: 600px; margin: 0 auto; padding: 1.5rem 1rem;
+}
+.user-settings-header {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+}
+.btn-back {
+  background: none; border: 1px solid #ddd; border-radius: 2rem;
+  padding: 0.4rem 1rem; cursor: pointer; color: #555; font-size: 0.9rem;
+}
+.btn-back:hover { background: #f5f5f5; }
+.user-settings-title { font-size: 1.3rem; font-weight: bold; color: #2D7A3A; }
+
+.settings-card {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.4rem; margin-bottom: 1.2rem;
+}
+.settings-card-title {
+  font-weight: bold; font-size: 1rem;
+  color: #2D7A3A; margin-bottom: 1rem;
+  padding-bottom: 0.5rem; border-bottom: 1px solid #eee;
+}
+.settings-card-desc { font-size: 0.85rem; color: #888; margin-bottom: 1rem; }
+.settings-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 0.6rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-label { color: #666; font-size: 0.9rem; }
+.settings-value { font-weight: bold; font-size: 0.9rem; }
+
+.settings-mode-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem; }
+.settings-mode-item {
+  display: flex; align-items: center; gap: 0.8rem;
+  border: 2px solid #eee; border-radius: 10px;
+  padding: 0.9rem; cursor: pointer; transition: border-color 0.2s;
+}
+.settings-mode-item:hover:not(.settings-mode-item-disabled) { border-color: #2D7A3A; }
+.settings-mode-item input[type="radio"] { accent-color: #2D7A3A; width: 18px; height: 18px; flex-shrink: 0; }
+.settings-mode-item-disabled { opacity: 0.5; cursor: not-allowed; }
+.settings-mode-content { display: flex; align-items: center; gap: 0.8rem; }
+.settings-mode-icon { font-size: 1.6rem; }
+.settings-mode-name { font-weight: bold; font-size: 0.95rem; }
+.settings-mode-desc { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
+.settings-coming-badge {
+  background: #888; color: #fff; border-radius: 1rem;
+  padding: 0.1rem 0.5rem; font-size: 0.72rem; margin-left: 0.4rem;
+}
+
+.btn-settings-save {
+  width: 100%; background: #2D7A3A; color: #fff;
+  border: none; border-radius: 2rem; padding: 0.9rem;
+  font-size: 1rem; font-weight: bold; cursor: pointer;
+  transition: transform 0.15s;
+}
+.btn-settings-save:hover { transform: scale(1.02); }
+.btn-settings-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.settings-save-msg {
+  text-align: center; margin-top: 0.7rem; font-size: 0.9rem; min-height: 1.2rem;
+}
+.settings-save-msg.success { color: #2D7A3A; }
+.settings-save-msg.error   { color: #c0392b; }
+
+.settings-card-danger .settings-card-title { color: #c0392b; }
+.btn-settings-logout {
+  width: 100%; background: #fff; color: #c0392b;
+  border: 2px solid #c0392b; border-radius: 2rem;
+  padding: 0.8rem; font-size: 1rem; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-settings-logout:hover { background: #c0392b; color: #fff; }
+.btn-goto-mylist {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: #8B6347;
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+.btn-goto-mylist:hover { background: #7a5540; }
+
+/* ===== バーコードスキャン・マイリスト ===== */
+.save-product-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-top: 8px;
+}
+.btn-save-product-open {
+  width: 100%;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-save-product-open:hover { background: var(--green-mid); }
+.barcode-hint {
+  font-size: 0.85rem;
+  color: var(--gray);
+  text-align: center;
+  margin: 12px 0 8px;
+}
+.barcode-video {
+  width: 100%;
+  border-radius: 8px;
+  background: #000;
+  display: block;
+  overflow: hidden;
+}
+.barcode-video video {
+  width: 100% !important;
+  max-height: 240px;
+  object-fit: cover;
+  display: block;
+}
+.barcode-product-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: var(--gray-light);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+.barcode-product-image {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.barcode-product-info { flex: 1; min-width: 0; }
+.barcode-product-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #263238;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.barcode-product-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.barcode-product-link {
+  font-size: 0.8rem;
+  color: var(--green);
+  text-decoration: none;
+}
+.barcode-product-link--amazon {
+  color: #e77600;
+}
+.barcode-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.btn-barcode-save {
+  flex: 1;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  padding: 0.6rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-barcode-save:hover:not(:disabled) { background: var(--green-mid); }
+.btn-barcode-save:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-barcode-skip {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  background: #f0f0f0;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-barcode-skip:hover:not(:disabled) { background: #e0e0e0; }
+.btn-barcode-skip:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-barcode-cancel {
+  flex: 1;
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 2rem;
+  padding: 0.6rem;
+  cursor: pointer;
+  color: var(--gray);
+  transition: background 0.15s;
+}
+.btn-barcode-cancel:hover { background: var(--gray-light); }
+.btn-barcode-close {
+  display: block;
+  margin: 10px auto 0;
+  background: none;
+  border: none;
+  color: var(--gray);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.barcode-scan-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  text-align: center;
+}
+/* マイリストカード */
+.mylist-empty {
+  text-align: center;
+  color: var(--gray);
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+.mylist-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+}
+.mylist-card-image {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.mylist-card-no-image {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--gray-light);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.mylist-card-body { flex: 1; min-width: 0; }
+.mylist-card-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #263238;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+.mylist-card-mode {
+  font-size: 0.75rem;
+  color: var(--gray);
+  margin-bottom: 4px;
+}
+.mylist-card-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mylist-card-link {
+  font-size: 0.78rem;
+  color: var(--green);
+  text-decoration: none;
+}
+.mylist-card-link--amazon { color: #c47d00; }
+.mylist-card-delete {
+  background: none;
+  border: none;
+  color: var(--gray);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+}
+.mylist-card-delete:hover { background: var(--red-light); color: var(--red); }
+
+/* ===== 判定OK後マイリスト登録エリア ===== */
+.btn-save-mylist {
+  width: 100%;
+  padding: 16px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(46,204,113,0.4);
+}
+.btn-save-mylist:hover:not(:disabled) { background: var(--green-mid); }
+.btn-save-mylist:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-save-no-barcode {
+  width: 100%;
+  padding: 11px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  color: #4CAF50;
+  border: 2px solid #4CAF50;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+}
+.btn-save-no-barcode:hover { background: #f0faf0; }
+#input-product-name {
+  width: 100%;
+  padding: 11px;
+  font-size: 0.95rem;
+  border: 2px solid #4CAF50;
+  border-radius: 50px;
+  box-sizing: border-box;
+  height: auto;
+  outline: none;
+}
+.save-mylist-status {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--green);
+  margin-top: 8px;
+}
+.save-gray-note {
+  font-size: 0.85rem;
+  color: #b8860b;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+/* ===== マイリスト保存完了メッセージ ===== */
+#mylist-saved-message {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+#mylist-saved-message p {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2a5229;
+}
+
+/* ===== マイリスト保存完了後リンク ===== */
+.mylist-saved-links {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+.mylist-saved-links a {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-weight: bold;
+}
+.mylist-saved-links a:first-child {
+  background: #bf0000;
+  color: #fff;
+}
+.mylist-saved-links a:last-child {
+  background: #ff9900;
+  color: #fff;
+}
+.mylist-saved-goto {
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+  color: #27ae60;
+  font-size: 0.9rem;
+}
+
+/* ===== 保存完了後購入ボタン ===== */
+.btn-rakuten-after-save,
+.btn-amazon-after-save {
+  display: block;
+  padding: 12px;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-rakuten-after-save { background: #bf0000; }
+.btn-rakuten-after-save:hover { background: #a60000; }
+.btn-amazon-after-save { background: #f90; }
+.btn-amazon-after-save:hover { background: #e08600; }
+
+/* ===== フィードバックボタン ===== */
+.btn-feedback {
+  width: 100%;
+  padding: 11px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: #f5f9ff;
+  border: 2px solid #3b82f6;
+  border-radius: 50px;
+  color: #1d4ed8;
+  cursor: pointer;
+  display: block;
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.btn-feedback:hover {
+  background: #eaf2ff;
+  border-color: #2563eb;
+  color: #1e40af;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.16);
+}
+
+/* ===== バーコードスキャン結果エリア ===== */
+#barcode-save-result {
+  padding: 20px 16px;
+  background: rgba(255,255,255,0.05);
+}
+#barcode-save-status {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 0 4px;
+}
+#barcode-goto-mylist {
+  width: 100%;
+  padding: 14px;
+  margin: 12px 0 8px;
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+#barcode-shop-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+#barcode-shop-links a {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+#barcode-new-scan {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ===== マイリスト登録用バーコードスキャンページ ===== */
+#save-barcode-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #000;
+  color: #fff;
+}
+.save-barcode-header {
+  padding: 24px 16px 16px;
+  text-align: center;
+  background: rgba(0,0,0,0.8);
+}
+.save-barcode-header h3 {
+  font-size: 1.2rem;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.save-barcode-header p {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.8);
+  margin: 0;
+  line-height: 1.5;
+}
+#save-qr-reader {
+  flex: 1;
+  width: 100%;
+  max-height: 240px;
+  overflow: hidden;
+}
+#save-qr-reader video {
+  max-height: 240px;
+  object-fit: cover;
+}
+.save-barcode-actions {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0,0,0,0.8);
+}
+.btn-save-barcode-skip {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+.btn-save-barcode-skip:hover { background: rgba(255,255,255,0.25); }
+.btn-save-barcode-cancel {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 4px;
+}
