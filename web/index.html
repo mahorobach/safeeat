@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.5.23">
+  <link rel="stylesheet" href="safeat.css?v=0.5.24">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -410,10 +410,16 @@
         <button type="button" id="btn-goto-mylist-after-save" class="btn-goto-mylist">
           📦 マイリストはこちら
         </button>
-        <a id="btn-amazon-after-save" href="#" target="_blank" rel="noopener"
-           class="btn-amazon-after-save">
-          🛒 Amazonで購入
-        </a>
+        <div class="mylist-saved-links">
+          <a id="btn-rakuten-after-save" href="#" target="_blank" rel="noopener"
+             class="btn-rakuten-after-save">
+            楽天で購入
+          </a>
+          <a id="btn-amazon-after-save" href="#" target="_blank" rel="noopener"
+             class="btn-amazon-after-save">
+            Amazonで購入
+          </a>
+        </div>
       </div>
 
       <!-- 新しい食品を解析するボタン -->
@@ -686,7 +692,8 @@
 <script src="site-config.js?v=0.5.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js?v=0.5.1"></script>
-<script src="safeat-api.js?v=0.5.3"></script>
-<script src="safeat.js?v=0.5.36"></script>
+<script src="safeat-api.js?v=0.5.4"></script>
+<script src="page-utils.js?v=0.5.1"></script>
+<script src="safeat.js?v=0.5.40"></script>
 </body>
 </html>

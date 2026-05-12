@@ -4,14 +4,11 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.36';
+const APP_VERSION = '0.5.40';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
 });
-
-const SAFEAT_API_URL =
-  (window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE) || "https://safeeat-production-b7c5.up.railway.app";
 
 const MODE_DEFINITIONS = {
   oriental: {
@@ -50,11 +47,6 @@ if (window.SITE_CONFIG?.isEatEase) {
   document.body.classList.add('ee-page');
 }
 
-// Supabase Auth トークン（ログイン後に localStorage に格納）
-function getAuthToken() {
-  return localStorage.getItem("safeat_auth_token") || null;
-}
-
 // --- DOM refs ---
 const textarea      = document.getElementById("ingredients-textarea");
 const analyzeBtn    = document.getElementById("analyze-btn");
@@ -85,14 +77,13 @@ async function saveUserIngredient(name, category, reason) {
   if (!token) return;
 
   try {
-    await fetch(`${SAFEAT_API_URL}/api/ingredients`, {
+    await fetchApi("/api/ingredients", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify({ name, category, reason, confidence: "low" }),
-    });
+    }, token);
   } catch {
     // API 失敗時は localStorage のみで継続
   }
@@ -1229,13 +1220,10 @@ updateUserDBBadge();
 async function refreshScanBadge() {
   const badge = document.getElementById("scan-badge");
   if (!badge) return;
-  const token = localStorage.getItem("safeat_auth_token");
+  const token = getAuthToken();
   if (!token) return;
   try {
-    const res = await fetch(`${SAFEAT_API_URL}/api/user/scan-count`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
+    const { data } = await fetchApiJson("/api/user/scan-count", {}, token);
     if (data.ok) {
       badge.textContent = `残り ${data.remaining} 回`;
       badge.classList.toggle("exhausted", data.remaining === 0);
@@ -1271,6 +1259,14 @@ function setAuthModalMode(mode) {
   if (forgot) forgot.style.display = mode === "login" ? "" : "none";
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  let tid;
+  const timeout = new Promise((_, reject) => {
+    tid = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(tid));
+}
+
 async function updateAuthUI(session) {
   const area = document.getElementById("auth-area");
   if (!area) return;
@@ -1280,10 +1276,7 @@ async function updateAuthUI(session) {
     let remaining = "?";
     let plan = "free";
     try {
-      const r = await fetch(`${SAFEAT_API_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await r.json();
+      const { data: d } = await fetchApiJson("/api/user/me", {}, token);
       if (d.ok) { remaining = d.data.remaining; plan = d.data.plan; }
     } catch {}
 
@@ -1325,15 +1318,25 @@ document.getElementById("auth-form")?.addEventListener("submit", async (e) => {
 
   try {
     if (mode === "login") {
-      const { error } = await window.SafeEatAuth.signIn(email, password);
+      const { error } = await withTimeout(
+        window.SafeEatAuth.signIn(email, password),
+        20_000,
+        "ログイン処理がタイムアウトしました。通信環境、SupabaseのURL設定、またはRedirect URLを確認してください。",
+      );
       if (error) { errEl.textContent = error.message; return; }
       closeAuthModal();
     } else {
-      const { error } = await window.SafeEatAuth.signUp(email, password);
+      const { error } = await withTimeout(
+        window.SafeEatAuth.signUp(email, password),
+        20_000,
+        "登録処理がタイムアウトしました。通信環境、SupabaseのURL設定、またはRedirect URLを確認してください。",
+      );
       if (error) { errEl.textContent = error.message; return; }
       errEl.className = "auth-error success";
       errEl.textContent = "確認メールを送信しました。メール内のリンクをクリックしてログインしてください。";
     }
+  } catch (err) {
+    errEl.textContent = err.message || "認証処理に失敗しました。";
   } finally {
     submitBtn.disabled = false;
     if (spinner) spinner.style.display = "none";
@@ -1620,10 +1623,7 @@ function applyModeDisplay(mode) {
     // （iOSカメラ復帰・タブ切替などで onAuthStateChange が再発火しても無視）
     if (_hasNavigated && scanner && scanner.style.display !== 'none') return;
     try {
-      const res = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
+      const { data } = await fetchApiJson("/api/user/settings", {}, session.access_token);
       const settings = data?.data || {};
       const registerLink = document.getElementById('drawer-nav-register');
       if (registerLink) registerLink.style.display = '';
@@ -1650,12 +1650,12 @@ function applyModeDisplay(mode) {
     card.addEventListener('click', async () => {
       const mode = card.dataset.mode;
       try {
-        const token = _session?.access_token || localStorage.getItem('safeat_auth_token');
-        await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
+        const token = _session?.access_token || getAuthToken();
+        await fetchApi("/api/user/settings", {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode, mode_selected: true }),
-        });
+        }, token);
       } catch {}
       _hasNavigated = true;
       applyModeDisplay(mode);
@@ -1693,18 +1693,6 @@ function applyModeDisplay(mode) {
     history.replaceState(null, '', window.location.pathname);
   }
 })();
-
-// ===== 共通ページ切替ユーティリティ =====
-const _ALL_PAGES = ['landing-page', 'mode-select-page', 'scanner-page', 'user-settings-page', 'mylist-page', 'save-barcode-page', 'mylist-add-page'];
-function showById(id) {
-  if (window._stopBarcodeScanner) window._stopBarcodeScanner();
-  _ALL_PAGES.forEach(p => {
-    const el = document.getElementById(p);
-    if (el) el.style.display = 'none';
-  });
-  const page = document.getElementById(id);
-  if (page) page.style.display = 'block';
-}
 
 // ===== ヘッダーナビ =====
 (function () {
@@ -1837,12 +1825,12 @@ document.addEventListener('click', (e) => {
     msg.className = 'settings-save-msg';
 
     try {
-      const token = localStorage.getItem('safeat_auth_token');
-      const res = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
+      const token = getAuthToken();
+      const res = await fetchApi("/api/user/settings", {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode, mode_selected: true }),
-      });
+      }, token);
       const data = await res.json();
       if (data.ok) {
         msg.textContent = '✅ 保存しました';
@@ -1870,12 +1858,9 @@ document.addEventListener('click', (e) => {
     if (userSettingsPage) userSettingsPage.style.display = 'block';
 
     try {
-      const token = localStorage.getItem('safeat_auth_token');
+      const token = getAuthToken();
 
-      const meRes  = await fetch(`${SAFEAT_API_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const meData = await meRes.json();
+      const { data: meData } = await fetchApiJson("/api/user/me", {}, token);
       if (meData.ok) {
         const d = meData.data;
         const emailEl     = document.getElementById('settings-email');
@@ -1886,18 +1871,12 @@ document.addEventListener('click', (e) => {
         if (remainingEl) remainingEl.textContent = `${d.remaining} 回`;
       }
 
-      const settingsRes  = await fetch(`${SAFEAT_API_URL}/api/user/settings`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const settingsData = await settingsRes.json();
+      const { data: settingsData } = await fetchApiJson("/api/user/settings", {}, token);
       const currentMode  = settingsData?.data?.mode || 'oriental';
       const radio = document.querySelector(`input[name="settings-mode"][value="${currentMode}"]`);
       if (radio) radio.checked = true;
 
-      const adminRes  = await fetch(`${SAFEAT_API_URL}/api/admin/check`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const adminData = await adminRes.json();
+      const { data: adminData } = await fetchApiJson("/api/admin/check", {}, token);
       const adminLinkEl = document.getElementById('settings-admin-link');
       if (adminLinkEl) {
         adminLinkEl.style.display = (adminData.ok && adminData.isAdmin) ? 'block' : 'none';
@@ -2165,10 +2144,23 @@ document.addEventListener('click', (e) => {
     const savedMsg = document.getElementById('mylist-saved-message');
     if (savedMsg) {
       savedMsg.style.display = '';
+      const rakutenBtn = document.getElementById('btn-rakuten-after-save');
+      const rakutenUrl = productData?.shop_url || null;
+      if (rakutenBtn && rakutenUrl) {
+        rakutenBtn.href = rakutenUrl;
+        rakutenBtn.style.display = '';
+      } else if (rakutenBtn) {
+        rakutenBtn.style.display = 'none';
+      }
+
       const amazonBtn = document.getElementById('btn-amazon-after-save');
       const amazonUrl = productData?.amazon_url || null;
-      if (amazonBtn && amazonUrl) amazonBtn.href = amazonUrl;
-      else if (amazonBtn) amazonBtn.style.display = 'none';
+      if (amazonBtn && amazonUrl) {
+        amazonBtn.href = amazonUrl;
+        amazonBtn.style.display = '';
+      } else if (amazonBtn) {
+        amazonBtn.style.display = 'none';
+      }
     }
 
     // scanner-page に戻る

@@ -173,10 +173,29 @@ async function extractTextFromImage(imageData, mediaType) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function getAuthHeaders() {
-  if (typeof localStorage === "undefined") return {};
-  const token = localStorage.getItem("safeat_auth_token");
+function getAuthToken() {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem("safeat_auth_token") || null;
+}
+
+function getAuthHeaders(token = getAuthToken()) {
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function fetchApi(path, options = {}, token = getAuthToken()) {
+  return fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(token),
+      ...(options.headers || {}),
+    },
+  });
+}
+
+async function fetchApiJson(path, options = {}, token = getAuthToken()) {
+  const res = await fetchApi(path, options, token);
+  const data = await res.json();
+  return { res, data };
 }
 
 /**
@@ -299,40 +318,31 @@ async function analyzeTextWithGemini(ingredientsText, dietMode = "oriental") {
 // ===== 商品検索・マイリスト API =====
 
 async function lookupProduct(janCode) {
-  const res = await fetch(`${API_BASE}/api/product/lookup?jan=${encodeURIComponent(janCode)}`, {
-    headers: getAuthHeaders(),
-  });
-  const data = await res.json();
+  const { res, data } = await fetchApiJson(`/api/product/lookup?jan=${encodeURIComponent(janCode)}`);
   if (!res.ok || !data.ok) throw new Error(data.error || "商品が見つかりませんでした");
   return data.data;
 }
 
 async function saveProduct(productData) {
-  const res = await fetch(`${API_BASE}/api/product/save`, {
+  const { res, data } = await fetchApiJson("/api/product/save", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(productData),
   });
-  const data = await res.json();
   if (!res.ok || !data.ok) throw new Error(data.error || "保存に失敗しました");
   return data;
 }
 
 async function getMyList() {
-  const res = await fetch(`${API_BASE}/api/product/mylist`, {
-    headers: getAuthHeaders(),
-  });
-  const data = await res.json();
+  const { res, data } = await fetchApiJson("/api/product/mylist");
   if (!res.ok || !data.ok) throw new Error(data.error || "取得に失敗しました");
   return data.data;
 }
 
 async function deleteProduct(id) {
-  const res = await fetch(`${API_BASE}/api/product/mylist/${id}`, {
+  const { res, data } = await fetchApiJson(`/api/product/mylist/${id}`, {
     method: "DELETE",
-    headers: getAuthHeaders(),
   });
-  const data = await res.json();
   if (!res.ok || !data.ok) throw new Error(data.error || "削除に失敗しました");
   return data;
 }

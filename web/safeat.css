@@ -1959,19 +1959,21 @@ header { justify-content: space-between; }
   font-size: 0.9rem;
 }
 
-/* ===== 保存完了後Amazonボタン ===== */
+/* ===== 保存完了後購入ボタン ===== */
+.btn-rakuten-after-save,
 .btn-amazon-after-save {
   display: block;
-  width: 100%;
   padding: 12px;
-  background: #f90;
   color: #fff;
-  border-radius: 2rem;
+  border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 700;
   text-align: center;
   text-decoration: none;
 }
+.btn-rakuten-after-save { background: #bf0000; }
+.btn-rakuten-after-save:hover { background: #a60000; }
+.btn-amazon-after-save { background: #f90; }
 .btn-amazon-after-save:hover { background: #e08600; }
 
 /* ===== フィードバックボタン ===== */
