@@ -1420,19 +1420,35 @@ header { justify-content: space-between; }
 
 /* 使い方ステップ */
 .howto-steps {
-  display: flex; align-items: center;
+  display: flex; align-items: stretch;
   justify-content: center; gap: 0.5rem;
   flex-wrap: wrap; margin-bottom: 1.5rem;
 }
 .howto-step {
+  width: 160px;
+  min-height: 150px;
   text-align: center; background: #fff;
   border-radius: 12px; padding: 1.2rem 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07); min-width: 130px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .howto-num { font-size: 1.5rem; font-weight: bold; color: #2D7A3A; }
-.howto-title { font-weight: bold; margin: 0.3rem 0; }
+.howto-title {
+  font-weight: bold;
+  margin: 0.45rem 0 0.35rem;
+  min-height: 2.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .howto-desc { font-size: 0.82rem; color: #888; }
-.howto-arrow { font-size: 1.5rem; color: #2D7A3A; }
+.howto-arrow {
+  align-self: center;
+  font-size: 1.5rem;
+  color: #2D7A3A;
+}
 
 /* 動画プレースホルダー */
 .video-placeholder {
@@ -1501,7 +1517,14 @@ header { justify-content: space-between; }
 /* ===== スマホ対応（LP） ===== */
 @media (max-width: 600px) {
   .howto-arrow { display: none; }
-  .howto-steps { flex-direction: column; }
+  .howto-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+  .howto-step {
+    width: min(100%, 220px);
+    min-height: 150px;
+  }
   .mode-cards-grid { grid-template-columns: 1fr 1fr; }
 }
 
