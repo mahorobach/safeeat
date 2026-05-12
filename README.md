@@ -263,4 +263,23 @@ POST /api/analyze/gemini/image/detailed → 成分詳細判定（product_name・
 
 ---
 
-*最終更新: 2026-05-12（コード肥大化への段階的リファクタリング方針を追加）*
+## ローカル確認URL
+
+ローカルでフロントを確認するときは、開くURLを必ず次に統一する。
+
+```text
+http://localhost:5500/index.html
+```
+
+`file://.../index.html` ではログイン、CORS、カメラ権限が正しく確認できないため使わない。`127.0.0.1:5500` も表記ゆれを避けるため通常は使わない。
+
+起動コマンド:
+
+```bash
+cd web
+python3 -m http.server 5500
+```
+
+---
+
+*最終更新: 2026-05-12（ローカル確認URLを http://localhost:5500/index.html に統一）*

@@ -43,7 +43,8 @@ function networkFailureUserMessage() {
       "APIサーバーに接続できませんでした（ローカル開発）。",
       "① 別ターミナルで server を起動: cd server && npm run dev",
       "② ブラウザで http://localhost:3000/api/health が表示されるか確認",
-      "③ server/.env の ALLOWED_ORIGINS に、今開いているURL（http://localhost:5500 と http://127.0.0.1:5500）を入れる",
+      "③ フロントは http://localhost:5500/index.html で開く",
+      "④ server/.env の ALLOWED_ORIGINS に http://localhost:5500 を入れる",
     ].join(" ");
   }
   return (

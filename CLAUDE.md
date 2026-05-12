@@ -168,6 +168,23 @@ overall='ng'   → 登録ボタン非表示
 - `result-renderer.js`: `renderResult()`、`renderDetailedResult()`、保存ボタン表示
 
 基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、次の修正から触る場所を少しずつ分割すること。JS/CSSを修正した場合は、従来どおり `index.html` の `safeat.js?v=x.x.x` / `safeat.css?v=x.x.x` を更新する。
+
+## ローカル確認URL
+
+ローカルでフロントを確認するときは、開くURLを必ず次に統一する。
+
+```text
+http://localhost:5500/index.html
+```
+
+`file://.../index.html` ではログイン、CORS、カメラ権限が正しく確認できないため使わない。`127.0.0.1:5500` も表記ゆれを避けるため通常は使わない。
+
+起動コマンド:
+
+```bash
+cd web
+python3 -m http.server 5500
+```
   
   
 ## Claude Chatとの連携
