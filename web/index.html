@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VegEatEase — 食品成分チェッカー（ベジタリアン・ヴィーガン対応）</title>
-  <link rel="stylesheet" href="safeat.css?v=0.5.24">
+  <link rel="stylesheet" href="safeat.css?v=0.5.25">
   <!-- EatEase Design System（app.eatease.net 専用） -->
   <link rel="stylesheet" href="eatease-design.css">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -422,17 +422,17 @@
         </div>
       </div>
 
-      <!-- 新しい食品を解析するボタン -->
+      <!-- 新しい商品を解析するボタン -->
       <div class="ee-result-reset-wrap" id="result-reset-wrap" style="display:none">
         <button type="button" class="ee-btn-secondary" id="btn-result-reset">
-          新しい食品を解析する
+          新しい商品を解析する
         </button>
       </div>
 
       <!-- フィードバックボタン -->
       <div id="feedback-area" style="display:none;text-align:center;margin:8px 0 16px">
         <button type="button" id="btn-feedback" class="btn-feedback">
-          📝 判定結果にフィードバックを送る
+          📝 判定結果について報告する
         </button>
       </div>
 
@@ -616,7 +616,7 @@
       <p id="barcode-save-status"></p>
       <button id="barcode-goto-mylist" class="btn-primary">📋 マイリストはこちら</button>
       <div id="barcode-shop-links"></div>
-      <button id="barcode-new-scan" class="btn-reset">新しい食品を解析する</button>
+      <button id="barcode-new-scan" class="btn-reset">新しい商品を解析する</button>
     </div>
   </div><!-- /#save-barcode-page -->
 
@@ -699,7 +699,8 @@
 <script src="settings-ui.js?v=0.5.1"></script>
 <script src="navigation-ui.js?v=0.5.1"></script>
 <script src="image-ui.js?v=0.5.1"></script>
-<script src="safeat.js?v=0.5.48"></script>
+<script src="safeat.js?v=0.5.49"></script>
+<script src="user-db.js?v=0.5.1"></script>
 <script src="result-ui.js?v=0.5.1"></script>
 <script src="session-ui.js?v=0.5.1"></script>
 <script src="mylist-ui.js?v=0.5.1"></script>

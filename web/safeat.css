@@ -1978,16 +1978,27 @@ header { justify-content: space-between; }
 
 /* ===== フィードバックボタン ===== */
 .btn-feedback {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  color: #888;
+  width: 100%;
+  padding: 11px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: #f5f9ff;
+  border: 2px solid #3b82f6;
+  border-radius: 50px;
+  color: #1d4ed8;
   cursor: pointer;
-  font-size: 0.8rem;
-  padding: 6px 16px;
-  transition: border-color 0.15s, color 0.15s;
+  display: block;
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.btn-feedback:hover { border-color: #999; color: #555; }
+.btn-feedback:hover {
+  background: #eaf2ff;
+  border-color: #2563eb;
+  color: #1e40af;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.16);
+}
 
 /* ===== バーコードスキャン結果エリア ===== */
 #barcode-save-result {

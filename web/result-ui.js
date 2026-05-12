@@ -275,6 +275,7 @@ function renderResult(result, isOffline, extractedText) {
   _lastExtractedText = extractedText || null;
 
   updateResultComparePhoto();
+  showResultResetBtn();
   resultSection.classList.add("visible");
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 

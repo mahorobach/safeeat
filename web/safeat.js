@@ -4,7 +4,7 @@
  * Claude API はサーバー経由のため、フロントに API キーは不要（site-config.js の API_BASE のみ）
  */
 
-const APP_VERSION = '0.5.48';
+const APP_VERSION = '0.5.49';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('app-version');
   if (el) el.textContent = `v${APP_VERSION}`;
@@ -20,50 +20,6 @@ const textarea      = document.getElementById("ingredients-textarea");
 const analyzeBtn    = document.getElementById("analyze-btn");
 const errorBox      = document.getElementById("error-box");
 const resultSection = document.getElementById("result-section");
-
-// =============================================
-// ユーザー検証DB
-// ログイン中: Render API (/api/ingredients POST)
-// 未ログイン: localStorage にフォールバック
-// =============================================
-const USER_DB_KEY = "safeat_user_ingredients";
-
-function getUserDB() {
-  try {
-    return JSON.parse(localStorage.getItem(USER_DB_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-async function saveUserIngredient(name, category, reason) {
-  const db = getUserDB();
-  db[name] = { category, reason, verified: true, savedAt: new Date().toISOString() };
-  localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
-
-  const token = getAuthToken();
-  if (!token) return;
-
-  try {
-    await fetchApi("/api/ingredients", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, category, reason, confidence: "low" }),
-    }, token);
-  } catch {
-    // API 失敗時は localStorage のみで継続
-  }
-}
-
-function lookupUserDB(name) {
-  return getUserDB()[name] || null;
-}
-
-function getUserDBCount() {
-  return Object.keys(getUserDB()).length;
-}
 
 // --- Tab switching ---
 document.querySelectorAll(".input-tab").forEach((tab) => {
