@@ -100,16 +100,28 @@ VegeEatEase/（リポジトリ名: safeeat）
 ├── web/
 │   ├── index.html
 │   ├── site-config.js            # API_BASE・SUPABASE_URL・SUPABASE_ANON_KEY
-│   ├── safeat.js                 # UI操作のみ
+│   ├── safeat.js                 # 起動・共通DOM・タブ切替
 │   ├── safeat-api.js             # API クライアント
 │   ├── auth.js                   # Supabase Auth クライアント（window.SafeEatAuth）
-│   ├── safeat.css
+│   ├── auth-ui.js                # 認証UI
+│   ├── page-utils.js             # 画面切替
+│   ├── navigation-ui.js          # ヘッダー/ドロワー/ページ遷移
+│   ├── mode-ui.js                # モード表示
+│   ├── settings-ui.js            # ユーザー設定
+│   ├── image-ui.js               # 画像選択・切り抜き・カメラ
+│   ├── analysis-controller.js    # 解析実行制御・状態管理
+│   ├── result-ui.js              # 判定結果描画
+│   ├── mylist-ui.js              # マイリスト・バーコード保存
+│   ├── user-db.js                # ブラウザ内ユーザー検証DB
+│   ├── safeat.css                # 共通・スキャン・結果・カメラ系CSS
+│   ├── auth-modal.css            # 認証モーダルCSS
+│   ├── landing.css               # LP・モード選択CSS
+│   ├── user-mylist.css           # ユーザー設定・マイリストCSS
 │   ├── admin.html                # 管理者ページ
+│   ├── admin.js                  # 管理者ページJS
+│   ├── admin.css                 # 管理者ページCSS
 │   ├── privacy.html              # プライバシーポリシー
-│   ├── terms.html                # 利用規約
-│   └── lib/
-│       ├── ingredients-db.js
-│       └── rules.js
+│   └── terms.html                # 利用規約
 ├── server/
 │   ├── index.js
 │   ├── package.json
@@ -138,8 +150,8 @@ VegeEatEase/（リポジトリ名: safeeat）
 ### 基本構造：3層レイヤードアーキテクチャ
 
 ```
-UI層（web/safeat.js）
-  ↓ 表示・操作のみ。AI APIを直接呼ばない
+UI層（web/safeat.js + 分離済みUI JS）
+  ↓ 表示・操作・状態管理のみ。AI APIを直接呼ばない
 ビジネスロジック層（shared/rules.js）
   ↓ 判定ルール一元管理。UIにもDBにも依存しない
 データ層（server/routes / Supabase）
@@ -152,7 +164,7 @@ UI層（web/safeat.js）
 |---|---|
 | UI層からAI APIを直接呼ばない | APIキー漏洩防止 |
 | APIキーを `web/` に置かない | 環境変数はサーバー側のみ |
-| 認証ロジックは `web/auth.js` に分離 | safeat.js の肥大化防止 |
+| 認証クライアントは `web/auth.js`、認証UIは `web/auth-ui.js` に分離 | safeat.js の肥大化防止 |
 | 判定ロジックは `shared/rules.js` に一元管理 | Web・モバイル全フェーズで共通利用 |
 | web/lib/rules.js・ingredients-db.jsは削除済み | 判定ロジックはすべてサーバーサイド（shared/rules.js）に集約。localFallback()も削除済み |
 
@@ -204,7 +216,7 @@ scanner-pageに戻り、商品名入力欄を表示
   ↓ 「保存する」ボタンを押す
 保存完了（✅ マイリストに保存しました）
 
-「新しい食品を解析する」ボタンを押すと
+「新しい商品を解析する」ボタンを押すと
 _lastScannedProduct・_lastExtractedProductName・入力欄をリセット
 ```
 
@@ -216,9 +228,9 @@ _lastScannedProduct・_lastExtractedProductName・入力欄をリセット
 mylist-saved-messageの表示順（scanner-page内）：
 1. ✅ マイリストに保存しました
 2. 📦 マイリストはこちら（茶色・btn-goto-mylist）
-3. 🛒 Amazonで購入（オレンジ・btn-amazon-after-save）
-4. 新しい食品を解析する
-5. 判定結果にフィードバックを送る
+3. 楽天で購入・Amazonで購入
+4. 新しい商品を解析する
+5. 判定結果について報告する
 
 ### モード別データ管理（A案）
 - 同じ商品でもモードが違えば別行
@@ -228,7 +240,7 @@ mylist-saved-messageの表示順（scanner-page内）：
 - `renderDetailedResult()` は Gemini詳細モード専用の描画関数で `renderResult()` を経由しない
 - `showSaveButtonIfSafe()` は**両方の関数末尾**で呼ぶこと
 - 解析開始時に `save-to-mylist-area` を非表示・`window._lastAnalysisResult` をリセットすること
-- JSを修正したら `safeat.js?v=x.x.x` のバージョン番号を上げること（Cloudflareキャッシュ対策）
+- JS/CSSを修正したら該当ファイルの `?v=x.x.x` を上げること（Cloudflareキャッシュ対策）
 
 
 
@@ -302,22 +314,27 @@ mylist-saved-messageの表示順（scanner-page内）：
 
 ## 10. コード肥大化への方針
 
-2026-05-12時点で `web/safeat.js` は約2378行、`web/index.html` は約698行、`web/safeat.css` は約2092行まで大きくなっている。
+2026-05-12時点で、フロントの段階的な分離は一通り実施済み。`web/safeat.js` は約58行まで縮小し、UI起動・タブ切替など最小限にしている。`web/safeat.css` も約1167行まで縮小し、認証モーダル・LP・ユーザー設定/マイリスト系CSSは別ファイルへ分離済み。
 
-この状態で「機能追加を続け、最後にまとめて全体修正する」方針は避ける。認証、画面遷移、カメラ、バーコード、Gemini解析、マイリスト保存が相互に絡んでいるため、最後に一括で直すと影響範囲が広くなり、不具合の原因特定も難しくなる。
+今後も「機能追加を続け、最後にまとめて全体修正する」方針は避ける。認証、画面遷移、カメラ、バーコード、Gemini解析、マイリスト保存が相互に絡んでいるため、最後に一括で直すと影響範囲が広くなり、不具合の原因特定も難しくなる。
 
-今後は全面リライトではなく、動く状態を保ったまま段階的に整理する。新機能追加やバグ修正で触る周辺から、既存挙動を変えない範囲で小さく分割する。
+今後は全面リライトではなく、動く状態を保ったまま段階的に整理する。ただし、現状は十分に分離が進んでいるため、必要のない分割は行わない。新機能追加やバグ修正で触る周辺だけ、既存挙動を変えない範囲で小さく整理する。
 
-優先して分離を検討する領域:
+現在の主な分離済みファイル:
 
-- `auth.js`: 認証フロー、セッション、ログイン状態表示
-- `api-client.js`: API呼び出し、認証トークン付きfetch
-- `pages.js`: `showById()` などの画面遷移
-- `scanner.js`: カメラ、バーコードスキャン、停止処理
-- `mylist.js`: 保存、一覧、削除、商品名表示
-- `result-renderer.js`: `renderResult()`、`renderDetailedResult()`、保存ボタン表示
+- `auth-ui.js`: 認証UI・ログイン/新規登録モーダル
+- `page-utils.js`: 画面切替
+- `navigation-ui.js`: ヘッダー/ドロワー/ページ遷移
+- `mode-ui.js`: モード表示・モードバー
+- `settings-ui.js`: ユーザー設定
+- `image-ui.js`: 画像選択・切り抜き・カメラ
+- `analysis-controller.js`: 解析実行制御・状態管理
+- `result-ui.js`: 判定結果描画・フィードバック・保存ボタン表示
+- `mylist-ui.js`: マイリスト・バーコード保存
+- `user-db.js`: ブラウザ内ユーザー検証DB
+- `admin.js` / `admin.css`: 管理者ページ
 
-基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、次の修正から触る場所を少しずつ分割すること。JS/CSSを修正した場合は、従来どおり `index.html` の `safeat.js?v=x.x.x` / `safeat.css?v=x.x.x` を更新する。
+基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、必要になった場所だけ小さく整えること。JS/CSSを修正した場合は、従来どおり `index.html` の該当 `?v=x.x.x` を更新する。CSS分割後は `safeat.css` 以外のCSSを直した場合も、そのCSSのクエリバージョンを上げる。
 
 ---
 
@@ -353,7 +370,7 @@ python3 -m http.server 5500
 | 20 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
 | 21 | 登録ボタンが表示されない | `renderDetailedResult()` が `renderResult()` を経由せず独自描画 | `renderDetailedResult()` 末尾に `showSaveButtonIfSafe()` を追加 |
 | 22 | 解析前にconfirmダイアログが出る | 前回のgray判定結果が残った状態で新しい解析を開始 | 解析開始時に `save-to-mylist-area` を非表示・`_lastAnalysisResult` をリセット |
-| 23 | 古いJSが配信される | Cloudflare キャッシュ | `safeat.js?v=x.x.x` のバージョン番号を上げる |
+| 23 | 古いJS/CSSが配信される | Cloudflare キャッシュ | 該当ファイルの `?v=x.x.x` のバージョン番号を上げる |
 | 24 | SQL EditorにペーストできないSupabase問題 | ブラウザのフォーカス問題 | エディタを一度クリックしてからペースト or 右クリック→貼り付け |
 | 25 | 楽天APIで商品名が取得できない | 楽天に未登録の商品 | Open Food Facts APIにフォールバック |
 | 26 | 楽天リンクがアフィリエイトにならない | itemUrlをそのまま使用 | RAKUTEN_AFFILIATE_IDで変換 |
@@ -390,4 +407,4 @@ python3 -m http.server 5500
 ---
 
 *作成日：2026年4月28日*
-*最終更新：2026年5月12日（ローカル確認URLを http://localhost:5500/index.html に統一）*
+*最終更新：2026年5月12日（フロント分離状況・CSS分割・ローカル確認URLを反映）*

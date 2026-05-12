@@ -76,6 +76,27 @@ daisho-kikaku.com（菜食健美 成分チェッカー）
 | プライバシーポリシー | `web/privacy.html` | 法的ページ |
 | 利用規約 | `web/terms.html` | 法的ページ |
 
+### フロント分離状況（2026-05-12）
+
+肥大化防止のため、`web/index.html` / `web/safeat.js` / `web/safeat.css` から段階的に分離済み。
+
+| 領域 | 主なファイル |
+|---|---|
+| 起動・共通DOM | `web/safeat.js` |
+| APIクライアント | `web/safeat-api.js` |
+| 認証UI | `web/auth-ui.js`, `web/auth-modal.css` |
+| 画面遷移 | `web/page-utils.js`, `web/navigation-ui.js` |
+| モード表示 | `web/mode-ui.js` |
+| ユーザー設定 | `web/settings-ui.js` |
+| 画像・カメラ | `web/image-ui.js` |
+| 解析制御 | `web/analysis-controller.js` |
+| 判定結果 | `web/result-ui.js` |
+| マイリスト | `web/mylist-ui.js`, `web/user-mylist.css` |
+| LP・モード選択CSS | `web/landing.css` |
+| 管理者画面 | `web/admin.html`, `web/admin.js`, `web/admin.css` |
+
+CSSは `safeat.css` が共通・スキャン・結果・カメラ系、追加CSSが各画面領域を担当する。これ以上の細分化は必要になった場合のみ行う。
+
 ---
 
 ## 画面遷移フロー
@@ -230,7 +251,7 @@ POST /api/analyze/gemini/image/detailed → 成分詳細判定（product_name・
 | 20 | user_settings テーブルがない | 未作成 | SQL EditorでCREATE TABLE実行 |
 | 21 | 登録ボタンが表示されない | `renderDetailedResult()` が `renderResult()` を経由せず独自描画 | `renderDetailedResult()` 末尾に `showSaveButtonIfSafe()` を追加 |
 | 22 | 解析前にconfirmダイアログが出る | 前回のgray判定結果が残った状態で新しい解析を開始 | 解析開始時に `save-to-mylist-area` を非表示・`_lastAnalysisResult` をリセット |
-| 23 | 古いJSが配信される | Cloudflare キャッシュ | `safeat.js?v=x.x.x` のバージョン番号を上げる |
+| 23 | 古いJS/CSSが配信される | Cloudflare キャッシュ | 該当ファイルの `?v=x.x.x` のバージョン番号を上げる |
 | 24 | SQL EditorにペーストできないSupabase問題 | ブラウザのフォーカス問題 | エディタを一度クリックしてからペースト or 右クリック→貼り付け |
 | 25 | 楽天APIで商品名が取得できない | 楽天に未登録の商品 | Open Food Facts APIにフォールバック |
 | 26 | 楽天リンクがアフィリエイトにならない | itemUrlをそのまま使用 | RAKUTEN_AFFILIATE_IDで変換 |
@@ -244,22 +265,26 @@ POST /api/analyze/gemini/image/detailed → 成分詳細判定（product_name・
 
 ## コード肥大化への方針
 
-2026-05-12時点で `web/safeat.js` は約2378行、`web/index.html` は約698行、`web/safeat.css` は約2092行まで大きくなっている。
+2026-05-12時点で、フロントの段階的な分離は一通り実施済み。`web/safeat.js` は約58行まで縮小し、UI起動・タブ切替など最小限にしている。`web/safeat.css` も約1167行まで縮小し、認証モーダル・LP・ユーザー設定/マイリスト系CSSは別ファイルへ分離済み。
 
-この状態で「機能追加を続け、最後にまとめて全体修正する」方針は避ける。認証、画面遷移、カメラ、バーコード、Gemini解析、マイリスト保存が相互に絡んでいるため、最後に一括で直すと影響範囲が広くなり、不具合の原因特定も難しくなる。
+今後も「機能追加を続け、最後にまとめて全体修正する」方針は避ける。認証、画面遷移、カメラ、バーコード、Gemini解析、マイリスト保存が相互に絡んでいるため、最後に一括で直すと影響範囲が広くなり、不具合の原因特定も難しくなる。
 
-今後は全面リライトではなく、動く状態を保ったまま段階的に整理する。新機能追加やバグ修正で触る周辺から、既存挙動を変えない範囲で小さく分割する。
+今後は全面リライトではなく、動く状態を保ったまま段階的に整理する。ただし、現状は十分に分離が進んでいるため、必要のない分割は行わない。新機能追加やバグ修正で触る周辺だけ、既存挙動を変えない範囲で小さく整理する。
 
-優先して分離を検討する領域:
+現在の主な分離済みファイル:
 
-- `auth.js`: 認証フロー、セッション、ログイン状態表示
-- `api-client.js`: API呼び出し、認証トークン付きfetch
-- `pages.js`: `showById()` などの画面遷移
-- `scanner.js`: カメラ、バーコードスキャン、停止処理
-- `mylist.js`: 保存、一覧、削除、商品名表示
-- `result-renderer.js`: `renderResult()`、`renderDetailedResult()`、保存ボタン表示
+- `auth-ui.js`: 認証UI・ログイン/新規登録モーダル
+- `page-utils.js`: 画面切替
+- `navigation-ui.js`: ヘッダー/ドロワー/ページ遷移
+- `mode-ui.js`: モード表示・モードバー
+- `settings-ui.js`: ユーザー設定
+- `image-ui.js`: 画像選択・切り抜き・カメラ
+- `analysis-controller.js`: 解析実行制御・状態管理
+- `result-ui.js`: 判定結果描画・フィードバック・保存ボタン表示
+- `mylist-ui.js`: マイリスト・バーコード保存
+- `user-db.js`: ブラウザ内ユーザー検証DB
 
-基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、次の修正から触る場所を少しずつ分割すること。JS/CSSを修正した場合は、従来どおり `index.html` の `safeat.js?v=x.x.x` / `safeat.css?v=x.x.x` を更新する。
+基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、必要になった場所だけ小さく整えること。JS/CSSを修正した場合は、従来どおり `index.html` の該当 `?v=x.x.x` を更新する。CSS分割後は `safeat.css` 以外のCSSを直した場合も、そのCSSのクエリバージョンを上げる。
 
 ---
 

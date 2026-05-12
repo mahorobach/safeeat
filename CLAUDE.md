@@ -102,7 +102,7 @@ scanner-pageに戻り、商品名入力欄を表示
   ↓ 「保存する」ボタンを押す
 保存完了（✅ マイリストに保存しました）
 
-「新しい食品を解析する」ボタンを押すと
+「新しい商品を解析する」ボタンを押すと
 _lastScannedProduct・_lastExtractedProductName・入力欄をリセット
 ```
 
@@ -119,8 +119,8 @@ overall='ng'   → 登録ボタン非表示
 - `showSaveButtonIfSafe()` は両方の関数末尾で呼ぶこと
 
 ### JSバージョン管理
-- JSを修正したら `index.html` の `safeat.js?v=x.x.x` のバージョン番号を上げること
-- CSSを修正したら `index.html` の `safeat.css?v=x.x.x` のバージョン番号を上げること
+- JSを修正したら `index.html` の該当JSの `?v=x.x.x` を上げること
+- CSSを修正したら `index.html` / `admin.html` の該当CSSの `?v=x.x.x` を上げること
 - Cloudflare Pages のキャッシュが古いJS/CSSを返す問題を防ぐため
 
 ### 商品名が取得できない場合の表示
@@ -145,6 +145,9 @@ overall='ng'   → 登録ボタン非表示
 ## CSS注意
 - メディアクエリのdisplay:noneが効かない場合は !important を使うか
   対象クラス定義の直後にメディアクエリを書くこと
+- `safeat.css` は共通・スキャン・結果・カメラ系を担当
+- `auth-modal.css` はログイン/新規登録、`landing.css` はLP/モード選択、`user-mylist.css` はユーザー設定/マイリスト/保存UIを担当
+- CSSはこれ以上細かく分けすぎない。新規UIは既存の担当CSSに追記する
 
 ## 実装前の必須確認
 - 実装前に関連する既存コードの構造（親要素・スコープ・非同期）を
@@ -152,22 +155,26 @@ overall='ng'   → 登録ボタン非表示
 
 ## コード肥大化への方針
 
-2026-05-12時点で `web/safeat.js` は約2378行、`web/index.html` は約698行、`web/safeat.css` は約2092行まで大きくなっている。
+2026-05-12時点で、フロントの段階的な分離は一通り実施済み。`web/safeat.js` は約58行まで縮小し、UI起動・タブ切替など最小限にしている。`web/safeat.css` も約1167行まで縮小し、認証モーダル・LP・ユーザー設定/マイリスト系CSSは別ファイルへ分離済み。
 
-この状態で「機能追加を続け、最後にまとめて全体修正する」方針は避けること。認証、画面遷移、カメラ、バーコード、Gemini解析、マイリスト保存が相互に絡んでいるため、最後に一括で直すと影響範囲が広くなり、不具合の原因特定も難しくなる。
+今後も「機能追加を続け、最後にまとめて全体修正する」方針は避けること。認証、画面遷移、カメラ、バーコード、Gemini解析、マイリスト保存が相互に絡んでいるため、最後に一括で直すと影響範囲が広くなり、不具合の原因特定も難しくなる。
 
-今後は全面リライトではなく、動く状態を保ったまま段階的に整理する。新機能追加やバグ修正で触る周辺から、既存挙動を変えない範囲で小さく分割する。
+今後は全面リライトではなく、動く状態を保ったまま段階的に整理する。ただし、現状は十分に分離が進んでいるため、必要のない分割は行わない。新機能追加やバグ修正で触る周辺だけ、既存挙動を変えない範囲で小さく整理する。
 
-優先して分離を検討する領域:
+現在の主な分離済みファイル:
 
-- `auth.js`: 認証フロー、セッション、ログイン状態表示
-- `api-client.js`: API呼び出し、認証トークン付きfetch
-- `pages.js`: `showById()` などの画面遷移
-- `scanner.js`: カメラ、バーコードスキャン、停止処理
-- `mylist.js`: 保存、一覧、削除、商品名表示
-- `result-renderer.js`: `renderResult()`、`renderDetailedResult()`、保存ボタン表示
+- `auth-ui.js`: 認証UI・ログイン/新規登録モーダル
+- `page-utils.js`: 画面切替
+- `navigation-ui.js`: ヘッダー/ドロワー/ページ遷移
+- `mode-ui.js`: モード表示・モードバー
+- `settings-ui.js`: ユーザー設定
+- `image-ui.js`: 画像選択・切り抜き・カメラ
+- `analysis-controller.js`: 解析実行制御・状態管理
+- `result-ui.js`: 判定結果描画・フィードバック・保存ボタン表示
+- `mylist-ui.js`: マイリスト・バーコード保存
+- `user-db.js`: ブラウザ内ユーザー検証DB
 
-基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、次の修正から触る場所を少しずつ分割すること。JS/CSSを修正した場合は、従来どおり `index.html` の `safeat.js?v=x.x.x` / `safeat.css?v=x.x.x` を更新する。
+基本方針は「今すぐ全体を作り直す」でも「最後に全部直す」でもなく、必要になった場所だけ小さく整えること。JS/CSSを修正した場合は、従来どおり `index.html` の該当 `?v=x.x.x` を更新する。CSS分割後は `safeat.css` 以外のCSSを直した場合も、そのCSSのクエリバージョンを上げる。
 
 ## ローカル確認URL
 
@@ -193,7 +200,7 @@ python3 -m http.server 5500
 - Claude Chatは必ずファイルを確認してから判断する
   → 問題が解決しない場合は、修正後の最新ファイルをアップロードして再確認を依頼する
 - 確認が必要な主なファイル：
-  - フロント修正時：index.html・safeat.js・safeat.css
+  - フロント修正時：index.html・関連JS・関連CSS（safeat.css / auth-modal.css / landing.css / user-mylist.css など）
   - API修正時：analyze-gemini.js・safeat-api.js
   - ロジック修正時：shared/rules.js・server/routes/該当ファイル
 - Claude Chatでの変更内容は、セッション終了時に.mdファイルへ反映する
@@ -204,4 +211,4 @@ python3 -m http.server 5500
 - [ ] 新ルート追加時は CORS・`server/index.js` のマウント確認
 - [ ] 本番URL変更時は `web/site-config.js` と `ALLOWED_ORIGINS` の両方
 - [ ] 認証ミドルウェアを通さないルートを作らない（`/api/health` 以外）
-- [ ] JSを修正したら `safeat.js?v=x.x.x` のバージョン番号を上げる（キャッシュ対策）
+- [ ] JS/CSSを修正したら、該当ファイルの `?v=x.x.x` のバージョン番号を上げる（キャッシュ対策）
