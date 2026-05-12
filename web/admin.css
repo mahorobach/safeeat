@@ -1,0 +1,28 @@
+/**
+ * VegEatEase — 管理者ダッシュボードCSS
+ */
+
+.admin-wrap { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem; }
+.admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.admin-title { font-size: 1.4rem; font-weight: bold; color: #2D7A3A; }
+.admin-header-back-link { font-size: 0.9rem; color: #fff; text-decoration: none; }
+.admin-header-back-link:hover { text-decoration: underline; }
+.admin-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 1.4rem; margin-bottom: 1.2rem; }
+.admin-card-title { font-weight: bold; color: #2D7A3A; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee; }
+.admin-search { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.admin-search input { flex: 1; padding: 0.6rem 1rem; border: 1px solid #ddd; border-radius: 2rem; font-size: 0.95rem; }
+.admin-search button { background: #2D7A3A; color: #fff; border: none; border-radius: 2rem; padding: 0.6rem 1.4rem; cursor: pointer; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.admin-table th { background: #f5f5f5; padding: 0.7rem; text-align: left; border-bottom: 2px solid #eee; }
+.admin-table td { padding: 0.7rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.admin-table tr:hover td { background: #fafafa; }
+.plan-badge { display: inline-block; border-radius: 1rem; padding: 0.2rem 0.7rem; font-size: 0.78rem; font-weight: bold; }
+.plan-badge.free    { background: #f0f0f0; color: #666; }
+.plan-badge.tester  { background: #fff3cd; color: #856404; }
+.plan-badge.pro     { background: #d4edda; color: #155724; }
+.btn-plan-change { border: 1px solid #ddd; border-radius: 1rem; padding: 0.3rem 0.8rem; font-size: 0.82rem; cursor: pointer; background: #fff; }
+.btn-plan-change:hover { border-color: #2D7A3A; color: #2D7A3A; }
+.admin-msg { text-align: center; padding: 1rem; color: #888; }
+.admin-error { color: #c0392b; text-align: center; padding: 2rem; }
+.access-denied { text-align: center; padding: 4rem 1rem; }
+.access-denied h2 { color: #c0392b; margin-bottom: 1rem; }

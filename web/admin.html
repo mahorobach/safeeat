@@ -5,30 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VegEatEase 管理者ダッシュボード</title>
   <link rel="stylesheet" href="safeat.css?v=0.5.2">
-  <style>
-    .admin-wrap { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem; }
-    .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-    .admin-title { font-size: 1.4rem; font-weight: bold; color: #2D7A3A; }
-    .admin-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 1.4rem; margin-bottom: 1.2rem; }
-    .admin-card-title { font-weight: bold; color: #2D7A3A; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee; }
-    .admin-search { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-    .admin-search input { flex: 1; padding: 0.6rem 1rem; border: 1px solid #ddd; border-radius: 2rem; font-size: 0.95rem; }
-    .admin-search button { background: #2D7A3A; color: #fff; border: none; border-radius: 2rem; padding: 0.6rem 1.4rem; cursor: pointer; }
-    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .admin-table th { background: #f5f5f5; padding: 0.7rem; text-align: left; border-bottom: 2px solid #eee; }
-    .admin-table td { padding: 0.7rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-    .admin-table tr:hover td { background: #fafafa; }
-    .plan-badge { display: inline-block; border-radius: 1rem; padding: 0.2rem 0.7rem; font-size: 0.78rem; font-weight: bold; }
-    .plan-badge.free    { background: #f0f0f0; color: #666; }
-    .plan-badge.tester  { background: #fff3cd; color: #856404; }
-    .plan-badge.pro     { background: #d4edda; color: #155724; }
-    .btn-plan-change { border: 1px solid #ddd; border-radius: 1rem; padding: 0.3rem 0.8rem; font-size: 0.82rem; cursor: pointer; background: #fff; }
-    .btn-plan-change:hover { border-color: #2D7A3A; color: #2D7A3A; }
-    .admin-msg { text-align: center; padding: 1rem; color: #888; }
-    .admin-error { color: #c0392b; text-align: center; padding: 2rem; }
-    .access-denied { text-align: center; padding: 4rem 1rem; }
-    .access-denied h2 { color: #c0392b; margin-bottom: 1rem; }
-  </style>
+  <link rel="stylesheet" href="admin.css?v=0.5.1">
 </head>
 <body>
 
@@ -36,10 +13,9 @@
   <div>
     <a href="index.html" class="logo-link">
       <div class="logo">🥬 VegEatEase</div>
-      <div class="tagline">管理者ダッシュボード</div>
     </a>
   </div>
-  <div class="auth-area" id="auth-area"></div>
+  <a href="index.html" class="admin-header-back-link">← チェックに戻る</a>
 </header>
 
 <main>
@@ -53,7 +29,6 @@
 
     <div class="admin-header">
       <div class="admin-title">🛠️ 管理者ダッシュボード</div>
-      <a href="index.html" style="font-size:0.9rem; color:#2D7A3A;">← チェックに戻る</a>
     </div>
 
     <div class="admin-card">
@@ -80,128 +55,6 @@
 <script src="site-config.js?v=0.5.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js?v=0.5.2"></script>
-<script>
-(async function () {
-  const API_BASE = (window.SAFEAT_CONFIG && window.SAFEAT_CONFIG.API_BASE)
-    || "https://safeeat-production-b7c5.up.railway.app";
-
-  async function checkAdmin() {
-    if (!window.SafeEatAuth) return false;
-    const session = await window.SafeEatAuth.getSession();
-    if (!session?.user) return false;
-    const token = localStorage.getItem('safeat_auth_token');
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/check`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await res.json();
-      return d.ok && d.isAdmin;
-    } catch {
-      return false;
-    }
-  }
-
-  const isAdmin = await checkAdmin();
-  if (!isAdmin) {
-    document.getElementById('access-denied').style.display = 'block';
-    return;
-  }
-  document.getElementById('admin-content').style.display = 'block';
-
-  async function loadStats() {
-    const token = localStorage.getItem('safeat_auth_token');
-    try {
-      const res  = await fetch(`${API_BASE}/api/admin/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById('admin-stats').innerHTML = `
-          <table class="admin-table">
-            <tr><th>総ユーザー数</th><td>${data.stats.total_users} 人</td></tr>
-            <tr><th>今月のスキャン総数</th><td>${data.stats.total_scans_this_month} 回</td></tr>
-            <tr><th>テスターユーザー数</th><td>${data.stats.tester_count} 人</td></tr>
-          </table>
-        `;
-      }
-    } catch {
-      document.getElementById('admin-stats').innerHTML = '<p class="admin-error">統計情報の取得に失敗しました</p>';
-    }
-  }
-  loadStats();
-
-  async function searchUsers(email = '') {
-    const token = localStorage.getItem('safeat_auth_token');
-    const wrap  = document.getElementById('admin-table-wrap');
-    wrap.innerHTML = '<p class="admin-msg">検索中...</p>';
-    try {
-      const url  = `${API_BASE}/api/admin/users${email ? `?email=${encodeURIComponent(email)}` : ''}`;
-      const res  = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-
-      if (!data.ok || !data.users?.length) {
-        wrap.innerHTML = '<p class="admin-msg">ユーザーが見つかりませんでした</p>';
-        return;
-      }
-
-      const rows = data.users.map(u => `
-        <tr>
-          <td>${u.email}</td>
-          <td><span class="plan-badge ${u.plan}">${u.plan}</span></td>
-          <td>${u.scan_count} 回</td>
-          <td>
-            <select class="btn-plan-change" data-userid="${u.id}" onchange="changePlan('${u.id}', this.value)">
-              <option value="free"   ${u.plan === 'free'   ? 'selected' : ''}>free</option>
-              <option value="tester" ${u.plan === 'tester' ? 'selected' : ''}>tester（無制限）</option>
-              <option value="pro"    ${u.plan === 'pro'    ? 'selected' : ''}>pro</option>
-            </select>
-          </td>
-        </tr>
-      `).join('');
-
-      wrap.innerHTML = `
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>メールアドレス</th><th>プラン</th><th>今月のスキャン</th><th>プラン変更</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
-    } catch {
-      wrap.innerHTML = '<p class="admin-error">検索中にエラーが発生しました</p>';
-    }
-  }
-
-  window.changePlan = async function (userId, newPlan) {
-    const token = localStorage.getItem('safeat_auth_token');
-    try {
-      const res  = await fetch(`${API_BASE}/api/admin/users/${userId}/plan`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: newPlan }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        alert(`プランを「${newPlan}」に変更しました`);
-        loadStats();
-      } else {
-        alert('変更に失敗しました: ' + (data.error || ''));
-      }
-    } catch {
-      alert('通信エラーが発生しました');
-    }
-  };
-
-  document.getElementById('admin-search-btn')?.addEventListener('click', () => {
-    searchUsers(document.getElementById('admin-search-input').value.trim());
-  });
-  document.getElementById('admin-search-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') searchUsers(e.target.value.trim());
-  });
-
-})();
-</script>
+<script src="admin.js?v=0.5.1"></script>
 </body>
 </html>
