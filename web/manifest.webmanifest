@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "VegEatEase 食品成分チェッカー",
+  "short_name": "VegEatEase",
+  "description": "食品の成分表を写真で撮り、食事スタイルに合わせて安全性を判定します。",
+  "lang": "ja",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f4d2e",
+  "theme_color": "#2d7a3a",
+  "categories": ["food", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
